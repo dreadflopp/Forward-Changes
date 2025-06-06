@@ -66,7 +66,6 @@ namespace ForwardChanges
                     Console.WriteLine($"Error processing {recordType.Name} records:");
                     Console.WriteLine($"Exception: {ex.Message}");
                     Console.WriteLine($"Stack trace: {ex.StackTrace}");
-                    // Continue with next record type instead of failing completely
                 }
             }
 

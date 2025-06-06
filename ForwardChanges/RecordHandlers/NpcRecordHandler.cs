@@ -3,8 +3,13 @@ using Mutagen.Bethesda.Synthesis;
 using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Plugins.Cache;
+using Mutagen.Bethesda.Strings;
+using Mutagen.Bethesda.Plugins;
+using Mutagen.Bethesda.Skyrim.Internals;
 using System.Reflection;
 using System.Collections.Generic;
+using System.Linq;
+using System;
 
 namespace ForwardChanges.RecordHandlers
 {
@@ -12,14 +17,27 @@ namespace ForwardChanges.RecordHandlers
     {
         private static readonly Dictionary<string, IPropertyHandler> propertyHandlers = new()
         {
-            { "EditorID", new SimplePropertyHandler() },
-            { "Name", new SimplePropertyHandler() },
-            { "Class", new SimplePropertyHandler() },
-            { "AIData.Confidence", new GroupedPropertyHandler<INpcGetter>("AIData", "Confidence") },
+            // Direct properties - properties directly on the NPC record
+            { "EditorID", new PropertyHandler<INpcGetter>("EditorID",
+                new DirectPropertyAccess<INpcGetter, string?>(npc => npc.EditorID)) },
+            { "Name", new PropertyHandler<INpcGetter>("Name",
+                new DirectPropertyAccess<INpcGetter, ITranslatedStringGetter?>(npc => npc.Name)) },
+            { "Class", new PropertyHandler<INpcGetter>("Class",
+                new DirectPropertyAccess<INpcGetter, IFormLinkGetter<IClassGetter>?>(npc => npc.Class)) },
+            { "DeathItem", new FormLinkPropertyHandler<INpcGetter>("DeathItem",
+                new DirectPropertyAccess<INpcGetter, IFormLinkGetter<IItemGetter>?>(npc => npc.DeathItem)) },
+            { "CombatOverridePackageList", new PropertyHandler<INpcGetter>("CombatOverridePackageList",
+                new DirectPropertyAccess<INpcGetter, IFormLinkNullableGetter<IFormListGetter>?>(npc => npc.CombatOverridePackageList)) },
+            { "SpectatorOverridePackageList", new PropertyHandler<INpcGetter>("SpectatorOverridePackageList",
+                new DirectPropertyAccess<INpcGetter, IFormLinkNullableGetter<IFormListGetter>?>(npc => npc.SpectatorOverridePackageList)) },
+
+            // Grouped properties - properties on groups within the NPC record
+            { "AIData.Confidence", new PropertyHandler<INpcGetter>("AIData.Confidence",
+                new GroupedPropertyAccess<INpcGetter, IAIDataGetter, Confidence>(
+                    npc => npc.AIData,
+                    aiData => aiData.Confidence)) },
             { "Configuration.Flags", new ProtectionFlagsHandler() },
-            { "DeathItem", new FormLinkPropertyHandler() },
-            { "CombatOverridePackageList", new SimplePropertyHandler() },
-            { "SpectatorOverridePackageList", new SimplePropertyHandler() }
+            { "Factions", new FactionListHandler() }
         };
 
         public static void ProcessNpcRecords(IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
@@ -39,46 +57,15 @@ namespace ForwardChanges.RecordHandlers
 
                 foreach (var (propName, propertyHandler) in propertyHandlers)
                 {
-                    if (winningContext.Record is INpcGetter npcGetter)
+                    var forwardValue = propertyHandler.GetForwardValue(recordContexts, state);
+                    Console.WriteLine($"Last changed value: {forwardValue}");
+                    var winningValue = propertyHandler.GetWinningValue(winningContext);
+
+                    // For all other properties, use normal comparison
+                    if (!Equals(winningValue, forwardValue))
                     {
-                        // Get the property info for the winning record
-                        if (npcGetter.GetType().GetProperty(propName.Split('.')[0]) is PropertyInfo property)
-                        {
-                            var lastChangedValue = propertyHandler.GetLastChangedValue(property, recordContexts, state);
-                            Console.WriteLine($"Last changed value: {lastChangedValue}");
-                            var winningValue = propertyHandler.GetWinningValue(property, winningContext);
-
-                            // Special handling for protection flags
-                            if (propName == "Configuration.Flags")
-                            {
-                                var lastChangedFlag = lastChangedValue as NpcConfiguration.Flag?;
-                                var winningFlag = winningValue as NpcConfiguration.Flag?;
-
-                                // If last changed has higher protection, forward it
-                                if (lastChangedFlag == NpcConfiguration.Flag.Essential && winningFlag != NpcConfiguration.Flag.Essential)
-                                {
-                                    Console.WriteLine("Forwarding Essential flag");
-                                    propertiesToForward[propName] = lastChangedValue;
-                                }
-                                else if (lastChangedFlag == NpcConfiguration.Flag.Protected && winningFlag == null)
-                                {
-                                    Console.WriteLine("Forwarding Protected flag");
-                                    propertiesToForward[propName] = lastChangedValue;
-                                }
-                                continue;
-                            }
-
-                            // For all other properties, use normal comparison
-                            if (!Equals(winningValue, lastChangedValue))
-                            {
-                                Console.WriteLine("Values differ, forwarding last changed value");
-                                propertiesToForward[propName] = lastChangedValue;
-                            }
-                        }
-                        else
-                        {
-                            Console.WriteLine($"Warning: Property {propName} not found on type {npcGetter.GetType().Name}");
-                        }
+                        Console.WriteLine("Values differ, forwarding new value");
+                        propertiesToForward[propName] = forwardValue;
                     }
                 }
 
@@ -99,6 +86,9 @@ namespace ForwardChanges.RecordHandlers
                     continue;
 
                 if (TryApplyFormLink(record, propName, value))
+                    continue;
+
+                if (TryApplyFactionList(record, propName, value))
                     continue;
 
                 ApplyStandardProperty(record, propName, value);
@@ -141,13 +131,93 @@ namespace ForwardChanges.RecordHandlers
 
             try
             {
+                // Get the FormKey values for better logging
+                var oldFormKey = oldValue?.GetType().GetProperty("FormKey")?.GetValue(oldValue);
+                var newFormKey = value?.GetType().GetProperty("FormKey")?.GetValue(value);
+
+                Console.WriteLine($"DEBUG: Property type: {property.PropertyType}");
+                Console.WriteLine($"DEBUG: Old value type: {oldValue?.GetType()}");
+                Console.WriteLine($"DEBUG: New value type: {value?.GetType()}");
+                Console.WriteLine($"DEBUG: Old FormKey: {oldFormKey}");
+                Console.WriteLine($"DEBUG: New FormKey: {newFormKey}");
+
+                // If the new value is null or has a null FormKey, we want to remove the FormLink entirely
+                if (value == null || (value is IFormLinkGetter formLinkGetter && formLinkGetter.IsNull))
+                {
+                    // Get the existing FormLink from the record
+                    var formLink = property.GetValue(record);
+                    var formLinkType = formLink?.GetType() ?? property.PropertyType;
+
+                    if (formLinkType.IsGenericType && formLinkType.GetGenericTypeDefinition() == typeof(FormLinkNullable<>))
+                    {
+                        // Get the specific SetTo method that takes a nullable FormKey
+                        var setToMethod = formLinkType.GetMethod("SetTo", new[] { typeof(FormKey?) });
+
+                        if (setToMethod != null)
+                        {
+                            try
+                            {
+                                setToMethod.Invoke(formLink, new object?[] { null });
+                                Console.WriteLine($"Removed FormLink {propName}: {oldFormKey?.ToString() ?? "Null"} -> Null");
+                                return true;
+                            }
+                            catch (Exception ex)
+                            {
+                                Console.WriteLine($"Error invoking SetTo: {ex.Message}");
+                            }
+                        }
+                    }
+                }
+
                 property.SetValue(record, value);
-                Console.WriteLine($"Forwarded {propName}: {oldValue?.ToString() ?? "Null"} -> {value?.ToString() ?? "Null"}");
+                Console.WriteLine($"Forwarded {propName}: {oldFormKey?.ToString() ?? "Null"} -> {newFormKey?.ToString() ?? "Null"}");
                 return true;
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Error setting FormLink property {propName}: {ex.Message}");
+                return false;
+            }
+        }
+
+        private static bool TryApplyFactionList(INpc record, string propName, object? value)
+        {
+            if (propName != "Factions" || value is not List<IRankPlacementGetter> factions)
+                return false;
+
+            try
+            {
+                // Create a copy of the factions list to avoid modification during iteration
+                var factionsArray = factions.Where(f => f.Faction != null).ToArray();
+
+                // Create a list to store the new factions
+                var newFactions = new List<(IFormLinkGetter<IFactionGetter> Faction, sbyte Rank)>();
+
+                // Process each faction
+                foreach (var faction in factionsArray)
+                {
+                    if (faction.Faction == null) continue;
+                    newFactions.Add((faction.Faction, faction.Rank));
+                }
+
+                // Clear existing factions
+                record.Factions.Clear();
+
+                // Add each faction with its rank
+                foreach (var (faction, rank) in newFactions)
+                {
+                    var newFaction = new RankPlacement();
+                    newFaction.Faction.SetTo(faction);
+                    newFaction.Rank = rank;
+                    record.Factions.Add(newFaction);
+                }
+
+                Console.WriteLine($"Forwarded {propName}: {newFactions.Count} factions");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error setting faction list: {ex.Message}");
                 return false;
             }
         }
