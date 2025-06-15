@@ -46,7 +46,8 @@ namespace ForwardChanges
                     switch (recordType)
                     {
                         case Type t when t == typeof(INpcGetter):
-                            NpcRecordHandler.ProcessNpcRecords(state);
+                            var npcHandler = new NpcRecordHandler();
+                            npcHandler.Process(state);
                             break;
                         case Type t when t == typeof(IWeaponGetter):
                             WeaponRecordHandler.ProcessWeaponRecords(state);
