@@ -7,6 +7,7 @@ using Mutagen.Bethesda.Synthesis;
 using ForwardChanges.PropertyStates;
 using ForwardChanges.PropertyHandlers.ListHandlers.Abstracts;
 using ForwardChanges.PropertyHandlers.Interfaces;
+using System.Collections.Generic;
 
 namespace ForwardChanges.PropertyHandlers.ListHandlers
 {
@@ -17,63 +18,111 @@ namespace ForwardChanges.PropertyHandlers.ListHandlers
         public FactionListHandler()
             : base(
                 "Factions",
-                npc => npc.Factions,
-                new FactionComparer())
+                npc => npc.Factions)
         {
         }
 
-        public static string FormatFactionList(IReadOnlyList<IRankPlacementGetter>? factions)
+        /// <summary>
+        /// Formats a list of factions into a string.
+        /// </summary>
+        /// <param name="factions">The list of factions to format.</param>
+        /// <returns>A string representation of the factions.</returns>
+        public string FormatFactionList(IReadOnlyList<IRankPlacementGetter>? factions)
         {
             if (factions == null || factions.Count == 0)
                 return "No factions";
 
-            return string.Join(", ", factions.Select(f => $"{f.Faction.FormKey}(Rank {f.Rank})"));
+            return string.Join(", ", factions.Select(f => FormatItem(f)));
         }
 
-        private class FactionComparer : IEqualityComparer<IRankPlacementGetter>
+        /// <summary>
+        /// Checks if two factions are equal.
+        /// </summary>
+        /// <param name="item1">The first faction to compare.</param>
+        /// <param name="item2">The second faction to compare.</param>
+        /// <returns>True if the factions are equal, false otherwise.</returns>
+        protected override bool IsItemEqual(IRankPlacementGetter? item1, IRankPlacementGetter? item2)
         {
-            public bool Equals(IRankPlacementGetter? x, IRankPlacementGetter? y)
-            {
-                if (ReferenceEquals(x, y)) return true;
-                if (x is null || y is null) return false;
-                return x.Faction.FormKey.Equals(y.Faction.FormKey) && x.Rank == y.Rank;
-            }
-
-            public int GetHashCode(IRankPlacementGetter obj)
-            {
-                return HashCode.Combine(obj.Faction.FormKey, obj.Rank);
-            }
+            if (ReferenceEquals(item1, item2)) return true;
+            if (item1 is null || item2 is null) return false;
+            return IsFactionReferenceEqual(item1, item2) && IsRankEqual(item1, item2);
         }
 
-        private class FactionFormKeyComparer : IEqualityComparer<IRankPlacementGetter>
+        /// <summary>
+        /// Checks if two factions are equal by their reference.
+        /// </summary>
+        /// <param name="item1">The first faction to compare.</param>
+        /// <param name="item2">The second faction to compare.</param>
+        /// <returns>True if the factions are equal, false otherwise.</returns>
+        protected bool IsFactionReferenceEqual(IRankPlacementGetter? item1, IRankPlacementGetter? item2)
         {
-            public bool Equals(IRankPlacementGetter? x, IRankPlacementGetter? y)
-            {
-                if (ReferenceEquals(x, y)) return true;
-                if (x is null || y is null) return false;
-                return x.Faction.FormKey.Equals(y.Faction.FormKey);
-            }
-
-            public int GetHashCode(IRankPlacementGetter obj)
-            {
-                return obj.Faction.FormKey.GetHashCode();
-            }
+            if (ReferenceEquals(item1, item2)) return true;
+            if (item1 is null || item2 is null) return false;
+            return item1.Faction.FormKey.Equals(item2.Faction.FormKey);
         }
 
+        /// <summary>
+        /// Checks if two factions are equal by their rank.
+        /// </summary>
+        /// <param name="item1">The first faction to compare.</param>
+        /// <param name="item2">The second faction to compare.</param>
+        /// <returns>True if the factions are equal, false otherwise.</returns>
+        protected bool IsRankEqual(IRankPlacementGetter? item1, IRankPlacementGetter? item2)
+        {
+            if (ReferenceEquals(item1, item2)) return true;
+            if (item1 is null || item2 is null) return false;
+            return item1.Rank == item2.Rank;
+        }
+
+        /// <summary>
+        /// Formats a faction into a string.
+        /// </summary>
+        /// <param name="item">The faction to format.</param>
+        /// <returns>A string representation of the faction.</returns>
         protected override string FormatItem(IRankPlacementGetter item)
         {
             return $"{item.Faction.FormKey}(Rank {item.Rank})";
         }
 
-        public override object? GetValue(IMajorRecordGetter record)
+        public override void SetValue(IMajorRecord record, object? value)
         {
-            if (record is INpcGetter npc)
+            if (record is not INpc npc || value is not ItemStateCollection<IRankPlacementGetter> listState)
+                return;
+
+            // Clear existing factions and add new ones
+            var oldFactions = npc.Factions;
+            npc.Factions.Clear();
+            foreach (var item in listState.Items.Where(i => !i.IsRemoved))
             {
-                var listState = new ItemStateCollection<IRankPlacementGetter>();
-                listState.Items = npc.Factions.Select(f => new ItemState<IRankPlacementGetter>(f, "")).ToList();
-                return listState;
+                var rankPlacement = new RankPlacement
+                {
+                    Faction = new FormLink<IFactionGetter>(item.Item.Faction.FormKey),
+                    Rank = item.Item.Rank
+                };
+                npc.Factions.Add(rankPlacement);
             }
-            return null;
+            Console.WriteLine($"Forwarded factions: {this.FormatFactionList(oldFactions)} -> {this.FormatFactionList(npc.Factions)}");
+        }
+
+        public override bool AreValuesEqual(object? value1, object? value2)
+        {
+            if (value1 == null && value2 == null) return true;
+            if (value1 == null || value2 == null) return false;
+            if (value1 is ItemStateCollection<IRankPlacementGetter> list1 &&
+                value2 is ItemStateCollection<IRankPlacementGetter> list2)
+            {
+                var items1 = list1.Items.Select(i => i.Item).ToList();
+                var items2 = list2.Items.Select(i => i.Item).ToList();
+
+                if (items1.Count != items2.Count) return false;
+
+                for (int i = 0; i < items1.Count; i++)
+                {
+                    if (!IsItemEqual(items1[i], items2[i])) return false;
+                }
+                return true;
+            }
+            return false;
         }
 
         public override void UpdatePropertyState(
@@ -81,14 +130,12 @@ namespace ForwardChanges.PropertyHandlers.ListHandlers
             IPatcherState<ISkyrimMod, ISkyrimModGetter> state,
             PropertyState propertyState)
         {
-            this.context = context;
             if (context.Record is not INpcGetter record)
                 return;
 
             var recordItems = ListAccessor(record).ToList();
             var currentFinalItems = (ItemStateCollection<IRankPlacementGetter>)propertyState.FinalValue!;
             var recordMod = state.LoadOrder[context.ModKey].Mod;
-            var formKeyComparer = new FactionFormKeyComparer();
 
             // Process removals
             foreach (var item in currentFinalItems.Items.Where(i => !i.IsRemoved).ToList())
@@ -119,13 +166,13 @@ namespace ForwardChanges.PropertyHandlers.ListHandlers
             {
                 // Check if this faction exists in the final items with a different rank
                 var matchingItemInFinalItems = currentFinalItems.Items.FirstOrDefault(e =>
-                    !e.IsRemoved && formKeyComparer.Equals(e.Item, item));
+                    !e.IsRemoved && IsFactionReferenceEqual(e.Item, item));
 
                 if (matchingItemInFinalItems == null)
                 {
                     // Check if this specific item was previously removed
                     var previouslyRemovedItem = currentFinalItems.Items.FirstOrDefault(e =>
-                        e.IsRemoved && formKeyComparer.Equals(e.Item, item));
+                        e.IsRemoved && IsFactionReferenceEqual(e.Item, item));
 
                     if (previouslyRemovedItem == null)
                     {
@@ -178,100 +225,6 @@ namespace ForwardChanges.PropertyHandlers.ListHandlers
 
             // Update the state
             propertyState.FinalValue = currentFinalItems;
-        }
-
-        public override PropertyState CreateState(string lastChangedByMod, object? originalValue = null)
-        {
-            var listState = new ItemStateCollection<IRankPlacementGetter>();
-            try
-            {
-                if (originalValue == null)
-                {
-                    Console.WriteLine($"Warning: Null faction list value encountered");
-                    return new PropertyState
-                    {
-                        OriginalValue = originalValue,
-                        FinalValue = listState,
-                        LastChangedByMod = lastChangedByMod
-                    };
-                }
-
-                if (originalValue is ItemStateCollection<IRankPlacementGetter> originalListState)
-                {
-                    listState.Items = originalListState.Items.Select(item => new ItemState<IRankPlacementGetter>(item.Item, lastChangedByMod)).ToList();
-                }
-                else
-                {
-                    Console.WriteLine($"Error: Expected ListPropertyState but got {originalValue.GetType().Name}");
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error processing faction list: {ex.Message}");
-            }
-
-            var state = new PropertyState
-            {
-                OriginalValue = originalValue,
-                FinalValue = listState,
-                LastChangedByMod = lastChangedByMod
-            };
-
-            // Debug output
-            if (originalValue is ItemStateCollection<IRankPlacementGetter> debugListState)
-            {
-                LogCollector.Add("Factions", $"[Factions] CreateState. LastChangedByMod: {lastChangedByMod} Original factions: {FormatFactionList(debugListState.Items.Select(i => i.Item).ToList())}");
-            }
-            else
-            {
-                LogCollector.Add("Factions", "[Factions] No original factions");
-            }
-
-            return state;
-        }
-
-        public override object? GetValueFromContext(
-            IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> context)
-        {
-            if (context.Record is not INpcGetter npc)
-                return null;
-
-            // Create a ListPropertyState with the current factions
-            var listState = new ItemStateCollection<IRankPlacementGetter>();
-            listState.Items = npc.Factions.Select(f => new ItemState<IRankPlacementGetter>(f, context.ModKey.ToString())).ToList();
-            return listState;
-        }
-
-        public override void SetValue(IMajorRecord record, object? value)
-        {
-            if (record is not INpc npc || value is not ItemStateCollection<IRankPlacementGetter> listState)
-                return;
-
-            // Clear existing factions and add new ones
-            var oldFactions = npc.Factions;
-            npc.Factions.Clear();
-            foreach (var item in listState.Items.Where(i => !i.IsRemoved))
-            {
-                var rankPlacement = new RankPlacement
-                {
-                    Faction = new FormLink<IFactionGetter>(item.Item.Faction.FormKey),
-                    Rank = item.Item.Rank
-                };
-                npc.Factions.Add(rankPlacement);
-            }
-            Console.WriteLine($"Forwarded factions: {FormatFactionList(oldFactions)} -> {FormatFactionList(npc.Factions)}");
-        }
-
-        public override bool AreValuesEqual(object? value1, object? value2)
-        {
-            if (value1 == null && value2 == null) return true;
-            if (value1 == null || value2 == null) return false;
-            if (value1 is ItemStateCollection<IRankPlacementGetter> list1 &&
-                value2 is ItemStateCollection<IRankPlacementGetter> list2)
-            {
-                return list1.Items.SequenceEqual(list2.Items, new FactionComparer());
-            }
-            return false;
         }
     }
 }

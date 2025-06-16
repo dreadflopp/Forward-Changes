@@ -5,9 +5,6 @@ using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Plugins.Cache;
 using Noggog;
 using ForwardChanges.PropertyStates;
-using ForwardChanges.PropertyHandlers.ListHandlers.Interfaces;
-using ForwardChanges.PropertyHandlers.BasicPropertyHandlers.Abstracts;
-using Mutagen.Bethesda.Plugins;
 using ForwardChanges.PropertyHandlers.Interfaces;
 
 namespace ForwardChanges.PropertyHandlers.ListHandlers.Abstracts
@@ -18,41 +15,98 @@ namespace ForwardChanges.PropertyHandlers.ListHandlers.Abstracts
     {
         protected readonly string _propertyName;
         protected readonly Func<TRecord, IReadOnlyList<TItem>> ListAccessor;
-        protected readonly IEqualityComparer<TItem> ItemComparer;
-        protected IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter>? context;
 
         protected AbstractListPropertyHandler(
             string propertyName,
-            Func<TRecord, IReadOnlyList<TItem>> listAccessor,
-            IEqualityComparer<TItem> itemComparer)
+            Func<TRecord, IReadOnlyList<TItem>> listAccessor)
         {
             _propertyName = propertyName;
             ListAccessor = listAccessor;
-            ItemComparer = itemComparer;
         }
 
         public abstract string PropertyName { get; }
 
-        public abstract object? GetValue(IMajorRecordGetter record);
+        public virtual object? GetValue(IMajorRecordGetter record)
+        {
+            if (record is not TRecord typedRecord)
+                return null;
+
+            var listState = new ItemStateCollection<TItem>();
+            listState.Items = ListAccessor(typedRecord).Select(item => new ItemState<TItem>(item, "")).ToList();
+            return listState;
+        }
 
         public abstract void SetValue(IMajorRecord record, object? value);
 
-        public abstract object? GetValueFromContext(
-            IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> context);
+        public virtual object? GetValueFromContext(
+            IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> context)
+        {
+            if (context.Record is not TRecord typedRecord)
+                return null;
 
-        public abstract PropertyState CreateState(string lastChangedByMod, object? originalValue = null);
+            var listState = new ItemStateCollection<TItem>();
+            listState.Items = ListAccessor(typedRecord).Select(item => new ItemState<TItem>(item, context.ModKey.ToString())).ToList();
+            return listState;
+        }
+
+        public abstract bool AreValuesEqual(object? value1, object? value2);
+
+        protected abstract bool IsItemEqual(TItem item1, TItem item2);
+
+        public virtual PropertyState CreateState(string lastChangedByMod, object? originalValue = null)
+        {
+            var listState = new ItemStateCollection<TItem>();
+            try
+            {
+                if (originalValue == null)
+                {
+                    Console.WriteLine($"Warning: Null {_propertyName} list value encountered");
+                    return new PropertyState
+                    {
+                        OriginalValue = originalValue,
+                        FinalValue = listState,
+                        LastChangedByMod = lastChangedByMod
+                    };
+                }
+
+                if (originalValue is ItemStateCollection<TItem> originalListState)
+                {
+                    listState.Items = originalListState.Items.Select(item => new ItemState<TItem>(item.Item, lastChangedByMod)).ToList();
+                }
+                else
+                {
+                    Console.WriteLine($"Error: Expected ItemStateCollection<{typeof(TItem).Name}> but got {originalValue.GetType().Name}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error processing {_propertyName} list: {ex.Message}");
+            }
+
+            var state = new PropertyState
+            {
+                OriginalValue = originalValue,
+                FinalValue = listState,
+                LastChangedByMod = lastChangedByMod
+            };
+
+            // Debug output
+            if (originalValue is ItemStateCollection<TItem> debugListState)
+            {
+                LogCollector.Add(_propertyName, $"[{_propertyName}] CreateState. LastChangedByMod: {lastChangedByMod} Original items: {string.Join(", ", debugListState.Items.Select(i => FormatItem(i.Item)))}");
+            }
+            else
+            {
+                LogCollector.Add(_propertyName, $"[{_propertyName}] No original items");
+            }
+
+            return state;
+        }
 
         public abstract void UpdatePropertyState(
             IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> context,
             IPatcherState<ISkyrimMod, ISkyrimModGetter> state,
             PropertyState propertyState);
-
-        public abstract bool AreValuesEqual(object? value1, object? value2);
-
-        protected bool IsItemEqual(TItem item1, TItem item2)
-        {
-            return ItemComparer.Equals(item1, item2);
-        }
 
         protected void InsertItemAtCorrectPosition(
             ItemState<TItem> newItem,
@@ -87,7 +141,7 @@ namespace ForwardChanges.PropertyHandlers.ListHandlers.Abstracts
         /// <summary>
         /// Tells the record handler that this is a list handler.
         /// </summary>
-        public virtual bool IsListHandler => true;
+        public bool IsListHandler => true;
 
         /// <summary>
         /// Format the item for display in the log.
@@ -206,17 +260,6 @@ namespace ForwardChanges.PropertyHandlers.ListHandlers.Abstracts
         {
             var mod = state.LoadOrder[modKey].Mod;
             return mod?.MasterReferences.Any(m => m.Master.ToString() == ownerMod) == true;
-        }
-
-        void IListPropertyHandler<TRecord, TItem>.SortItemsToMatchContextOrder(object contextItems, PropertyState propertyState)
-        {
-            if (contextItems is IEnumerable<TItem> items &&
-                propertyState.FinalValue is ItemStateCollection<TItem> itemStates &&
-                context != null &&
-                state != null)
-            {
-                SortItemsToMatchContextOrder(items, itemStates, state, context);
-            }
         }
     }
 }
