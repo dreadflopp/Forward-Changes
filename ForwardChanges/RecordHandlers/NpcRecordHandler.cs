@@ -4,15 +4,15 @@ using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Plugins.Cache;
 using ForwardChanges.PropertyHandlers.BasicPropertyHandlers;
-using ForwardChanges.PropertyHandlers.ListHandlers;
 using ForwardChanges.RecordHandlers.Abstracts;
 using ForwardChanges.PropertyHandlers.Interfaces;
+using ForwardChanges.PropertyHandlers.ListPropertyHandlers;
 
 namespace ForwardChanges.RecordHandlers
 {
     public class NpcRecordHandler : AbstractRecordHandler
     {
-        public override Dictionary<string, IPropertyHandler<object>> PropertyHandlers { get; } = new()
+        public override Dictionary<string, IPropertyHandlerBase> PropertyHandlers { get; } = new()
         {
             { "Name", new NamePropertyHandler() },
             { "DeathItem", new DeathItemPropertyHandler() },
@@ -22,7 +22,7 @@ namespace ForwardChanges.RecordHandlers
             { "EditorID", new EditorIDPropertyHandler() },
             { "Class", new ClassPropertyHandler() },
             { "AIData.Confidence", new AIDataConfidencePropertyHandler() },
-            { "Factions", new FactionListHandler() }
+            { "Factions", new FactionListPropertyHandler() }
         };
 
         public override bool CanHandle(IMajorRecord record)

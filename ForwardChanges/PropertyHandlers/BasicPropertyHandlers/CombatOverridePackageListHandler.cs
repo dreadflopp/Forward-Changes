@@ -2,12 +2,12 @@ using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Plugins.Cache;
 using ForwardChanges.PropertyHandlers.BasicPropertyHandlers.Abstracts;
-using Mutagen.Bethesda.Plugins;
 using ForwardChanges.PropertyHandlers.Interfaces;
+using Mutagen.Bethesda.Plugins;
 
 namespace ForwardChanges.PropertyHandlers.BasicPropertyHandlers
 {
-    public class CombatOverridePackageListHandler : AbstractPropertyHandler<IFormLinkNullableGetter<IFormListGetter>>, IPropertyHandler<object>
+    public class CombatOverridePackageListHandler : AbstractPropertyHandler<IFormLinkNullableGetter<IFormListGetter>>
     {
         public override string PropertyName => "CombatOverridePackageList";
 
@@ -42,10 +42,5 @@ namespace ForwardChanges.PropertyHandlers.BasicPropertyHandlers
             if (value1 == null || value2 == null) return false;
             return value1.FormKey.Equals(value2.FormKey);
         }
-
-        // IPropertyHandler<object> implementation
-        void IPropertyHandler<object>.SetValue(IMajorRecord record, object? value) => SetValue(record, (IFormLinkNullableGetter<IFormListGetter>?)value);
-        object? IPropertyHandler<object>.GetValue(IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> context) => GetValue(context);
-        bool IPropertyHandler<object>.AreValuesEqual(object? value1, object? value2) => AreValuesEqual((IFormLinkNullableGetter<IFormListGetter>?)value1, (IFormLinkNullableGetter<IFormListGetter>?)value2);
     }
 }

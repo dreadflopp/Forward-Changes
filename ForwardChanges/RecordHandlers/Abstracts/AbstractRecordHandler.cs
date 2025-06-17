@@ -95,7 +95,7 @@ namespace ForwardChanges.RecordHandlers.Abstracts
         };
 
         // Abstract property that all record handlers must implement
-        public abstract Dictionary<string, IPropertyHandler<object>> PropertyHandlers { get; }
+        public abstract Dictionary<string, IPropertyHandlerBase> PropertyHandlers { get; }
 
         protected Dictionary<string, PropertyContext> PropertyContexts { get; private set; } = new();
 

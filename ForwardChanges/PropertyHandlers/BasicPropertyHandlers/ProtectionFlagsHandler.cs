@@ -9,21 +9,25 @@ using ForwardChanges.PropertyHandlers.Interfaces;
 
 namespace ForwardChanges.PropertyHandlers.BasicPropertyHandlers
 {
-    public class ProtectionFlagsHandler : AbstractPropertyHandler<ProtectionStatus>, IPropertyHandler<object>
+    public class ProtectionFlagsHandler : AbstractPropertyHandler<ProtectionStatus>
     {
         public override string PropertyName => "Configuration.Flags";
 
         /// <summary>
-        /// Get the protection state from the flags
+        /// Get the protection status from the flags
         /// </summary>
         /// <param name="flags"></param>
         /// <returns></returns>
-        private static ProtectionStatus GetProtectionState(NpcConfiguration.Flag flags)
+        private static ProtectionStatus GetProtectionStatusFromFlags(NpcConfiguration.Flag flags)
         {
-            if (flags.HasFlag(NpcConfiguration.Flag.Essential))
+            if ((flags & NpcConfiguration.Flag.Essential) != 0)
+            {
                 return ProtectionStatus.Essential;
-            if (flags.HasFlag(NpcConfiguration.Flag.Protected))
+            }
+            else if ((flags & NpcConfiguration.Flag.Protected) != 0)
+            {
                 return ProtectionStatus.Protected;
+            }
             return ProtectionStatus.None;
         }
 
@@ -65,20 +69,9 @@ namespace ForwardChanges.PropertyHandlers.BasicPropertyHandlers
         {
             if (context.Record is INpcGetter npc)
             {
-                return GetProtectionState(npc.Configuration.Flags);
+                return GetProtectionStatusFromFlags(npc.Configuration.Flags);
             }
             return ProtectionStatus.None;
-        }
-
-        /// <summary>
-        /// Compare the protection state of two values. Accepts ProtectionStatus or NpcConfiguration.Flag
-        /// </summary>
-        /// <param name="value1"></param>
-        /// <param name="value2"></param>
-        /// <returns></returns>
-        public override bool AreValuesEqual(ProtectionStatus value1, ProtectionStatus value2)
-        {
-            return value1 == value2;
         }
 
         /// <summary>
@@ -104,7 +97,7 @@ namespace ForwardChanges.PropertyHandlers.BasicPropertyHandlers
                 return;
             }
 
-            var contextProtectionStatus = GetProtectionState(npc.Configuration.Flags);
+            var contextProtectionStatus = GetProtectionStatusFromFlags(npc.Configuration.Flags);
             var forwardValueProtectionStatus = (ProtectionStatus)propertyContext.ForwardValue.Item!;
 
             if (contextProtectionStatus == ProtectionStatus.Essential)
@@ -132,37 +125,6 @@ namespace ForwardChanges.PropertyHandlers.BasicPropertyHandlers
             {
                 LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: New state: {contextProtectionStatus} is not higher than current state: {forwardValueProtectionStatus}");
             }
-        }
-
-        // IPropertyHandler<object> implementation
-        void IPropertyHandler<object>.SetValue(IMajorRecord record, object? value)
-        {
-            if (value is ProtectionStatus protectionStatus)
-            {
-                SetValue(record, protectionStatus);
-            }
-            else if (value is NpcConfiguration.Flag flag)
-            {
-                if (record is INpc npc)
-                {
-                    npc.Configuration.Flags = flag;
-                }
-            }
-        }
-        object? IPropertyHandler<object>.GetValue(IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> context) => GetValue(context);
-        bool IPropertyHandler<object>.AreValuesEqual(object? value1, object? value2)
-        {
-            if (value1 == null && value2 == null) return true;
-            if (value1 == null || value2 == null) return false;
-            if (value1 is ProtectionStatus state1 && value2 is ProtectionStatus state2)
-            {
-                return state1 == state2;
-            }
-            else if (value1 is NpcConfiguration.Flag flag1 && value2 is NpcConfiguration.Flag flag2)
-            {
-                return GetProtectionState(flag1) == GetProtectionState(flag2);
-            }
-            return false;
         }
     }
 }

@@ -12,12 +12,53 @@ namespace ForwardChanges.PropertyHandlers.BasicPropertyHandlers.Abstracts
     {
         public abstract string PropertyName { get; }
         public bool IsListHandler => false;
+
         public abstract void SetValue(IMajorRecord record, TItem? value);
         public abstract TItem? GetValue(IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> context);
 
         public virtual bool AreValuesEqual(TItem? value1, TItem? value2)
         {
             return Equals(value1, value2);
+        }
+
+        // IPropertyHandlerBase implementation
+        void IPropertyHandlerBase.SetValue(IMajorRecord record, object? value)
+        {
+            try
+            {
+                SetValue(record, (TItem?)value);
+            }
+            catch (InvalidCastException)
+            {
+                Console.WriteLine($"[{PropertyName}] SetValue failed: Expected type {typeof(TItem)}, got {value?.GetType() ?? typeof(object)}");
+                throw;
+            }
+        }
+
+        object? IPropertyHandlerBase.GetValue(IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> context)
+        {
+            try
+            {
+                return GetValue(context);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[{PropertyName}] GetValue failed: {ex.Message}");
+                throw;
+            }
+        }
+
+        bool IPropertyHandlerBase.AreValuesEqual(object? value1, object? value2)
+        {
+            try
+            {
+                return AreValuesEqual((TItem?)value1, (TItem?)value2);
+            }
+            catch (InvalidCastException)
+            {
+                Console.WriteLine($"[{PropertyName}] AreValuesEqual failed: Expected type {typeof(TItem)}, got {value1?.GetType() ?? typeof(object)} and {value2?.GetType() ?? typeof(object)}");
+                throw;
+            }
         }
 
         public virtual void UpdatePropertyContext(
@@ -50,7 +91,7 @@ namespace ForwardChanges.PropertyHandlers.BasicPropertyHandlers.Abstracts
                 return;
             }
 
-            // Reversion: value equals original but different from current proposal to final value
+            // Reversion: value equals original but different from current proposal to forward value
             else if (AreValuesEqual(value, (TItem?)propertyContext.OriginalValue.Item) &&
                      !AreValuesEqual(value, (TItem?)propertyContext.ForwardValue.Item))
             {
