@@ -1,7 +1,8 @@
 using System;
 using System.Collections.Generic;
+using ForwardChanges.Contexts.Interfaces;
 
-namespace ForwardChanges.PropertyStates
+namespace ForwardChanges.Contexts
 {    /// <summary>
      /// Represents entries (items, factions, etc.) in list properties.
      /// </summary>
@@ -12,19 +13,15 @@ namespace ForwardChanges.PropertyStates
      ///     <item><description><see cref="OwnerMod"/>: The mod that last modified the item (added or removed)</description></item>
      /// </list>
      /// </remarks>
-    public class ItemState<TItem>
+    public class ListItemContext<TItem> : ItemContext<TItem>
     {
-        public TItem Item { get; set; }
-        public string OwnerMod { get; set; }
         public bool IsRemoved { get; set; }
         public int OriginalIndex { get; set; }  // For tracking position in context
         public List<string> ItemsBefore { get; set; } = new();  // Items that should come before this one
         public List<string> ItemsAfter { get; set; } = new();   // Items that should come after this one
 
-        public ItemState(TItem item, string ownerMod)
+        public ListItemContext(TItem item, string ownerMod) : base(item, ownerMod)
         {
-            Item = item;
-            OwnerMod = ownerMod;
             IsRemoved = false;
             OriginalIndex = -1;
         }

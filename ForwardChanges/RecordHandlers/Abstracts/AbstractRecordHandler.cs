@@ -4,7 +4,7 @@ using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Plugins.Cache;
 using ForwardChanges.RecordHandlers.Interfaces;
-using ForwardChanges.PropertyStates;
+using ForwardChanges.Contexts;
 using ForwardChanges.PropertyHandlers.Interfaces;
 
 namespace ForwardChanges.RecordHandlers.Abstracts
@@ -97,6 +97,24 @@ namespace ForwardChanges.RecordHandlers.Abstracts
         // Abstract property that all record handlers must implement
         public abstract Dictionary<string, IPropertyHandler> PropertyHandlers { get; }
 
+        protected Dictionary<string, PropertyContext> PropertyContexts { get; private set; } = new();
+
+        protected void InitializePropertyContexts(
+            IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> originalContext,
+            IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> winningContext)
+        {
+            PropertyContexts.Clear();
+            foreach (var (propertyName, handler) in PropertyHandlers)
+            {
+                var originalValue = handler.GetValue(originalContext);
+                PropertyContexts[propertyName] = new PropertyContext
+                {
+                    OriginalValue = new ItemContext<object?>(originalValue, originalContext.ModKey.ToString()),
+                    ForwardValue = new ItemContext<object?>(originalValue, winningContext.ModKey.ToString())
+                };
+            }
+        }
+
         public void Process(IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
         {
             var winningContexts = GetWinningContexts(state);
@@ -117,20 +135,18 @@ namespace ForwardChanges.RecordHandlers.Abstracts
 
                 // Initialize property states and quick initial check for simple properties
                 var originalContext = recordContexts.Last();
-                var propertyStates = new Dictionary<string, PropertyState>();
+                InitializePropertyContexts(originalContext, winningContext);
+
+                // Quick initial check for simple properties
                 foreach (var (propName, handler) in PropertyHandlers)
                 {
-                    var originalValue = handler.GetValueFromContext(originalContext);
-                    var winningValue = handler.GetValueFromContext(winningContext);
-                    propertyStates[propName] = handler.CreateState(originalContext.ModKey.ToString(), originalValue);
-                    Console.WriteLine($"[{propName}] Original: {originalValue} ({originalContext.ModKey}) Winning: {winningValue} ({winningContext.ModKey})");
-
-
                     if (!handler.IsListHandler)
                     {
+                        var originalValue = handler.GetValue(originalContext);
+                        var winningValue = handler.GetValue(winningContext);
                         if (!handler.AreValuesEqual(originalValue, winningValue))
                         {
-                            propertyStates[propName].IsResolved = true;
+                            PropertyContexts[propName].IsResolved = true;
                             Console.WriteLine($"[{propName}] {winningContext.ModKey} Resolved, nothing to forward");
                         }
                     }
@@ -155,11 +171,11 @@ namespace ForwardChanges.RecordHandlers.Abstracts
                         allResolved = true;
                         foreach (var (propName, handler) in PropertyHandlers)
                         {
-                            var propState = propertyStates[propName];
+                            var propState = PropertyContexts[propName];
                             if (propState.IsResolved) continue;
 
                             allResolved = false;
-                            handler.UpdatePropertyState(context, state, propState);
+                            handler.UpdatePropertyContext(context, state, propState);
                         }
 
                         if (allResolved) break;
@@ -172,23 +188,22 @@ namespace ForwardChanges.RecordHandlers.Abstracts
                     allResolved = true;
                     foreach (var (propName, handler) in PropertyHandlers)
                     {
-                        var propState = propertyStates[propName];
+                        var propContext = PropertyContexts[propName];
 
                         // Mark as resolved if it has a last changed mod
-                        if (!string.IsNullOrEmpty(propState.LastChangedByMod))
+                        if (!string.IsNullOrEmpty(propContext.ForwardValue.OwnerMod))
                         {
-                            propState.IsResolved = true;
-                            Console.WriteLine($"[{propName}] {winningContext.ModKey}: Marked as resolved after pass 1 (Last changed by: {propState.LastChangedByMod})");
+                            propContext.IsResolved = true;
+                            Console.WriteLine($"[{propName}] {winningContext.ModKey}: Marked as resolved after pass 1 (Last changed by: {propContext.ForwardValue.OwnerMod})");
                         }
 
                         // Check if resolved and compare with winning override
-                        if (propState.IsResolved)
+                        if (propContext.IsResolved)
                         {
-                            var winningValue = handler.GetValueFromContext(winningContext);
-                            propState.ShouldForward = !handler.AreValuesEqual(propState.FinalValue, winningValue);
-                            if (propState.ShouldForward)
+                            var winningValue = handler.GetValue(winningContext);
+                            if (!handler.AreValuesEqual(propContext.ForwardValue.Item, winningValue))
                             {
-                                Console.WriteLine($"[{propName}] {winningContext.ModKey}: FinalValue: {propState.FinalValue} differs from WinningValue: {winningValue}, will forward");
+                                Console.WriteLine($"[{propName}] {winningContext.ModKey}: FinalValue: {propContext.ForwardValue.Item} differs from WinningValue: {winningValue}, will forward");
                             }
                         }
                         else
@@ -209,10 +224,14 @@ namespace ForwardChanges.RecordHandlers.Abstracts
                     // reset prop handlers
                     foreach (var (propName, handler) in PropertyHandlers)
                     {
-                        if (!propertyStates[propName].IsResolved)
+                        if (!PropertyContexts[propName].IsResolved)
                         {
-                            var originalValue = handler.GetValueFromContext(originalContext);
-                            propertyStates[propName] = handler.CreateState(winningContext.ModKey.ToString(), originalValue);
+                            var originalValue = handler.GetValue(originalContext);
+                            PropertyContexts[propName] = new PropertyContext
+                            {
+                                OriginalValue = new ItemContext<object?>(originalValue, originalContext.ModKey.ToString()),
+                                ForwardValue = new ItemContext<object?>(originalValue, winningContext.ModKey.ToString())
+                            };
                         }
                     }
                     foreach (var context in recordContexts)
@@ -226,14 +245,14 @@ namespace ForwardChanges.RecordHandlers.Abstracts
                         allResolved = true;
                         foreach (var (propName, handler) in PropertyHandlers)
                         {
-                            var propState = propertyStates[propName];
+                            var propState = PropertyContexts[propName];
                             if (propState.IsResolved) continue;
 
                             allResolved = false;
-                            handler.UpdatePropertyState(context, state, propState);
+                            handler.UpdatePropertyContext(context, state, propState);
 
                             // If property has changed, iterate back to check for valid reverts
-                            if (!handler.AreValuesEqual(propState.FinalValue, propState.OriginalValue))
+                            if (!handler.AreValuesEqual(propState.ForwardValue, propState.OriginalValue))
                             {
                                 // Find the index of current context
                                 var currentIndex = Array.IndexOf(recordContexts, context);
@@ -241,7 +260,7 @@ namespace ForwardChanges.RecordHandlers.Abstracts
                                 // Iterate back towards winning
                                 for (int i = currentIndex - 1; i >= 0; i--)
                                 {
-                                    handler.UpdatePropertyState(recordContexts[i], state, propState);
+                                    handler.UpdatePropertyContext(recordContexts[i], state, propState);
                                 }
 
                                 // Now we have the real final value, mark as resolved
@@ -264,28 +283,10 @@ namespace ForwardChanges.RecordHandlers.Abstracts
                 LogCollector.Clear();
 
 
-                // Apply changes
-                var propertiesToForward = propertyStates
-                    .Where(kvp => kvp.Value.ShouldForward)
-                    .ToDictionary(kvp => kvp.Key, kvp => kvp.Value.FinalValue);
-
-                // Sort list properties to match context order
-                /*
-                foreach (var (propName, handler) in PropertyHandlers)
-                {
-                    if (handler is IListPropertyHandler_new<TGetter, object> listHandler)
-                    {
-                        var propState = propertyStates[propName];
-                        // Get the current context's items
-                        var contextItems = listHandler.GetItemStateCollection(winningContext);
-                        if (contextItems != null)
-                        {
-                            // Sort the items
-                            listHandler.SortItemsToMatchContextOrder(contextItems, propState);
-                        }
-                    }
-                }
-                */
+                // Forward changes to the patcher
+                var propertiesToForward = PropertyContexts
+                    .Where(kvp => !PropertyHandlers[kvp.Key].AreValuesEqual(kvp.Value.ForwardValue, PropertyHandlers[kvp.Key].GetValue(winningContext)))
+                    .ToDictionary(kvp => kvp.Key, kvp => kvp.Value.ForwardValue);
 
                 if (propertiesToForward.Count > 0)
                 {

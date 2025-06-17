@@ -10,13 +10,6 @@ namespace ForwardChanges.PropertyHandlers.BasicPropertyHandlers
     {
         public override string PropertyName => "Name";
 
-        public override object? GetValue(IMajorRecordGetter record)
-        {
-            if (record is INamedGetter named)
-                return named.Name;
-            return null;
-        }
-
         public override void SetValue(IMajorRecord record, object? value)
         {
             if (record is INamed named && value is string name)
@@ -25,7 +18,7 @@ namespace ForwardChanges.PropertyHandlers.BasicPropertyHandlers
             }
         }
 
-        public override object? GetValueFromContext(
+        public override object? GetValue(
             IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> context)
         {
             if (context.Record is INamedGetter named)

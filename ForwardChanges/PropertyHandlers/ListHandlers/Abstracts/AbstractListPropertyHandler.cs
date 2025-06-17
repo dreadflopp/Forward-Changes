@@ -4,7 +4,7 @@ using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Plugins.Cache;
 using Noggog;
-using ForwardChanges.PropertyStates;
+using ForwardChanges.Contexts;
 using ForwardChanges.PropertyHandlers.Interfaces;
 
 namespace ForwardChanges.PropertyHandlers.ListHandlers.Abstracts
@@ -13,135 +13,70 @@ namespace ForwardChanges.PropertyHandlers.ListHandlers.Abstracts
         where TRecord : class, IMajorRecordGetter
         where TItem : class
     {
-        protected readonly string _propertyName;
-        protected readonly Func<TRecord, IReadOnlyList<TItem>> ListAccessor;
+        protected readonly Func<TRecord, IReadOnlyList<ListItemContext<TItem>>> ListAccessor;
+
+        /// <summary>
+        /// Tells the record handler that this is a list handler.
+        /// </summary>
+        public bool IsListHandler => true;
 
         protected AbstractListPropertyHandler(
-            string propertyName,
-            Func<TRecord, IReadOnlyList<TItem>> listAccessor)
+            Func<TRecord, IReadOnlyList<ListItemContext<TItem>>> listAccessor)
         {
-            _propertyName = propertyName;
             ListAccessor = listAccessor;
         }
 
         public abstract string PropertyName { get; }
 
-        public virtual object? GetValue(IMajorRecordGetter record)
-        {
-            if (record is not TRecord typedRecord)
-                return null;
-
-            var listState = new ItemStateCollection<TItem>();
-            listState.Items = ListAccessor(typedRecord).Select(item => new ItemState<TItem>(item, "")).ToList();
-            return listState;
-        }
-
         public abstract void SetValue(IMajorRecord record, object? value);
 
-        public virtual object? GetValueFromContext(
+        public virtual object? GetValue(
             IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> context)
         {
             if (context.Record is not TRecord typedRecord)
                 return null;
 
-            var listState = new ItemStateCollection<TItem>();
-            listState.Items = ListAccessor(typedRecord).Select(item => new ItemState<TItem>(item, context.ModKey.ToString())).ToList();
-            return listState;
+            return ListAccessor(typedRecord).ToList();
         }
 
         public abstract bool AreValuesEqual(object? value1, object? value2);
 
         protected abstract bool IsItemEqual(TItem item1, TItem item2);
 
-        public virtual PropertyState CreateState(string lastChangedByMod, object? originalValue = null)
-        {
-            var listState = new ItemStateCollection<TItem>();
-            try
-            {
-                if (originalValue == null)
-                {
-                    Console.WriteLine($"Warning: Null {_propertyName} list value encountered");
-                    return new PropertyState
-                    {
-                        OriginalValue = originalValue,
-                        FinalValue = listState,
-                        LastChangedByMod = lastChangedByMod
-                    };
-                }
-
-                if (originalValue is ItemStateCollection<TItem> originalListState)
-                {
-                    listState.Items = originalListState.Items.Select(item => new ItemState<TItem>(item.Item, lastChangedByMod)).ToList();
-                }
-                else
-                {
-                    Console.WriteLine($"Error: Expected ItemStateCollection<{typeof(TItem).Name}> but got {originalValue.GetType().Name}");
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error processing {_propertyName} list: {ex.Message}");
-            }
-
-            var state = new PropertyState
-            {
-                OriginalValue = originalValue,
-                FinalValue = listState,
-                LastChangedByMod = lastChangedByMod
-            };
-
-            // Debug output
-            if (originalValue is ItemStateCollection<TItem> debugListState)
-            {
-                LogCollector.Add(_propertyName, $"[{_propertyName}] CreateState. LastChangedByMod: {lastChangedByMod} Original items: {string.Join(", ", debugListState.Items.Select(i => FormatItem(i.Item)))}");
-            }
-            else
-            {
-                LogCollector.Add(_propertyName, $"[{_propertyName}] No original items");
-            }
-
-            return state;
-        }
-
-        public abstract void UpdatePropertyState(
+        public abstract void UpdatePropertyContext(
             IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> context,
             IPatcherState<ISkyrimMod, ISkyrimModGetter> state,
-            PropertyState propertyState);
+            PropertyContext propertyContext);
 
         protected void InsertItemAtCorrectPosition(
-            ItemState<TItem> newItem,
+            ListItemContext<TItem> newItem,
             IReadOnlyList<TItem> recordItems,
-            ItemStateCollection<TItem> currentFinalItems)
+            List<ListItemContext<TItem>> currentForwardItems)
         {
             // Find the position in the record items
             var recordIndex = recordItems.IndexOf(newItem.Item);
             if (recordIndex == -1)
             {
                 // If not found, add at the end
-                currentFinalItems.Items.Add(newItem);
+                currentForwardItems.Add(newItem);
                 return;
             }
 
             // Find the position in the final items
-            var finalIndex = currentFinalItems.Items.FindIndex(item =>
+            var finalIndex = currentForwardItems.FindIndex(item =>
                 !item.IsRemoved && recordItems.IndexOf(item.Item) > recordIndex);
 
             if (finalIndex == -1)
             {
                 // If no items after this one, add at the end
-                currentFinalItems.Items.Add(newItem);
+                currentForwardItems.Add(newItem);
             }
             else
             {
                 // Insert at the correct position
-                currentFinalItems.Items.Insert(finalIndex, newItem);
+                currentForwardItems.Insert(finalIndex, newItem);
             }
         }
-
-        /// <summary>
-        /// Tells the record handler that this is a list handler.
-        /// </summary>
-        public bool IsListHandler => true;
 
         /// <summary>
         /// Format the item for display in the log.
@@ -154,49 +89,35 @@ namespace ForwardChanges.PropertyHandlers.ListHandlers.Abstracts
         }
 
         /// <summary>
-        /// Get the item state collection for the given context.
-        /// </summary>
-        /// <param name="context"></param>
-        /// <returns>The item state collection</returns>
-        public virtual object? GetItemStateCollection(IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> context)
-        {
-            if (context.Record is not TRecord record)
-                return null;
-
-            var itemStateCollection = new ItemStateCollection<TItem>();
-            itemStateCollection.Items = ListAccessor(record).Select(item => new ItemState<TItem>(item, context.ModKey.ToString())).ToList();
-            return itemStateCollection;
-        }
-
-        /// <summary>
         /// Sort the items to match the context order.
         /// </summary>
-        /// <param name="contextItems"></param>
-        /// <param name="itemStates"></param>
-        /// <param name="state"></param>
-        /// <param name="context"></param>
+        /// <param name="currentForwardItems">The list of items to reorder</param>
+        /// <param name="state">The patcher state</param>
+        /// <param name="context">The mod context</param>
         public virtual void SortItemsToMatchContextOrder(
-            IEnumerable<TItem> contextItems,
-            ItemStateCollection<TItem> itemStates,
+            List<ListItemContext<TItem>> currentForwardItems,
             IPatcherState<ISkyrimMod, ISkyrimModGetter> state,
             IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> context)
         {
-            var contextList = contextItems.ToList();
+            if (context.Record is not TRecord record)
+                return;
+
+            var contextList = ListAccessor(record).ToList();
             // Only include items that the context has permission to reorder
-            var activeItems = itemStates.Items.Where(i => !i.IsRemoved &&
-                contextList.Any(c => IsItemEqual(c, i.Item)) &&
+            var activeItems = currentForwardItems.Where(i => !i.IsRemoved &&
+                contextList.Any(c => IsItemEqual(c.Item, i.Item)) &&
                 (i.OwnerMod == context.ModKey.ToString() || HasModInMasters(context.ModKey.ToString(), i.OwnerMod, state))).ToList();
 
             if (activeItems.Count > 1)
             {
-                LogCollector.Add(_propertyName, $"[{_propertyName}] {context.ModKey}: Reordering {activeItems.Count} items");
+                LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: Reordering {activeItems.Count} items");
             }
 
             // Update ordering information for each item
             for (int i = 0; i < contextList.Count; i++)
             {
                 var contextItem = contextList[i];
-                var existingItem = activeItems.FirstOrDefault(w => IsItemEqual(w.Item, contextItem));
+                var existingItem = activeItems.FirstOrDefault(w => IsItemEqual(w.Item, contextItem.Item));
 
                 if (existingItem != null)
                 {
@@ -221,8 +142,8 @@ namespace ForwardChanges.PropertyHandlers.ListHandlers.Abstracts
             }
 
             // Reorder items based on their relationships
-            var orderedItems = new List<ItemState<TItem>>();
-            var remainingItems = new List<ItemState<TItem>>(activeItems);
+            var orderedItems = new List<ListItemContext<TItem>>();
+            var remainingItems = new List<ListItemContext<TItem>>(activeItems);
 
             while (remainingItems.Any())
             {
@@ -245,14 +166,14 @@ namespace ForwardChanges.PropertyHandlers.ListHandlers.Abstracts
             }
 
             // Update the final list, keeping non-reordered items in their original positions
-            var nonReorderedItems = itemStates.Items.Except(activeItems).ToList();
-            itemStates.Items.Clear();
-            itemStates.Items.AddRange(orderedItems);
-            itemStates.Items.AddRange(nonReorderedItems);
+            var nonReorderedItems = currentForwardItems.Except(activeItems).ToList();
+            currentForwardItems.Clear();
+            currentForwardItems.AddRange(orderedItems);
+            currentForwardItems.AddRange(nonReorderedItems);
 
             if (activeItems.Count > 1)
             {
-                LogCollector.Add(_propertyName, $"[{_propertyName}] {context.ModKey}: Reordering complete");
+                LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: Reordering complete");
             }
         }
 

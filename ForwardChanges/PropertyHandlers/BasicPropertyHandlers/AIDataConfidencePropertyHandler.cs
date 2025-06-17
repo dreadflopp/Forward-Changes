@@ -9,13 +9,6 @@ namespace ForwardChanges.PropertyHandlers.BasicPropertyHandlers
     {
         public override string PropertyName => "AIData.Confidence";
 
-        public override object? GetValue(IMajorRecordGetter record)
-        {
-            if (record is INpcGetter npc)
-                return npc.AIData?.Confidence;
-            return null;
-        }
-
         public override void SetValue(IMajorRecord record, object? value)
         {
             if (record is INpc npc && value is Confidence confidence)
@@ -28,7 +21,7 @@ namespace ForwardChanges.PropertyHandlers.BasicPropertyHandlers
             }
         }
 
-        public override object? GetValueFromContext(
+        public override object? GetValue(
             IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> context)
         {
             if (context.Record is INpcGetter npc)

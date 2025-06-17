@@ -10,13 +10,6 @@ namespace ForwardChanges.PropertyHandlers.BasicPropertyHandlers
     {
         public override string PropertyName => "Class";
 
-        public override object? GetValue(IMajorRecordGetter record)
-        {
-            if (record is INpcGetter npc)
-                return npc.Class;
-            return null;
-        }
-
         public override void SetValue(IMajorRecord record, object? value)
         {
             if (record is INpc npc)
@@ -32,7 +25,7 @@ namespace ForwardChanges.PropertyHandlers.BasicPropertyHandlers
             }
         }
 
-        public override object? GetValueFromContext(
+        public override object? GetValue(
             IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> context)
         {
             if (context.Record is INpcGetter npc)

@@ -1,14 +1,14 @@
 using Mutagen.Bethesda.Skyrim;
 
-namespace ForwardChanges.PropertyStates
+namespace ForwardChanges.Contexts
 {
     /// <summary>
     /// Represents a collection of items in a list property.
     /// </summary>
     /// <typeparam name="TItem">The type of item in the collection.</typeparam>
-    public class ItemStateCollection<TItem>
+    public class ItemContextCollection<TItem>
     {
-        public List<ItemState<TItem>> Items { get; set; } = [];
+        public List<ListItemContext<TItem>> Items { get; set; } = [];
 
         public override string ToString()
         {

@@ -2,8 +2,9 @@ using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Plugins.Cache;
 using Mutagen.Bethesda.Synthesis;
-using ForwardChanges.PropertyStates;
+using ForwardChanges.Contexts;
 using ForwardChanges.PropertyHandlers.BasicPropertyHandlers.Abstracts;
+using ForwardChanges.Enums;
 
 namespace ForwardChanges.PropertyHandlers.BasicPropertyHandlers
 {
@@ -11,51 +12,61 @@ namespace ForwardChanges.PropertyHandlers.BasicPropertyHandlers
     {
         public override string PropertyName => "Configuration.Flags";
 
-        private static ProtectionState GetProtectionState(NpcConfiguration.Flag flags)
+        /// <summary>
+        /// Get the protection state from the flags
+        /// </summary>
+        /// <param name="flags"></param>
+        /// <returns></returns>
+        private static ProtectionStatus GetProtectionState(NpcConfiguration.Flag flags)
         {
             if (flags.HasFlag(NpcConfiguration.Flag.Essential))
-                return ProtectionState.Essential;
+                return ProtectionStatus.Essential;
             if (flags.HasFlag(NpcConfiguration.Flag.Protected))
-                return ProtectionState.Protected;
-            return ProtectionState.None;
+                return ProtectionStatus.Protected;
+            return ProtectionStatus.None;
         }
 
-        public override object? GetValue(IMajorRecordGetter record)
-        {
-            if (record is INpcGetter npc)
-                return GetProtectionState(npc.Configuration.Flags);
-            return null;
-        }
-
+        /// <summary>
+        /// Set the protection state to the flags. Accepts ProtectionStatus or NpcConfiguration.Flag
+        /// If ProtectionStatus is provided, it modifies the flags to set the protection state.
+        /// If NpcConfiguration.Flag is provided, it sets the flags to the provided value.
+        /// </summary>
+        /// <param name="record"></param>
+        /// <param name="value"></param>
         public override void SetValue(IMajorRecord record, object? value)
         {
             if (record is INpc npc)
             {
-                if (value is ProtectionState protectionState)
+                if (value is ProtectionStatus protectionState)
                 {
                     var flags = npc.Configuration.Flags;
                     flags &= ~(NpcConfiguration.Flag.Protected | NpcConfiguration.Flag.Essential);
 
                     switch (protectionState)
                     {
-                        case ProtectionState.Protected:
+                        case ProtectionStatus.Protected:
                             flags |= NpcConfiguration.Flag.Protected;
                             break;
-                        case ProtectionState.Essential:
+                        case ProtectionStatus.Essential:
                             flags |= NpcConfiguration.Flag.Essential;
                             break;
                     }
 
                     npc.Configuration.Flags = flags;
                 }
-                else
+                else if (value is NpcConfiguration.Flag flag)
                 {
-                    npc.Configuration.Flags = 0;
+                    npc.Configuration.Flags = flag;
                 }
             }
         }
 
-        public override object? GetValueFromContext(
+        /// <summary>
+        /// Get the protection state from the flags
+        /// </summary>
+        /// <param name="context"></param>
+        /// <returns></returns>
+        public override object? GetValue(
             IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> context)
         {
             if (context.Record is INpcGetter npc)
@@ -65,72 +76,77 @@ namespace ForwardChanges.PropertyHandlers.BasicPropertyHandlers
             return null;
         }
 
+        /// <summary>
+        /// Compare the protection state of two values. Accepts ProtectionStatus or NpcConfiguration.Flag
+        /// </summary>
+        /// <param name="value1"></param>
+        /// <param name="value2"></param>
+        /// <returns></returns>
         public override bool AreValuesEqual(object? value1, object? value2)
         {
             if (value1 == null && value2 == null) return true;
             if (value1 == null || value2 == null) return false;
-            if (value1 is ProtectionState state1 && value2 is ProtectionState state2)
+            if (value1 is ProtectionStatus state1 && value2 is ProtectionStatus state2)
             {
                 return state1 == state2;
+            }
+            else if (value1 is NpcConfiguration.Flag flag1 && value2 is NpcConfiguration.Flag flag2)
+            {
+                return GetProtectionState(flag1) == GetProtectionState(flag2);
             }
             return false;
         }
 
-        public override PropertyState CreateState(string lastChangedByMod, object? originalValue = null)
-        {
-            var protectionState = originalValue is NpcConfiguration.Flag flags
-                ? GetProtectionState(flags)
-                : ProtectionState.None;
-
-            return new PropertyState
-            {
-                OriginalValue = protectionState,
-                FinalValue = protectionState,
-                LastChangedByMod = lastChangedByMod
-            };
-        }
-
-        public override void UpdatePropertyState(
+        /// <summary>
+        /// Update the property context with the protection state
+        /// </summary>
+        /// <param name="context"></param>
+        /// <param name="state"></param>
+        /// <param name="propertyContext"></param>
+        public override void UpdatePropertyContext(
             IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> context,
             IPatcherState<ISkyrimMod, ISkyrimModGetter> state,
-            PropertyState propertyState)
+            PropertyContext propertyContext)
         {
             if (context == null || context.Record is not INpcGetter npc)
+            {
+                Console.WriteLine($"Error: Context is null for {PropertyName} or record is not an NPC");
                 return;
+            }
 
-            if (propertyState.OriginalValue == null || string.IsNullOrEmpty(propertyState.LastChangedByMod))
+            if (string.IsNullOrEmpty(propertyContext.OriginalValue.OwnerMod))
             {
                 Console.WriteLine($"Error: Property state for {PropertyName} not properly initialized");
                 return;
             }
 
-            var protectionState = GetProtectionState(npc.Configuration.Flags);
-            var currentState = (ProtectionState)propertyState.FinalValue!;
+            var contextProtectionStatus = GetProtectionState(npc.Configuration.Flags);
+            var forwardValueProtectionStatus = (ProtectionStatus)propertyContext.ForwardValue.Item!;
 
-            if (protectionState == ProtectionState.Essential)
+            if (contextProtectionStatus == ProtectionStatus.Essential)
             {
-                propertyState.IsResolved = true;
-                propertyState.FinalValue = ProtectionState.Essential;
-                propertyState.LastChangedByMod = context.ModKey.ToString();
+                propertyContext.IsResolved = true;
+                propertyContext.ForwardValue.Item = ProtectionStatus.Essential;
+                propertyContext.ForwardValue.OwnerMod = context.ModKey.ToString();
                 LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: Protection state is essential, property is resolved");
                 return;
             }
 
-            if (protectionState != currentState)
+            if (contextProtectionStatus > forwardValueProtectionStatus)
             {
-                propertyState.FinalValue = protectionState;
-                propertyState.LastChangedByMod = context.ModKey.ToString();
-                LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: New protection state: {currentState} -> {protectionState}");
-                if (protectionState == ProtectionState.Essential)
+                propertyContext.ForwardValue.Item = contextProtectionStatus;
+                propertyContext.ForwardValue.OwnerMod = context.ModKey.ToString();
+                LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: New protection state: {forwardValueProtectionStatus} -> {contextProtectionStatus}");
+                if (contextProtectionStatus == ProtectionStatus.Essential)
                 {
-                    propertyState.IsResolved = true;
+                    propertyContext.IsResolved = true;
                     LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: Protection state is essential, property is resolved");
                     return;
                 }
             }
             else
             {
-                LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: New state: {protectionState} is not higher than current state: {currentState}");
+                LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: New state: {contextProtectionStatus} is not higher than current state: {forwardValueProtectionStatus}");
             }
         }
     }

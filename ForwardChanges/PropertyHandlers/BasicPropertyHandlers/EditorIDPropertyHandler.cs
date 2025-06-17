@@ -9,11 +9,6 @@ namespace ForwardChanges.PropertyHandlers.BasicPropertyHandlers
     {
         public override string PropertyName => "EditorID";
 
-        public override object? GetValue(IMajorRecordGetter record)
-        {
-            return record.EditorID;
-        }
-
         public override void SetValue(IMajorRecord record, object? value)
         {
             if (value is string editorId)
@@ -22,7 +17,7 @@ namespace ForwardChanges.PropertyHandlers.BasicPropertyHandlers
             }
         }
 
-        public override object? GetValueFromContext(
+        public override object? GetValue(
             IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> context)
         {
             return context.Record.EditorID;
