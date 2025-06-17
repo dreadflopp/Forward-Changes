@@ -4,9 +4,10 @@ using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Plugins.Cache;
 using ForwardChanges.Contexts;
+
 namespace ForwardChanges.PropertyHandlers.Interfaces
 {
-    public interface IPropertyHandler
+    public interface IPropertyHandler<TItem>
     {
         string PropertyName { get; }
 
@@ -18,12 +19,12 @@ namespace ForwardChanges.PropertyHandlers.Interfaces
         /// <summary>
         /// Sets the value of the property on a record
         /// </summary>
-        void SetValue(IMajorRecord record, object? value);
+        void SetValue(IMajorRecord record, TItem? value);
 
         /// <summary>
         /// Gets the current value of the property from a record context
         /// </summary>
-        object? GetValue(IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> context);
+        TItem? GetValue(IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> context);
 
         /// <summary>
         /// Updates the property state based on the current record context
@@ -36,6 +37,6 @@ namespace ForwardChanges.PropertyHandlers.Interfaces
         /// <summary>
         /// Compares two values for equality
         /// </summary>
-        bool AreValuesEqual(object? value1, object? value2);
+        bool AreValuesEqual(TItem? value1, TItem? value2);
     }
 }

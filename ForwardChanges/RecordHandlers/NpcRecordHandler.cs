@@ -12,7 +12,7 @@ namespace ForwardChanges.RecordHandlers
 {
     public class NpcRecordHandler : AbstractRecordHandler
     {
-        public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()
+        public override Dictionary<string, IPropertyHandler<object>> PropertyHandlers { get; } = new()
         {
             { "Name", new NamePropertyHandler() },
             { "DeathItem", new DeathItemPropertyHandler() },

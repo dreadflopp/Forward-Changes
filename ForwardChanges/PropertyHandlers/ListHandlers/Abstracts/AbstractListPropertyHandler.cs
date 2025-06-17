@@ -9,7 +9,7 @@ using ForwardChanges.PropertyHandlers.Interfaces;
 
 namespace ForwardChanges.PropertyHandlers.ListHandlers.Abstracts
 {
-    public abstract class AbstractListPropertyHandler<TRecord, TItem> : IPropertyHandler
+    public abstract class AbstractListPropertyHandler<TRecord, TItem> : IPropertyHandler<List<ListItemContext<TItem>>>
         where TRecord : class, IMajorRecordGetter
         where TItem : class
     {
@@ -28,9 +28,9 @@ namespace ForwardChanges.PropertyHandlers.ListHandlers.Abstracts
 
         public abstract string PropertyName { get; }
 
-        public abstract void SetValue(IMajorRecord record, object? value);
+        public abstract void SetValue(IMajorRecord record, List<ListItemContext<TItem>>? value);
 
-        public virtual object? GetValue(
+        public virtual List<ListItemContext<TItem>>? GetValue(
             IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> context)
         {
             if (context.Record is not TRecord typedRecord)
@@ -39,7 +39,7 @@ namespace ForwardChanges.PropertyHandlers.ListHandlers.Abstracts
             return ListAccessor(typedRecord).ToList();
         }
 
-        public abstract bool AreValuesEqual(object? value1, object? value2);
+        public abstract bool AreValuesEqual(List<ListItemContext<TItem>>? value1, List<ListItemContext<TItem>>? value2);
 
         protected abstract bool IsItemEqual(TItem item1, TItem item2);
 

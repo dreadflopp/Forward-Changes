@@ -28,6 +28,6 @@ namespace ForwardChanges.RecordHandlers.Interfaces
         void ApplyForwardedProperties(IMajorRecord record, Dictionary<string, object?> propertiesToForward);
 
         // Property that all record handlers must implement
-        Dictionary<string, IPropertyHandler> PropertyHandlers { get; }
+        Dictionary<string, IPropertyHandler<object>> PropertyHandlers { get; }
     }
 }

@@ -11,7 +11,7 @@ using System.Collections.Generic;
 
 namespace ForwardChanges.PropertyHandlers.ListHandlers
 {
-    public class FactionListHandler : AbstractListPropertyHandler<INpcGetter, IRankPlacementGetter>, IPropertyHandler
+    public class FactionListHandler : AbstractListPropertyHandler<INpcGetter, IRankPlacementGetter>, IPropertyHandler<object>
     {
         public override string PropertyName => "Factions";
 
@@ -88,22 +88,26 @@ namespace ForwardChanges.PropertyHandlers.ListHandlers
         /// </summary>
         /// <param name="record">The NPC to set the factions of.</param>
         /// <param name="value">The factions to set.</param>
-        public override void SetValue(IMajorRecord record, object? value)
+        public override void SetValue(IMajorRecord record, List<ListItemContext<IRankPlacementGetter>>? value)
         {
-            if (record is not INpc npc || value is not List<ListItemContext<IRankPlacementGetter>> factionList)
+            if (record is not INpc npc)
                 return;
 
             // Clear existing factions and add new ones
             var oldFactions = npc.Factions;
             npc.Factions.Clear();
-            foreach (var faction in factionList.Where(i => !i.IsRemoved))
+
+            if (value != null)
             {
-                var rankPlacement = new RankPlacement
+                foreach (var faction in value.Where(i => !i.IsRemoved))
                 {
-                    Faction = new FormLink<IFactionGetter>(faction.Item.Faction.FormKey),
-                    Rank = faction.Item.Rank
-                };
-                npc.Factions.Add(rankPlacement);
+                    var rankPlacement = new RankPlacement
+                    {
+                        Faction = new FormLink<IFactionGetter>(faction.Item.Faction.FormKey),
+                        Rank = faction.Item.Rank
+                    };
+                    npc.Factions.Add(rankPlacement);
+                }
             }
             Console.WriteLine($"Forwarded factions: {this.FormatFactionList(oldFactions)} -> {this.FormatFactionList(npc.Factions)}");
         }
@@ -114,25 +118,18 @@ namespace ForwardChanges.PropertyHandlers.ListHandlers
         /// <param name="value1">The first list of factions to compare.</param>
         /// <param name="value2">The second list of factions to compare.</param>
         /// <returns>True if the lists are equal, false otherwise.</returns>
-        public override bool AreValuesEqual(object? value1, object? value2)
+        public override bool AreValuesEqual(List<ListItemContext<IRankPlacementGetter>>? value1, List<ListItemContext<IRankPlacementGetter>>? value2)
         {
             if (value1 == null && value2 == null) return true;
             if (value1 == null || value2 == null) return false;
-            if (value1 is List<ListItemContext<IRankPlacementGetter>> list1 &&
-                value2 is List<ListItemContext<IRankPlacementGetter>> list2)
-            {
-                var items1 = list1.Where(i => !i.IsRemoved).Select(i => i.Item).ToList();
-                var items2 = list2.Where(i => !i.IsRemoved).Select(i => i.Item).ToList();
 
-                if (items1.Count != items2.Count) return false;
+            var items1 = value1.Where(i => !i.IsRemoved).Select(i => i.Item).ToList();
+            var items2 = value2.Where(i => !i.IsRemoved).Select(i => i.Item).ToList();
 
-                for (int i = 0; i < items1.Count; i++)
-                {
-                    if (!IsItemEqual(items1[i], items2[i])) return false;
-                }
-                return true;
-            }
-            return false;
+            if (items1.Count != items2.Count) return false;
+
+            // Check if every item in the first list exists in the second list
+            return items1.All(item1 => items2.Any(item2 => IsItemEqual(item1, item2)));
         }
 
         public override void UpdatePropertyContext(
@@ -236,5 +233,10 @@ namespace ForwardChanges.PropertyHandlers.ListHandlers
             // Update the state
             propertyContext.ForwardValue.Item = currentFinalItems;
         }
+
+        // IPropertyHandler<object> implementation
+        void IPropertyHandler<object>.SetValue(IMajorRecord record, object? value) => SetValue(record, (List<ListItemContext<IRankPlacementGetter>>?)value);
+        object? IPropertyHandler<object>.GetValue(IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> context) => GetValue(context);
+        bool IPropertyHandler<object>.AreValuesEqual(object? value1, object? value2) => AreValuesEqual((List<ListItemContext<IRankPlacementGetter>>?)value1, (List<ListItemContext<IRankPlacementGetter>>?)value2);
     }
 }

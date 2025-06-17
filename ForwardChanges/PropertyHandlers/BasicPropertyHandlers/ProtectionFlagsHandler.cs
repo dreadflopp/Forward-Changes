@@ -5,10 +5,11 @@ using Mutagen.Bethesda.Synthesis;
 using ForwardChanges.Contexts;
 using ForwardChanges.PropertyHandlers.BasicPropertyHandlers.Abstracts;
 using ForwardChanges.Enums;
+using ForwardChanges.PropertyHandlers.Interfaces;
 
 namespace ForwardChanges.PropertyHandlers.BasicPropertyHandlers
 {
-    public class ProtectionFlagsHandler : AbstractPropertyHandler
+    public class ProtectionFlagsHandler : AbstractPropertyHandler<ProtectionStatus>, IPropertyHandler<object>
     {
         public override string PropertyName => "Configuration.Flags";
 
@@ -33,31 +34,24 @@ namespace ForwardChanges.PropertyHandlers.BasicPropertyHandlers
         /// </summary>
         /// <param name="record"></param>
         /// <param name="value"></param>
-        public override void SetValue(IMajorRecord record, object? value)
+        public override void SetValue(IMajorRecord record, ProtectionStatus value)
         {
             if (record is INpc npc)
             {
-                if (value is ProtectionStatus protectionState)
-                {
-                    var flags = npc.Configuration.Flags;
-                    flags &= ~(NpcConfiguration.Flag.Protected | NpcConfiguration.Flag.Essential);
+                var flags = npc.Configuration.Flags;
+                flags &= ~(NpcConfiguration.Flag.Protected | NpcConfiguration.Flag.Essential);
 
-                    switch (protectionState)
-                    {
-                        case ProtectionStatus.Protected:
-                            flags |= NpcConfiguration.Flag.Protected;
-                            break;
-                        case ProtectionStatus.Essential:
-                            flags |= NpcConfiguration.Flag.Essential;
-                            break;
-                    }
-
-                    npc.Configuration.Flags = flags;
-                }
-                else if (value is NpcConfiguration.Flag flag)
+                switch (value)
                 {
-                    npc.Configuration.Flags = flag;
+                    case ProtectionStatus.Protected:
+                        flags |= NpcConfiguration.Flag.Protected;
+                        break;
+                    case ProtectionStatus.Essential:
+                        flags |= NpcConfiguration.Flag.Essential;
+                        break;
                 }
+
+                npc.Configuration.Flags = flags;
             }
         }
 
@@ -66,14 +60,14 @@ namespace ForwardChanges.PropertyHandlers.BasicPropertyHandlers
         /// </summary>
         /// <param name="context"></param>
         /// <returns></returns>
-        public override object? GetValue(
+        public override ProtectionStatus GetValue(
             IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> context)
         {
             if (context.Record is INpcGetter npc)
             {
                 return GetProtectionState(npc.Configuration.Flags);
             }
-            return null;
+            return ProtectionStatus.None;
         }
 
         /// <summary>
@@ -82,19 +76,9 @@ namespace ForwardChanges.PropertyHandlers.BasicPropertyHandlers
         /// <param name="value1"></param>
         /// <param name="value2"></param>
         /// <returns></returns>
-        public override bool AreValuesEqual(object? value1, object? value2)
+        public override bool AreValuesEqual(ProtectionStatus value1, ProtectionStatus value2)
         {
-            if (value1 == null && value2 == null) return true;
-            if (value1 == null || value2 == null) return false;
-            if (value1 is ProtectionStatus state1 && value2 is ProtectionStatus state2)
-            {
-                return state1 == state2;
-            }
-            else if (value1 is NpcConfiguration.Flag flag1 && value2 is NpcConfiguration.Flag flag2)
-            {
-                return GetProtectionState(flag1) == GetProtectionState(flag2);
-            }
-            return false;
+            return value1 == value2;
         }
 
         /// <summary>
@@ -148,6 +132,37 @@ namespace ForwardChanges.PropertyHandlers.BasicPropertyHandlers
             {
                 LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: New state: {contextProtectionStatus} is not higher than current state: {forwardValueProtectionStatus}");
             }
+        }
+
+        // IPropertyHandler<object> implementation
+        void IPropertyHandler<object>.SetValue(IMajorRecord record, object? value)
+        {
+            if (value is ProtectionStatus protectionStatus)
+            {
+                SetValue(record, protectionStatus);
+            }
+            else if (value is NpcConfiguration.Flag flag)
+            {
+                if (record is INpc npc)
+                {
+                    npc.Configuration.Flags = flag;
+                }
+            }
+        }
+        object? IPropertyHandler<object>.GetValue(IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> context) => GetValue(context);
+        bool IPropertyHandler<object>.AreValuesEqual(object? value1, object? value2)
+        {
+            if (value1 == null && value2 == null) return true;
+            if (value1 == null || value2 == null) return false;
+            if (value1 is ProtectionStatus state1 && value2 is ProtectionStatus state2)
+            {
+                return state1 == state2;
+            }
+            else if (value1 is NpcConfiguration.Flag flag1 && value2 is NpcConfiguration.Flag flag2)
+            {
+                return GetProtectionState(flag1) == GetProtectionState(flag2);
+            }
+            return false;
         }
     }
 }

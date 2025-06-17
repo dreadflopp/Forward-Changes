@@ -8,18 +8,18 @@ using ForwardChanges.PropertyHandlers.Interfaces;
 
 namespace ForwardChanges.PropertyHandlers.BasicPropertyHandlers.Abstracts
 {
-    public abstract class AbstractPropertyHandler : IPropertyHandler
+    public abstract class AbstractPropertyHandler<TItem> : IPropertyHandler<TItem>
     {
         public abstract string PropertyName { get; }
-                public bool IsListHandler => false;
-        public abstract void SetValue(IMajorRecord record, object? value);
-        public abstract object? GetValue(IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> context);
+        public bool IsListHandler => false;
+        public abstract void SetValue(IMajorRecord record, TItem? value);
+        public abstract TItem? GetValue(IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> context);
 
-        public virtual bool AreValuesEqual(object? value1, object? value2)
+        public virtual bool AreValuesEqual(TItem? value1, TItem? value2)
         {
             return Equals(value1, value2);
         }
-        
+
         public virtual void UpdatePropertyContext(
             IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> context,
             IPatcherState<ISkyrimMod, ISkyrimModGetter> state,
@@ -40,8 +40,8 @@ namespace ForwardChanges.PropertyHandlers.BasicPropertyHandlers.Abstracts
             var value = GetValue(context);
 
             // Addition: value is different from both original and current proposal to fowrward value
-            if (!AreValuesEqual(value, propertyContext.OriginalValue.Item) &&
-                !AreValuesEqual(value, propertyContext.ForwardValue.Item))
+            if (!AreValuesEqual(value, (TItem?)propertyContext.OriginalValue.Item) &&
+                !AreValuesEqual(value, (TItem?)propertyContext.ForwardValue.Item))
             {
                 var previousForwardValue = propertyContext.ForwardValue.Item;
                 propertyContext.ForwardValue.Item = value;
@@ -51,8 +51,8 @@ namespace ForwardChanges.PropertyHandlers.BasicPropertyHandlers.Abstracts
             }
 
             // Reversion: value equals original but different from current proposal to final value
-            else if (AreValuesEqual(value, propertyContext.OriginalValue.Item) &&
-                     !AreValuesEqual(value, propertyContext.ForwardValue.Item))
+            else if (AreValuesEqual(value, (TItem?)propertyContext.OriginalValue.Item) &&
+                     !AreValuesEqual(value, (TItem?)propertyContext.ForwardValue.Item))
             {
                 var currentMod = state.LoadOrder[context.ModKey].Mod;
                 var canModify = currentMod?.MasterReferences.Any(m => m.Master.ToString() == propertyContext.ForwardValue.OwnerMod) == true;
@@ -73,6 +73,6 @@ namespace ForwardChanges.PropertyHandlers.BasicPropertyHandlers.Abstracts
             {
                 LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: No change to value: {propertyContext.ForwardValue.Item}");
             }
-        }        
+        }
     }
 }

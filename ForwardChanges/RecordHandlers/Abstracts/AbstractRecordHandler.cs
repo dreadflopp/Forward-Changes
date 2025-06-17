@@ -95,7 +95,7 @@ namespace ForwardChanges.RecordHandlers.Abstracts
         };
 
         // Abstract property that all record handlers must implement
-        public abstract Dictionary<string, IPropertyHandler> PropertyHandlers { get; }
+        public abstract Dictionary<string, IPropertyHandler<object>> PropertyHandlers { get; }
 
         protected Dictionary<string, PropertyContext> PropertyContexts { get; private set; } = new();
 
@@ -291,7 +291,11 @@ namespace ForwardChanges.RecordHandlers.Abstracts
                 if (propertiesToForward.Count > 0)
                 {
                     var overrideRecord = GetOverrideRecord(winningContext, state);
-                    ApplyForwardedProperties(overrideRecord, propertiesToForward);
+                    var propertiesToForwardDict = propertiesToForward.ToDictionary(
+                        kvp => kvp.Key,
+                        kvp => kvp.Value.Item
+                    );
+                    ApplyForwardedProperties(overrideRecord, propertiesToForwardDict);
                 }
             }
         }
