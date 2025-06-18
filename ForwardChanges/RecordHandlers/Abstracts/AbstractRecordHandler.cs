@@ -107,11 +107,30 @@ namespace ForwardChanges.RecordHandlers.Abstracts
             foreach (var (propertyName, handler) in PropertyHandlers)
             {
                 var originalValue = handler.GetValue(originalContext);
-                PropertyContexts[propertyName] = new PropertyContext
+
+                if (handler.IsListHandler)
                 {
-                    OriginalValue = new ItemContext<object?>(originalValue, originalContext.ModKey.ToString()),
-                    ForwardValue = new ItemContext<object?>(originalValue, winningContext.ModKey.ToString())
-                };
+                    // For list properties, create ListItemContext for each item
+                    var listItems = originalValue == null ? new List<ListItemContext<object>>() :
+                        ((IReadOnlyList<object>)originalValue)
+                            .Select(item => new ListItemContext<object>(item, originalContext.ModKey.ToString()))
+                            .ToList();
+
+                    PropertyContexts[propertyName] = new PropertyContext
+                    {
+                        OriginalValue = listItems,
+                        ForwardValue = listItems
+                    };
+                }
+                else
+                {
+                    // For single values, use ItemContext
+                    PropertyContexts[propertyName] = new PropertyContext
+                    {
+                        OriginalValue = new ItemContext<object?>(originalValue, originalContext.ModKey.ToString()),
+                        ForwardValue = new ItemContext<object?>(originalValue, winningContext.ModKey.ToString())
+                    };
+                }
             }
         }
 
@@ -138,6 +157,8 @@ namespace ForwardChanges.RecordHandlers.Abstracts
                 InitializePropertyContexts(originalContext, winningContext);
 
                 // Quick initial check for simple properties
+                bool allResolved = true;
+                bool hasListProperties = false;
                 foreach (var (propName, handler) in PropertyHandlers)
                 {
                     if (!handler.IsListHandler)
@@ -149,14 +170,20 @@ namespace ForwardChanges.RecordHandlers.Abstracts
                             PropertyContexts[propName].IsResolved = true;
                             Console.WriteLine($"[{propName}] {winningContext.ModKey} Resolved, nothing to forward");
                         }
+                        else
+                        {
+                            allResolved = false;
+                        }
+                    }
+                    else
+                    {
+                        hasListProperties = true;
                     }
                 }
 
                 // Pass 1: Process from original to winning (for lists and unresolved properties)
                 // Pass 1 is required for lists
                 // Check if we have any list properties to process
-                bool hasListProperties = PropertyHandlers.Values.Any(h => h.IsListHandler);
-                bool allResolved = false;
                 if (!hasListProperties)
                 {
                     Console.WriteLine("Skipping first pass: No list properties to process");
@@ -168,51 +195,30 @@ namespace ForwardChanges.RecordHandlers.Abstracts
                     // iterate from original to winning
                     foreach (var context in recordContexts.Reverse().Skip(1))
                     {
-                        allResolved = true;
+                        // check if all properties are resolved
                         foreach (var (propName, handler) in PropertyHandlers)
                         {
-                            var propState = PropertyContexts[propName];
-                            if (propState.IsResolved) continue;
+                            var propContext = PropertyContexts[propName];
+                            if (propContext.IsResolved) continue;
 
-                            allResolved = false;
-                            handler.UpdatePropertyContext(context, state, propState);
+                            // if not, update the property context and check again
+                            handler.UpdatePropertyContext(context, state, propContext);
                         }
 
-                        if (allResolved) break;
                     }
 
                     LogCollector.PrintAll();
                     LogCollector.Clear();
 
-                    // Process properties after pass 1
-                    allResolved = true;
+                    // Process properties after pass 1. Every property should be resolved after pass 1
                     foreach (var (propName, handler) in PropertyHandlers)
                     {
                         var propContext = PropertyContexts[propName];
 
-                        // Mark as resolved if it has a last changed mod
-                        if (!string.IsNullOrEmpty(propContext.ForwardValue.OwnerMod))
-                        {
-                            propContext.IsResolved = true;
-                            Console.WriteLine($"[{propName}] {winningContext.ModKey}: Marked as resolved after pass 1 (Last changed by: {propContext.ForwardValue.OwnerMod})");
-                        }
-
-                        // Check if resolved and compare with winning override
-                        if (propContext.IsResolved)
-                        {
-                            var winningValue = handler.GetValue(winningContext);
-                            if (!handler.AreValuesEqual(propContext.ForwardValue.Item, winningValue))
-                            {
-                                Console.WriteLine($"[{propName}] {winningContext.ModKey}: FinalValue: {propContext.ForwardValue.Item} differs from WinningValue: {winningValue}, will forward");
-                            }
-                        }
-                        else
-                        {
-                            allResolved = false;
-                            Console.WriteLine($"[{propName}] {winningContext.ModKey}: Not resolved after pass 1");
-                        }
+                        // Mark as resolved if it is processed in pass 1
+                        propContext.IsResolved = true;
+                        Console.WriteLine($"[{propName}] {winningContext.ModKey}: Marked as resolved after pass 1");
                     }
-                    Console.WriteLine($"All resolved: {allResolved}");
                     Console.WriteLine("First pass complete");
                 }
 
@@ -293,7 +299,7 @@ namespace ForwardChanges.RecordHandlers.Abstracts
                     var overrideRecord = GetOverrideRecord(winningContext, state);
                     var propertiesToForwardDict = propertiesToForward.ToDictionary(
                         kvp => kvp.Key,
-                        kvp => kvp.Value.Item
+                        kvp => kvp.Value is ItemContext<object?> itemContext ? itemContext.Item : kvp.Value
                     );
                     ApplyForwardedProperties(overrideRecord, propertiesToForwardDict);
                 }

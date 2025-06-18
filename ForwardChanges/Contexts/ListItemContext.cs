@@ -13,15 +13,19 @@ namespace ForwardChanges.Contexts
      ///     <item><description><see cref="OwnerMod"/>: The mod that last modified the item (added or removed)</description></item>
      /// </list>
      /// </remarks>
-    public class ListItemContext<TItem> : ItemContext<TItem>
+    public class ListItemContext<T> : IItemContext<T>
     {
+        public T Item { get; set; }
+        public string OwnerMod { get; set; }
         public bool IsRemoved { get; set; }
         public int OriginalIndex { get; set; }  // For tracking position in context
         public List<string> ItemsBefore { get; set; } = new();  // Items that should come before this one
         public List<string> ItemsAfter { get; set; } = new();   // Items that should come after this one
 
-        public ListItemContext(TItem item, string ownerMod) : base(item, ownerMod)
+        public ListItemContext(T item, string ownerMod)
         {
+            Item = item;
+            OwnerMod = ownerMod;
             IsRemoved = false;
             OriginalIndex = -1;
         }

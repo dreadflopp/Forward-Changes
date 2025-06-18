@@ -1,8 +1,8 @@
 namespace ForwardChanges.Contexts.Interfaces
 {
-    public interface IItemContext<TItem>
+    public interface IItemContext<T>
     {
-        TItem Item { get; set; }
+        T Item { get; set; }
         string OwnerMod { get; set; }
     }
 }

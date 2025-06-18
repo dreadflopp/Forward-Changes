@@ -91,14 +91,14 @@ namespace ForwardChanges.PropertyHandlers.ListPropertyHandlers.Abstracts
                 return;
             }
 
-            if (string.IsNullOrEmpty(propertyContext.OriginalValue.OwnerMod))
+            if (propertyContext.OriginalValue == null)
             {
                 Console.WriteLine($"Error: Property state for {PropertyName} not properly initialized");
                 return;
             }
 
             var recordItems = GetValue(context)?.ToList() ?? new List<TItem>();
-            var currentForwardItems = (List<ListItemContext<TItem>>)propertyContext.ForwardValue.Item!;
+            var currentForwardItems = (List<ListItemContext<TItem>>)propertyContext.ForwardValue!;
             var recordMod = state.LoadOrder[context.ModKey].Mod;
 
             if (recordMod == null)
@@ -131,46 +131,47 @@ namespace ForwardChanges.PropertyHandlers.ListPropertyHandlers.Abstracts
                 }
             }
 
-            // Process additions            
+            // Process additions
             foreach (var item in recordItems)
             {
-                // Check if this specific item was previously removed
-                var previouslyRemovedItem = currentForwardItems.FirstOrDefault(e =>
-                    e.IsRemoved && IsItemEqual(e.Item, item));
+                var existingItem = currentForwardItems.FirstOrDefault(i => IsItemEqual(i.Item, item));
+                if (existingItem == null)
+                {
+                    // Check if this item was previously removed
+                    var previouslyRemovedItem = currentForwardItems.FirstOrDefault(i =>
+                        IsItemEqual(i.Item, item) && i.IsRemoved);
 
-                if (previouslyRemovedItem == null)
-                {
-                    // Add as new item
-                    var newItem = new ListItemContext<TItem>(item, context.ModKey.ToString());
-                    InsertItemAtCorrectPosition(newItem, recordItems, currentForwardItems);
-                    LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: Adding new item {FormatItem(item)} Success");
-                }
-                else
-                {
-                    // Check if we can add it back
-                    if (CanAddBack(recordMod, previouslyRemovedItem.OwnerMod))
+                    if (previouslyRemovedItem == null)
                     {
-                        // Create new item with current data and add it back
+                        // New item
                         var newItem = new ListItemContext<TItem>(item, context.ModKey.ToString());
-                        // Preserve ordering information
-                        newItem.ItemsBefore.AddRange(previouslyRemovedItem.ItemsBefore);
-                        newItem.ItemsAfter.AddRange(previouslyRemovedItem.ItemsAfter);
-                        newItem.OriginalIndex = previouslyRemovedItem.OriginalIndex;
-                        currentForwardItems.Remove(previouslyRemovedItem);
                         InsertItemAtCorrectPosition(newItem, recordItems, currentForwardItems);
-                        LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: Adding back item {FormatItem(item)} Success");
+                        LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: Adding new item {FormatItem(item)} Success");
                     }
                     else
                     {
-                        LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: Adding new item {FormatItem(item)} Permission denied. Previously removed by {previouslyRemovedItem.OwnerMod}");
+                        // Item was previously removed, check if we can add it back
+                        var canModify = recordMod.MasterReferences.Any(m => m.Master.ToString() == previouslyRemovedItem.OwnerMod);
+
+                        if (canModify)
+                        {
+                            previouslyRemovedItem.IsRemoved = false;
+                            previouslyRemovedItem.OwnerMod = context.ModKey.ToString();
+                            LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: Adding back previously removed item {FormatItem(item)} Success");
+                        }
+                        else
+                        {
+                            LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: Adding new item {FormatItem(item)} Permission denied. Previously removed by {previouslyRemovedItem.OwnerMod}");
+                        }
                     }
                 }
             }
+
             // Process any handler-specific logic
             ProcessHandlerSpecificLogic(context, state, propertyContext, recordItems, currentForwardItems);
 
             // Update the state
-            propertyContext.ForwardValue.Item = currentForwardItems;
+            propertyContext.ForwardValue = currentForwardItems;
         }
 
         /// <summary>

@@ -2,12 +2,12 @@ using ForwardChanges.Contexts.Interfaces;
 
 namespace ForwardChanges.Contexts
 {
-    public class ItemContext<TItem> : IItemContext<TItem>
+    public class ItemContext<T> : IItemContext<T>
     {
-        public TItem Item { get; set; }
+        public T Item { get; set; }
         public string OwnerMod { get; set; }
 
-        public ItemContext(TItem item, string ownerMod)
+        public ItemContext(T item, string ownerMod)
         {
             Item = item;
             OwnerMod = ownerMod;

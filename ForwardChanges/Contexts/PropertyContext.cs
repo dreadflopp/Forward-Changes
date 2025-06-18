@@ -11,20 +11,18 @@ namespace ForwardChanges.Contexts
     ///     <item><description><see cref="IsResolved"/>: Indicates if the property has been resolved</description></item>
     ///     <item><description><see cref="OriginalValue"/>: The original value of the property</description></item>
     ///     <item><description><see cref="ForwardValue"/>: The final value of the property</description></item>
-    ///     <item><description><see cref="LastChangedByMod"/>: The mod that last modified the property</description></item>
     /// </list>
     /// </remarks>
     public class PropertyContext
     {
         public bool IsResolved { get; set; } = false;
-        public IItemContext<object?> OriginalValue { get; set; }
-        public IItemContext<object?> ForwardValue { get; set; }
-        //public string LastChangedByMod { get; set; } = string.Empty;
+        public object? OriginalValue { get; set; }  // Either ItemContext<T> or List<ListItemContext<T>>
+        public object? ForwardValue { get; set; }   // Either ItemContext<T> or List<ListItemContext<T>>
 
         public PropertyContext()
         {
-            ForwardValue = new ItemContext<object?>(null, string.Empty);
-            OriginalValue = new ItemContext<object?>(null, string.Empty);
+            OriginalValue = null;
+            ForwardValue = null;
         }
     }
 }
