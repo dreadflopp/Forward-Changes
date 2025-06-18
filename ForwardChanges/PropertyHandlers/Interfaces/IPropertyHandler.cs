@@ -44,6 +44,14 @@ namespace ForwardChanges.PropertyHandlers.Interfaces
             IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> context,
             IPatcherState<ISkyrimMod, ISkyrimModGetter> state,
             PropertyContext propertyContext);
+
+        /// <summary>
+        /// Initializes the property context with the original and winning values
+        /// </summary>
+        void InitializeContext(
+            IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> originalContext,
+            IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> winningContext,
+            PropertyContext propertyContext);
     }
 
     /// <summary>
@@ -66,5 +74,13 @@ namespace ForwardChanges.PropertyHandlers.Interfaces
         /// Compares two values for equality
         /// </summary>
         bool AreValuesEqual(TItem? value1, TItem? value2);
+
+        /// <summary>
+        /// Type-safe version of InitializeContext
+        /// </summary>
+        void InitializeContext(
+            IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> originalContext,
+            IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> winningContext,
+            PropertyContext<TItem> propertyContext);
     }
 }

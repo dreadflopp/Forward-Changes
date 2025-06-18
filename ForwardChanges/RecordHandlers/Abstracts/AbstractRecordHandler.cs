@@ -106,31 +106,8 @@ namespace ForwardChanges.RecordHandlers.Abstracts
             PropertyContexts.Clear();
             foreach (var (propertyName, handler) in PropertyHandlers)
             {
-                var originalValue = handler.GetValue(originalContext);
-
-                if (handler.IsListHandler)
-                {
-                    // For list properties, create ListItemContext for each item
-                    var listItems = originalValue == null ? new List<ListItemContext<object>>() :
-                        ((IReadOnlyList<object>)originalValue)
-                            .Select(item => new ListItemContext<object>(item, originalContext.ModKey.ToString()))
-                            .ToList();
-
-                    PropertyContexts[propertyName] = new PropertyContext
-                    {
-                        OriginalValue = listItems,
-                        ForwardValue = listItems
-                    };
-                }
-                else
-                {
-                    // For single values, use ItemContext
-                    PropertyContexts[propertyName] = new PropertyContext
-                    {
-                        OriginalValue = new ItemContext<object?>(originalValue, originalContext.ModKey.ToString()),
-                        ForwardValue = new ItemContext<object?>(originalValue, winningContext.ModKey.ToString())
-                    };
-                }
+                PropertyContexts[propertyName] = new PropertyContext();
+                handler.InitializeContext(originalContext, winningContext, PropertyContexts[propertyName]);
             }
         }
 

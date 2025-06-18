@@ -91,28 +91,29 @@ namespace ForwardChanges.PropertyHandlers.BasicPropertyHandlers
                 return;
             }
 
-            if (string.IsNullOrEmpty(propertyContext.OriginalValue.OwnerMod))
+            var forwardValue = propertyContext.ForwardValue as ItemContext<ProtectionStatus>;
+            if (forwardValue == null)
             {
-                Console.WriteLine($"Error: Property state for {PropertyName} not properly initialized");
+                Console.WriteLine($"Error: Property context is not properly initialized for {PropertyName}");
                 return;
             }
 
             var contextProtectionStatus = GetProtectionStatusFromFlags(npc.Configuration.Flags);
-            var forwardValueProtectionStatus = (ProtectionStatus)propertyContext.ForwardValue.Item!;
+            var forwardValueProtectionStatus = forwardValue.Item;
 
             if (contextProtectionStatus == ProtectionStatus.Essential)
             {
                 propertyContext.IsResolved = true;
-                propertyContext.ForwardValue.Item = ProtectionStatus.Essential;
-                propertyContext.ForwardValue.OwnerMod = context.ModKey.ToString();
+                forwardValue.Item = ProtectionStatus.Essential;
+                forwardValue.OwnerMod = context.ModKey.ToString();
                 LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: Protection state is essential, property is resolved");
                 return;
             }
 
             if (contextProtectionStatus > forwardValueProtectionStatus)
             {
-                propertyContext.ForwardValue.Item = contextProtectionStatus;
-                propertyContext.ForwardValue.OwnerMod = context.ModKey.ToString();
+                forwardValue.Item = contextProtectionStatus;
+                forwardValue.OwnerMod = context.ModKey.ToString();
                 LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: New protection state: {forwardValueProtectionStatus} -> {contextProtectionStatus}");
                 if (contextProtectionStatus == ProtectionStatus.Essential)
                 {

@@ -91,16 +91,15 @@ namespace ForwardChanges.PropertyHandlers.ListPropertyHandlers.Abstracts
                 return;
             }
 
-            if (propertyContext.OriginalValue == null)
+            var recordItems = GetValue(context)?.ToList() ?? new List<TItem>();
+            var currentForwardItems = propertyContext.ForwardValue as List<ListItemContext<TItem>>;
+            if (currentForwardItems == null)
             {
-                Console.WriteLine($"Error: Property state for {PropertyName} not properly initialized");
+                Console.WriteLine($"Error: Property context is not properly initialized for {PropertyName}");
                 return;
             }
 
-            var recordItems = GetValue(context)?.ToList() ?? new List<TItem>();
-            var currentForwardItems = (List<ListItemContext<TItem>>)propertyContext.ForwardValue!;
             var recordMod = state.LoadOrder[context.ModKey].Mod;
-
             if (recordMod == null)
             {
                 Console.WriteLine($"Error: Record mod is null for {PropertyName}");
@@ -192,8 +191,10 @@ namespace ForwardChanges.PropertyHandlers.ListPropertyHandlers.Abstracts
             // Base implementation does nothing
         }
 
-        protected virtual bool IsItemEqual(TItem item1, TItem item2)
+        protected virtual bool IsItemEqual(TItem? item1, TItem? item2)
         {
+            if (item1 == null && item2 == null) return true;
+            if (item1 == null || item2 == null) return false;
             return Equals(item1, item2);
         }
 
@@ -297,7 +298,7 @@ namespace ForwardChanges.PropertyHandlers.ListPropertyHandlers.Abstracts
         /// </summary>
         /// <param name="item"></param>
         /// <returns>The formatted item</returns>
-        protected virtual string FormatItem(TItem item)
+        protected virtual string FormatItem(TItem? item)
         {
             return item?.ToString() ?? "null";
         }
@@ -400,6 +401,64 @@ namespace ForwardChanges.PropertyHandlers.ListPropertyHandlers.Abstracts
         protected bool CanAddBack(ISkyrimModGetter mod, string ownerMod)
         {
             return mod?.MasterReferences.Any(m => m.Master.ToString() == ownerMod) == true || mod?.ModKey.ToString() == ownerMod;
+        }
+
+        // Non-generic InitializeContext implementation
+        void IPropertyHandlerBase.InitializeContext(
+            IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> originalContext,
+            IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> winningContext,
+            PropertyContext propertyContext)
+        {
+            InitializeContext(originalContext, winningContext, (PropertyContext<IReadOnlyList<TItem>>)propertyContext);
+        }
+
+        // Generic InitializeContext implementation
+        public virtual void InitializeContext(
+            IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> originalContext,
+            IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> winningContext,
+            PropertyContext<IReadOnlyList<TItem>> propertyContext)
+        {
+            var originalValue = GetValue(originalContext);
+            var listItems = originalValue == null ? new List<ListItemContext<TItem>>() :
+                originalValue
+                    .Select((item, index) =>
+                    {
+                        var listItem = new ListItemContext<TItem>(item, originalContext.ModKey.ToString());
+
+                        // Only populate ordering information if required
+                        if (RequiresOrdering)
+                        {
+                            // Add items before this one to ItemsBefore
+                            if (index > 0)
+                            {
+                                listItem.ItemsBefore.AddRange(
+                                    originalValue.Take(index)
+                                        .Select(i => i?.ToString() ?? string.Empty)
+                                );
+                            }
+
+                            // Add items after this one to ItemsAfter
+                            if (index < originalValue.Count - 1)
+                            {
+                                listItem.ItemsAfter.AddRange(
+                                    originalValue.Skip(index + 1)
+                                        .Select(i => i?.ToString() ?? string.Empty)
+                                );
+                            }
+                        }
+
+                        return listItem;
+                    })
+                    .ToList();
+
+            propertyContext.OriginalValue = new ItemContext<IReadOnlyList<TItem>>(
+                originalValue ?? Array.Empty<TItem>(),
+                originalContext.ModKey.ToString()
+            );
+            propertyContext.ForwardValue = new ItemContext<IReadOnlyList<TItem>>(
+                originalValue ?? Array.Empty<TItem>(),
+                winningContext.ModKey.ToString()
+            );
         }
     }
 }

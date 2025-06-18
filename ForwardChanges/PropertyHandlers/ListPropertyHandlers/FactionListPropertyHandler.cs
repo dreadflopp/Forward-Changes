@@ -80,8 +80,9 @@ namespace ForwardChanges.PropertyHandlers.ListPropertyHandlers
         /// </summary>
         /// <param name="item">The faction to format.</param>
         /// <returns>A string representation of the faction.</returns>
-        protected override string FormatItem(IRankPlacementGetter item)
+        protected override string FormatItem(IRankPlacementGetter? item)
         {
+            if (item == null) return "null";
             return $"{item.Faction.FormKey}(Rank {item.Rank})";
         }
 
@@ -149,7 +150,6 @@ namespace ForwardChanges.PropertyHandlers.ListPropertyHandlers
                         // Preserve ordering information
                         newItem.ItemsBefore.AddRange(forwardItem.ItemsBefore);
                         newItem.ItemsAfter.AddRange(forwardItem.ItemsAfter);
-                        newItem.OriginalIndex = forwardItem.OriginalIndex;
                         // Replace old item with new one
                         var index = currentForwardItems.IndexOf(forwardItem);
                         currentForwardItems[index] = newItem;

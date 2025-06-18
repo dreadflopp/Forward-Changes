@@ -15,14 +15,14 @@ namespace ForwardChanges.RecordHandlers
         public override Dictionary<string, IPropertyHandlerBase> PropertyHandlers { get; } = new()
         {
             { "Name", new NamePropertyHandler() },
-            { "DeathItem", new DeathItemPropertyHandler() },
+        /*    { "DeathItem", new DeathItemPropertyHandler() },
             { "CombatOverridePackageList", new CombatOverridePackageListHandler() },
             { "SpectatorOverridePackageList", new SpectatorOverridePackageListHandler() },
             { "Configuration.Flags", new ProtectionFlagsHandler() },
             { "EditorID", new EditorIDPropertyHandler() },
             { "Class", new ClassPropertyHandler() },
             { "AIData.Confidence", new AIDataConfidencePropertyHandler() },
-            { "Factions", new FactionListPropertyHandler() }
+            { "Factions", new FactionListPropertyHandler() }*/
         };
 
         public override bool CanHandle(IMajorRecord record)

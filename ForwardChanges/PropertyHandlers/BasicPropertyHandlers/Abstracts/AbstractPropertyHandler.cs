@@ -61,6 +61,26 @@ namespace ForwardChanges.PropertyHandlers.BasicPropertyHandlers.Abstracts
             }
         }
 
+        // Non-generic InitializeContext implementation
+        void IPropertyHandlerBase.InitializeContext(
+            IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> originalContext,
+            IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> winningContext,
+            PropertyContext propertyContext)
+        {
+            InitializeContext(originalContext, winningContext, (PropertyContext<TItem>)propertyContext);
+        }
+
+        // Generic InitializeContext implementation
+        public virtual void InitializeContext(
+            IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> originalContext,
+            IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> winningContext,
+            PropertyContext<TItem> propertyContext)
+        {
+            var originalValue = GetValue(originalContext);
+            propertyContext.OriginalValue = new ItemContext<TItem>(originalValue, originalContext.ModKey.ToString());
+            propertyContext.ForwardValue = new ItemContext<TItem>(originalValue, winningContext.ModKey.ToString());
+        }
+
         public virtual void UpdatePropertyContext(
             IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> context,
             IPatcherState<ISkyrimMod, ISkyrimModGetter> state,
@@ -72,47 +92,48 @@ namespace ForwardChanges.PropertyHandlers.BasicPropertyHandlers.Abstracts
                 return;
             }
 
-            if (string.IsNullOrEmpty(propertyContext.OriginalValue.OwnerMod))
+            var value = GetValue(context);
+            var forwardItemContext = propertyContext.ForwardValue as ItemContext<object?>;
+            var originalItemContext = propertyContext.OriginalValue as ItemContext<object?>;
+            if (forwardItemContext == null || originalItemContext == null)
             {
-                Console.WriteLine($"Error: Property state for {PropertyName} not properly initialized");
+                Console.WriteLine($"Error: Property context is not properly initialized for {PropertyName}");
                 return;
             }
 
-            var value = GetValue(context);
-
-            // Addition: value is different from both original and current proposal to fowrward value
-            if (!AreValuesEqual(value, (TItem?)propertyContext.OriginalValue.Item) &&
-                !AreValuesEqual(value, (TItem?)propertyContext.ForwardValue.Item))
+            // Addition: value is different from both original and current proposal to forward value
+            if (!AreValuesEqual(value, (TItem?)originalItemContext.Item) &&
+                !AreValuesEqual(value, (TItem?)forwardItemContext.Item))
             {
-                var previousForwardValue = propertyContext.ForwardValue.Item;
-                propertyContext.ForwardValue.Item = value;
-                propertyContext.ForwardValue.OwnerMod = context.ModKey.ToString();
+                var previousForwardValue = forwardItemContext.Item;
+                forwardItemContext.Item = value;
+                forwardItemContext.OwnerMod = context.ModKey.ToString();
                 LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: Addition: {previousForwardValue} -> {value} Success");
                 return;
             }
 
             // Reversion: value equals original but different from current proposal to forward value
-            else if (AreValuesEqual(value, (TItem?)propertyContext.OriginalValue.Item) &&
-                     !AreValuesEqual(value, (TItem?)propertyContext.ForwardValue.Item))
+            else if (AreValuesEqual(value, (TItem?)originalItemContext.Item) &&
+                     !AreValuesEqual(value, (TItem?)forwardItemContext.Item))
             {
                 var currentMod = state.LoadOrder[context.ModKey].Mod;
-                var canModify = currentMod?.MasterReferences.Any(m => m.Master.ToString() == propertyContext.ForwardValue.OwnerMod) == true;
+                var canModify = currentMod?.MasterReferences.Any(m => m.Master.ToString() == forwardItemContext.OwnerMod) == true;
 
                 if (canModify)
                 {
-                    var previousForwardValue = propertyContext.ForwardValue.Item;
-                    propertyContext.ForwardValue.Item = value;
-                    propertyContext.ForwardValue.OwnerMod = context.ModKey.ToString();
+                    var previousForwardValue = forwardItemContext.Item;
+                    forwardItemContext.Item = value;
+                    forwardItemContext.OwnerMod = context.ModKey.ToString();
                     LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: Reversion: {previousForwardValue} -> {value} Success");
                 }
                 else
                 {
-                    LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: Reversion: {propertyContext.ForwardValue.Item} -> {value} Permission denied");
+                    LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: Reversion: {forwardItemContext.Item} -> {value} Permission denied");
                 }
             }
             else
             {
-                LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: No change to value: {propertyContext.ForwardValue.Item}");
+                LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: No change to value: {forwardItemContext.Item}");
             }
         }
     }
