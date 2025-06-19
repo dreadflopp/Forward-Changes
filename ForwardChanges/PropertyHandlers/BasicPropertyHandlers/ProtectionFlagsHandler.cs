@@ -3,6 +3,7 @@ using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Plugins.Cache;
 using Mutagen.Bethesda.Synthesis;
 using ForwardChanges.Contexts;
+using ForwardChanges.Contexts.Interfaces;
 using ForwardChanges.PropertyHandlers.BasicPropertyHandlers.Abstracts;
 using ForwardChanges.Enums;
 using ForwardChanges.PropertyHandlers.Interfaces;
@@ -90,15 +91,20 @@ namespace ForwardChanges.PropertyHandlers.BasicPropertyHandlers
         public override void UpdatePropertyContext(
         IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> context,
         IPatcherState<ISkyrimMod, ISkyrimModGetter> state,
-            SimplePropertyContext<ProtectionStatus> propertyContext)
+            IPropertyContext propertyContext)
         {
+            if (propertyContext is not SimplePropertyContext<ProtectionStatus> simplePropertyContext)
+            {
+                throw new InvalidOperationException($"Property context is not a simple property context for {PropertyName}");
+            }
+
             if (context == null || context.Record is not INpcGetter npc)
             {
                 Console.WriteLine($"Error: Context is null for {PropertyName} or record is not an NPC");
                 return;
             }
 
-            var forwardContext = propertyContext.ForwardValueContext;
+            var forwardContext = simplePropertyContext.ForwardValueContext;
             if (forwardContext == null)
             {
                 Console.WriteLine($"Error: Property context is not properly initialized for {PropertyName}");
@@ -110,7 +116,7 @@ namespace ForwardChanges.PropertyHandlers.BasicPropertyHandlers
 
             if (contextProtectionStatus == ProtectionStatus.Essential)
             {
-                propertyContext.IsResolved = true;
+                simplePropertyContext.IsResolved = true;
                 forwardContext.Value = ProtectionStatus.Essential;
                 forwardContext.OwnerMod = context.ModKey.ToString();
                 LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: Protection state is essential, property is resolved");
@@ -124,7 +130,7 @@ namespace ForwardChanges.PropertyHandlers.BasicPropertyHandlers
                 LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: New protection state: {forwardValueProtectionStatus} -> {contextProtectionStatus}");
                 if (contextProtectionStatus == ProtectionStatus.Essential)
                 {
-                    propertyContext.IsResolved = true;
+                    simplePropertyContext.IsResolved = true;
                     LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: Protection state is essential, property is resolved");
                     return;
                 }

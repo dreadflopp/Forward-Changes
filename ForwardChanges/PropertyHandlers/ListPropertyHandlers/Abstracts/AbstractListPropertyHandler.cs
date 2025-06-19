@@ -413,5 +413,27 @@ namespace ForwardChanges.PropertyHandlers.ListPropertyHandlers.Abstracts
             listPropertyContext.OriginalValueContexts = listItems;
             listPropertyContext.ForwardValueContexts = listItems;
         }
+
+        // Non-generic interface implementations
+        void IPropertyHandler.SetValue(IMajorRecord record, object? value)
+        {
+            SetValue(record, (IReadOnlyList<T>?)value);
+        }
+
+        object? IPropertyHandler.GetValue(IMajorRecordGetter record)
+        {
+            return GetValue(record);
+        }
+
+        bool IPropertyHandler.AreValuesEqual(object? value1, object? value2)
+        {
+            return AreValuesEqual((IReadOnlyList<T>?)value1, (IReadOnlyList<T>?)value2);
+        }
+
+        // Non-generic interface implementation for context creation
+        IPropertyContext IPropertyHandler.CreatePropertyContext()
+        {
+            return new ListPropertyContext<T>();
+        }
     }
 }

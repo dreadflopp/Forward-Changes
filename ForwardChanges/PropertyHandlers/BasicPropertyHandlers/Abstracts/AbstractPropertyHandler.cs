@@ -23,6 +23,29 @@ namespace ForwardChanges.PropertyHandlers.BasicPropertyHandlers.Abstracts
             if (value1 == null || value2 == null) return false;
             return Equals(value1, value2);
         }
+
+        // Non-generic interface implementations
+        void IPropertyHandler.SetValue(IMajorRecord record, object? value)
+        {
+            SetValue(record, (T?)value);
+        }
+
+        object? IPropertyHandler.GetValue(IMajorRecordGetter record)
+        {
+            return GetValue(record);
+        }
+
+        bool IPropertyHandler.AreValuesEqual(object? value1, object? value2)
+        {
+            return AreValuesEqual((T?)value1, (T?)value2);
+        }
+
+        // Non-generic interface implementation for context creation
+        IPropertyContext IPropertyHandler.CreatePropertyContext()
+        {
+            return new SimplePropertyContext<T>();
+        }
+
         public virtual void UpdatePropertyContext(
             IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> context,
             IPatcherState<ISkyrimMod, ISkyrimModGetter> state,
