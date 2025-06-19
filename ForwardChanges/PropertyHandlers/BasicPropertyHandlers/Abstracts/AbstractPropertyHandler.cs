@@ -26,7 +26,7 @@ namespace ForwardChanges.PropertyHandlers.BasicPropertyHandlers.Abstracts
         public virtual void UpdatePropertyContext(
             IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> context,
             IPatcherState<ISkyrimMod, ISkyrimModGetter> state,
-            IPropertyContext<T> propertyContext)
+            IPropertyContext propertyContext)
         {
             if (context == null)
             {
@@ -89,7 +89,7 @@ namespace ForwardChanges.PropertyHandlers.BasicPropertyHandlers.Abstracts
         public void InitializeContext(
             IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> originalContext,
             IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> winningContext,
-            IPropertyContext<T> propertyContext)
+            IPropertyContext propertyContext)
         {
             if (propertyContext is not SimplePropertyContext<T> simplePropertyContext)
             {
@@ -99,6 +99,5 @@ namespace ForwardChanges.PropertyHandlers.BasicPropertyHandlers.Abstracts
             simplePropertyContext.ForwardValueContext = new SimplePropertyValueContext<T>(GetValue(winningContext.Record), winningContext.ModKey.ToString());
             simplePropertyContext.IsResolved = false;
         }
-
     }
 }

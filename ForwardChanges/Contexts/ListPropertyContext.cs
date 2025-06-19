@@ -6,7 +6,7 @@ namespace ForwardChanges.Contexts
     /// Represents a context for a list property.
     /// </summary>
     /// <typeparam name="T">The type of the property value</typeparam>
-    public class ListPropertyContext<T> : IPropertyContext<T>
+    public class ListPropertyContext<T> : IPropertyContext
     {
         public bool IsResolved { get; set; }
         public List<ListPropertyValueContext<T>>? OriginalValueContexts { get; set; }

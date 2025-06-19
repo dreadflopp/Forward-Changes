@@ -6,7 +6,7 @@ using ForwardChanges.Contexts.Interfaces;
 /// <typeparam name="T">The type of value this property context manages</typeparam>
 namespace ForwardChanges.Contexts
 {
-    public class SimplePropertyContext<T> : IPropertyContext<T>
+    public class SimplePropertyContext<T> : IPropertyContext
     {
         public bool IsResolved { get; set; }
         public SimplePropertyValueContext<T>? OriginalValueContext { get; set; }

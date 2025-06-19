@@ -98,7 +98,7 @@ namespace ForwardChanges.RecordHandlers.Abstracts
         // Abstract property that all record handlers must implement
         public abstract Dictionary<string, object> PropertyHandlers { get; }
 
-        protected Dictionary<string, object> PropertyContexts { get; private set; } = [];
+        protected Dictionary<string, IPropertyContext> PropertyContexts { get; private set; } = [];
 
 
         /// <summary>
@@ -113,7 +113,22 @@ namespace ForwardChanges.RecordHandlers.Abstracts
             PropertyContexts.Clear();
             foreach (var (propertyName, handler) in PropertyHandlers)
             {
-                handler.InitializeContext(originalContext, winningContext, PropertyContexts[propertyName]);
+                if (handler is IPropertyHandler<object> propertyHandler)
+                {
+                    // Create the appropriate property context based on whether it's a list handler
+                    IPropertyContext propertyContext;
+                    if (propertyHandler.IsListHandler)
+                    {
+                        propertyContext = new ListPropertyContext<object>();
+                    }
+                    else
+                    {
+                        propertyContext = new SimplePropertyContext<object>();
+                    }
+
+                    PropertyContexts[propertyName] = propertyContext;
+                    propertyHandler.InitializeContext(originalContext, winningContext, propertyContext);
+                }
             }
         }
 
@@ -144,25 +159,28 @@ namespace ForwardChanges.RecordHandlers.Abstracts
                 bool hasListProperties = false;
                 foreach (var (propName, handler) in PropertyHandlers)
                 {
-                    if (!handler.IsListHandler)
+                    if (handler is IPropertyHandler<object> propertyHandler)
                     {
-                        var originalValue = handler.GetValue(originalContext.Record);
-                        var winningValue = handler.GetValue(winningContext.Record);
-                        var propContext = PropertyContexts[propName];
-
-                        if (!handler.AreValuesEqual(originalValue, winningValue))
+                        if (!propertyHandler.IsListHandler)
                         {
-                            propContext.IsResolved = true;
-                            Console.WriteLine($"[{propName}] {winningContext.ModKey} Resolved, nothing to forward");
+                            var originalValue = propertyHandler.GetValue(originalContext.Record);
+                            var winningValue = propertyHandler.GetValue(winningContext.Record);
+                            var propContext = PropertyContexts[propName];
+
+                            if (!propertyHandler.AreValuesEqual(originalValue, winningValue))
+                            {
+                                propContext.IsResolved = true;
+                                Console.WriteLine($"[{propName}] {winningContext.ModKey} Resolved, nothing to forward");
+                            }
+                            else
+                            {
+                                allResolved = false;
+                            }
                         }
                         else
                         {
-                            allResolved = false;
+                            hasListProperties = true;
                         }
-                    }
-                    else
-                    {
-                        hasListProperties = true;
                     }
                 }
 
@@ -187,7 +205,10 @@ namespace ForwardChanges.RecordHandlers.Abstracts
                             if (propContext.IsResolved) continue;
 
                             // if not, update the property context
-                            handler.UpdatePropertyContext(context, state, propContext);
+                            if (handler is IPropertyHandler<object> propertyHandler)
+                            {
+                                propertyHandler.UpdatePropertyContext(context, state, propContext);
+                            }
                         }
 
                     }
@@ -217,7 +238,10 @@ namespace ForwardChanges.RecordHandlers.Abstracts
                     {
                         if (!PropertyContexts[propName].IsResolved)
                         {
-                            handler.InitializeContext(originalContext, winningContext, PropertyContexts[propName]);
+                            if (handler is IPropertyHandler<object> propertyHandler)
+                            {
+                                propertyHandler.InitializeContext(originalContext, winningContext, PropertyContexts[propName]);
+                            }
                         }
                     }
 
@@ -241,24 +265,27 @@ namespace ForwardChanges.RecordHandlers.Abstracts
                             }
 
                             allResolved = false;
-                            handler.UpdatePropertyContext(context, state, propertyContext);
-
-                            // If property has changed, iterate back to check for valid reverts
-                            var forwardValue = handler.GetValue(context.Record);
-                            var originalValue = handler.GetValue(originalContext.Record);
-                            if (!handler.AreValuesEqual(forwardValue, originalValue))
+                            if (handler is IPropertyHandler<object> propertyHandler)
                             {
-                                // Find the index of current context
-                                var currentIndex = Array.IndexOf(recordContexts, context);
+                                propertyHandler.UpdatePropertyContext(context, state, propertyContext);
 
-                                // Iterate back towards winning
-                                for (int i = currentIndex - 1; i >= 0; i--)
+                                // If property has changed, iterate back to check for valid reverts
+                                var forwardValue = propertyHandler.GetValue(context.Record);
+                                var originalValue = propertyHandler.GetValue(originalContext.Record);
+                                if (!propertyHandler.AreValuesEqual(forwardValue, originalValue))
                                 {
-                                    handler.UpdatePropertyContext(recordContexts[i], state, propertyContext);
-                                }
+                                    // Find the index of current context
+                                    var currentIndex = Array.IndexOf(recordContexts, context);
 
-                                // Now we have the real final value, mark as resolved
-                                propertyContext.IsResolved = true;
+                                    // Iterate back towards winning
+                                    for (int i = currentIndex - 1; i >= 0; i--)
+                                    {
+                                        propertyHandler.UpdatePropertyContext(recordContexts[i], state, propertyContext);
+                                    }
+
+                                    // Now we have the real final value, mark as resolved
+                                    propertyContext.IsResolved = true;
+                                }
                             }
                         }
 
@@ -281,45 +308,39 @@ namespace ForwardChanges.RecordHandlers.Abstracts
                 var propertiesToForward = PropertyContexts
                     .Where(kvp =>
                     {
-                        var propertyContext = PropertyContexts[kvp.Key];
+                        var propertyContext = kvp.Value;
                         var handler = PropertyHandlers[kvp.Key];
+                        if (propertyContext == null || handler == null) return false;
 
-                        // Skip if we can't determine the handler type
-                        if (handler == null) return false;
+                        if (handler is not IPropertyHandler<object> propertyHandler) return false;
+                        var winningValue = propertyHandler.GetValue(winningContext.Record);
 
                         // Handle simple properties
-                        if (propertyContext is SimplePropertyContext simpleContext)
+                        if (propertyContext is SimplePropertyContext<object> simpleContext)
                         {
-                            var simpleHandler = handler as IPropertyHandler<object>;
-                            if (simpleHandler == null || simpleContext.ForwardValueContext == null) return false;
-
-                            var winningValue = simpleHandler.GetValue(winningContext.Record);
-                            var forwardValue = simpleContext.ForwardValueContext.Value;
-                            return !simpleHandler.AreValuesEqual(forwardValue, winningValue);
+                            if (simpleContext.ForwardValueContext?.Value == null) return false;
+                            return !propertyHandler.AreValuesEqual(simpleContext.ForwardValueContext.Value, winningValue);
                         }
 
                         // Handle list properties
-                        if (propertyContext is ListPropertyContext listContext)
+                        if (propertyContext is ListPropertyContext<object> listContext)
                         {
-                            var listHandler = handler as IPropertyHandler<IReadOnlyList<object>>;
-                            if (listHandler == null || listContext.ForwardValueContexts == null) return false;
-
-                            var winningValue = listHandler.GetValue(winningContext.Record);
+                            if (listContext.ForwardValueContexts == null) return false;
                             var forwardItems = listContext.ForwardValueContexts.Where(i => !i.IsRemoved).Select(i => i.Value).ToList();
-                            return !listHandler.AreValuesEqual(forwardItems, winningValue);
+                            return !propertyHandler.AreValuesEqual(forwardItems, winningValue);
                         }
 
                         return false;
                     })
                     .ToDictionary(kvp => kvp.Key, kvp =>
                     {
-                        var propertyContext = PropertyContexts[kvp.Key];
+                        var propertyContext = kvp.Value;
 
-                        if (propertyContext is SimplePropertyContext simpleContext)
+                        if (propertyContext is SimplePropertyContext<object> simpleContext)
                         {
                             return simpleContext.ForwardValueContext?.Value;
                         }
-                        else if (propertyContext is ListPropertyContext listContext)
+                        else if (propertyContext is ListPropertyContext<object> listContext)
                         {
                             return listContext.ForwardValueContexts?.Where(i => !i.IsRemoved).Select(i => i.Value).ToList();
                         }

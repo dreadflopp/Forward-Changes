@@ -44,7 +44,7 @@ namespace ForwardChanges.PropertyHandlers.ListPropertyHandlers.Abstracts
         public virtual void UpdatePropertyContext(
             IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> context,
             IPatcherState<ISkyrimMod, ISkyrimModGetter> state,
-            IPropertyContext<IReadOnlyList<T>> propertyContext)
+            IPropertyContext propertyContext)
         {
             if (context == null)
             {
@@ -371,7 +371,7 @@ namespace ForwardChanges.PropertyHandlers.ListPropertyHandlers.Abstracts
         public virtual void InitializeContext(
             IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> originalContext,
             IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> winningContext,
-            IPropertyContext<IReadOnlyList<T>> propertyContext)
+            IPropertyContext propertyContext)
         {
             if (propertyContext is not ListPropertyContext<T> listPropertyContext)
             {

@@ -12,17 +12,17 @@ namespace ForwardChanges.RecordHandlers
 {
     public class NpcRecordHandler : AbstractRecordHandler
     {
-        public override Dictionary<string, IPropertyHandlerBase> PropertyHandlers { get; } = new()
+        public override Dictionary<string, object> PropertyHandlers { get; } = new()
         {
-        /*    { "Name", new NamePropertyHandler() },
-            { "DeathItem", new DeathItemPropertyHandler() },
-            { "CombatOverridePackageList", new CombatOverridePackageListHandler() },
-            { "SpectatorOverridePackageList", new SpectatorOverridePackageListHandler() },
-            { "Configuration.Flags", new ProtectionFlagsHandler() },
-            { "EditorID", new EditorIDPropertyHandler() },
-            { "Class", new ClassPropertyHandler() },
-            { "AIData.Confidence", new AIDataConfidencePropertyHandler() },
-            { "Factions", new FactionListPropertyHandler() }*/
+            /*    { "Name", new NamePropertyHandler() },
+                { "DeathItem", new DeathItemPropertyHandler() },
+                { "CombatOverridePackageList", new CombatOverridePackageListHandler() },
+                { "SpectatorOverridePackageList", new SpectatorOverridePackageListHandler() },
+                { "Configuration.Flags", new ProtectionFlagsHandler() },
+                { "EditorID", new EditorIDPropertyHandler() },
+                { "Class", new ClassPropertyHandler() },
+                { "AIData.Confidence", new AIDataConfidencePropertyHandler() },
+                { "Factions", new FactionListPropertyHandler() }*/
         };
 
         public override bool CanHandle(IMajorRecord record)
@@ -61,7 +61,13 @@ namespace ForwardChanges.RecordHandlers
                 if (PropertyHandlers.TryGetValue(propertyName, out var handler))
                 {
                     Console.WriteLine($"[{propertyName}] Applying value: {value}, Type: {value?.GetType()}");
-                    handler.SetValue(record, value);
+                    if (handler is IPropertyHandler<object> propertyHandler)
+                    {
+                        if (value != null)
+                        {
+                            propertyHandler.SetValue(record, value);
+                        }
+                    }
                 }
             }
         }
