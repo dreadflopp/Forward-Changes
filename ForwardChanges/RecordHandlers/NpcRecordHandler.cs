@@ -14,8 +14,8 @@ namespace ForwardChanges.RecordHandlers
     {
         public override Dictionary<string, IPropertyHandlerBase> PropertyHandlers { get; } = new()
         {
-            { "Name", new NamePropertyHandler() },
-        /*    { "DeathItem", new DeathItemPropertyHandler() },
+        /*    { "Name", new NamePropertyHandler() },
+            { "DeathItem", new DeathItemPropertyHandler() },
             { "CombatOverridePackageList", new CombatOverridePackageListHandler() },
             { "SpectatorOverridePackageList", new SpectatorOverridePackageListHandler() },
             { "Configuration.Flags", new ProtectionFlagsHandler() },

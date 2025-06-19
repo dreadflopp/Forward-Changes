@@ -57,6 +57,10 @@ namespace ForwardChanges.PropertyHandlers.BasicPropertyHandlers
 
                 npc.Configuration.Flags = flags;
             }
+            else
+            {
+                Console.WriteLine($"Error: Record is not an NPC for {PropertyName}");
+            }
         }
 
         /// <summary>
@@ -64,12 +68,15 @@ namespace ForwardChanges.PropertyHandlers.BasicPropertyHandlers
         /// </summary>
         /// <param name="context"></param>
         /// <returns></returns>
-        public override ProtectionStatus GetValue(
-            IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> context)
+        public override ProtectionStatus GetValue(IMajorRecordGetter record)
         {
-            if (context.Record is INpcGetter npc)
+            if (record is INpcGetter npc)
             {
                 return GetProtectionStatusFromFlags(npc.Configuration.Flags);
+            }
+            else
+            {
+                Console.WriteLine($"Error: Record is not an NPC for {PropertyName}");
             }
             return ProtectionStatus.None;
         }
@@ -81,9 +88,9 @@ namespace ForwardChanges.PropertyHandlers.BasicPropertyHandlers
         /// <param name="state"></param>
         /// <param name="propertyContext"></param>
         public override void UpdatePropertyContext(
-            IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> context,
-            IPatcherState<ISkyrimMod, ISkyrimModGetter> state,
-            PropertyContext propertyContext)
+        IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> context,
+        IPatcherState<ISkyrimMod, ISkyrimModGetter> state,
+            SimplePropertyContext<ProtectionStatus> propertyContext)
         {
             if (context == null || context.Record is not INpcGetter npc)
             {
@@ -91,29 +98,29 @@ namespace ForwardChanges.PropertyHandlers.BasicPropertyHandlers
                 return;
             }
 
-            var forwardValue = propertyContext.ForwardValue as ItemContext<ProtectionStatus>;
-            if (forwardValue == null)
+            var forwardContext = propertyContext.ForwardValueContext;
+            if (forwardContext == null)
             {
                 Console.WriteLine($"Error: Property context is not properly initialized for {PropertyName}");
                 return;
             }
 
             var contextProtectionStatus = GetProtectionStatusFromFlags(npc.Configuration.Flags);
-            var forwardValueProtectionStatus = forwardValue.Item;
+            var forwardValueProtectionStatus = forwardContext.Value;
 
             if (contextProtectionStatus == ProtectionStatus.Essential)
             {
                 propertyContext.IsResolved = true;
-                forwardValue.Item = ProtectionStatus.Essential;
-                forwardValue.OwnerMod = context.ModKey.ToString();
+                forwardContext.Value = ProtectionStatus.Essential;
+                forwardContext.OwnerMod = context.ModKey.ToString();
                 LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: Protection state is essential, property is resolved");
                 return;
             }
 
             if (contextProtectionStatus > forwardValueProtectionStatus)
             {
-                forwardValue.Item = contextProtectionStatus;
-                forwardValue.OwnerMod = context.ModKey.ToString();
+                forwardContext.Value = contextProtectionStatus;
+                forwardContext.OwnerMod = context.ModKey.ToString();
                 LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: New protection state: {forwardValueProtectionStatus} -> {contextProtectionStatus}");
                 if (contextProtectionStatus == ProtectionStatus.Essential)
                 {

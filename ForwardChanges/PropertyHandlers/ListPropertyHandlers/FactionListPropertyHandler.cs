@@ -114,23 +114,24 @@ namespace ForwardChanges.PropertyHandlers.ListPropertyHandlers
         /// <summary>
         /// Gets the factions of an NPC.
         /// </summary>
-        /// <param name="context">The context of the NPC.</param>
+        /// <param name="record">The context of the NPC.</param>
         /// <returns>The factions of the NPC.</returns>
-        public override IReadOnlyList<IRankPlacementGetter>? GetValue(IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> context)
+        public override IReadOnlyList<IRankPlacementGetter>? GetValue(IMajorRecordGetter record)
         {
-            if (context.Record is INpcGetter npc)
+            if (record is INpcGetter npc)
             {
                 return npc.Factions.ToList();
             }
+            Console.WriteLine($"Error: Record is not an NPC for {PropertyName}");
             return null;
         }
 
         protected override void ProcessHandlerSpecificLogic(
             IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> context,
             IPatcherState<ISkyrimMod, ISkyrimModGetter> state,
-            PropertyContext propertyContext,
+            ListPropertyContext<IRankPlacementGetter> listPropertyContext,
             IReadOnlyList<IRankPlacementGetter> recordItems,
-            List<ListItemContext<IRankPlacementGetter>> currentForwardItems)
+            List<ListPropertyValueContext<IRankPlacementGetter>> currentForwardItems)
         {
             var recordMod = state.LoadOrder[context.ModKey].Mod;
             if (recordMod == null) return;
@@ -138,15 +139,15 @@ namespace ForwardChanges.PropertyHandlers.ListPropertyHandlers
             // Check each current faction for rank changes
             foreach (var forwardItem in currentForwardItems.Where(i => !i.IsRemoved))
             {
-                var matchingRecordItem = recordItems.FirstOrDefault(r => IsFactionReferenceEqual(r, forwardItem.Item));
-                if (matchingRecordItem != null && !IsRankEqual(matchingRecordItem, forwardItem.Item))
+                var matchingRecordItem = recordItems.FirstOrDefault(r => IsFactionReferenceEqual(r, forwardItem.Value));
+                if (matchingRecordItem != null && !IsRankEqual(matchingRecordItem, forwardItem.Value))
                 {
                     // Rank has changed, check if we can update it
                     var canModify = recordMod.MasterReferences.Any(m => m.Master.ToString() == forwardItem.OwnerMod);
                     if (canModify)
                     {
                         // Create new item with updated rank
-                        var newItem = new ListItemContext<IRankPlacementGetter>(matchingRecordItem, context.ModKey.ToString());
+                        var newItem = new ListPropertyValueContext<IRankPlacementGetter>(matchingRecordItem, context.ModKey.ToString());
                         // Preserve ordering information
                         newItem.ItemsBefore.AddRange(forwardItem.ItemsBefore);
                         newItem.ItemsAfter.AddRange(forwardItem.ItemsAfter);

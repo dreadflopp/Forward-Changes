@@ -6,6 +6,7 @@ using Mutagen.Bethesda.Plugins.Cache;
 using ForwardChanges.RecordHandlers.Interfaces;
 using ForwardChanges.Contexts;
 using ForwardChanges.PropertyHandlers.Interfaces;
+using ForwardChanges.Contexts.Interfaces;
 
 namespace ForwardChanges.RecordHandlers.Abstracts
 {
@@ -95,10 +96,16 @@ namespace ForwardChanges.RecordHandlers.Abstracts
         };
 
         // Abstract property that all record handlers must implement
-        public abstract Dictionary<string, IPropertyHandlerBase> PropertyHandlers { get; }
+        public abstract Dictionary<string, object> PropertyHandlers { get; }
 
-        protected Dictionary<string, PropertyContext> PropertyContexts { get; private set; } = new();
+        protected Dictionary<string, object> PropertyContexts { get; private set; } = [];
 
+
+        /// <summary>
+        /// Initialize the property contexts for the record
+        /// </summary>
+        /// <param name="originalContext"></param>
+        /// <param name="winningContext"></param>
         protected void InitializePropertyContexts(
             IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> originalContext,
             IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> winningContext)
@@ -106,7 +113,6 @@ namespace ForwardChanges.RecordHandlers.Abstracts
             PropertyContexts.Clear();
             foreach (var (propertyName, handler) in PropertyHandlers)
             {
-                PropertyContexts[propertyName] = new PropertyContext();
                 handler.InitializeContext(originalContext, winningContext, PropertyContexts[propertyName]);
             }
         }
@@ -140,11 +146,13 @@ namespace ForwardChanges.RecordHandlers.Abstracts
                 {
                     if (!handler.IsListHandler)
                     {
-                        var originalValue = handler.GetValue(originalContext);
-                        var winningValue = handler.GetValue(winningContext);
+                        var originalValue = handler.GetValue(originalContext.Record);
+                        var winningValue = handler.GetValue(winningContext.Record);
+                        var propContext = PropertyContexts[propName];
+
                         if (!handler.AreValuesEqual(originalValue, winningValue))
                         {
-                            PropertyContexts[propName].IsResolved = true;
+                            propContext.IsResolved = true;
                             Console.WriteLine($"[{propName}] {winningContext.ModKey} Resolved, nothing to forward");
                         }
                         else
@@ -172,13 +180,13 @@ namespace ForwardChanges.RecordHandlers.Abstracts
                     // iterate from original to winning
                     foreach (var context in recordContexts.Reverse().Skip(1))
                     {
-                        // check if all properties are resolved
+                        // Update the property contexts, skip if resolved
                         foreach (var (propName, handler) in PropertyHandlers)
                         {
                             var propContext = PropertyContexts[propName];
                             if (propContext.IsResolved) continue;
 
-                            // if not, update the property context and check again
+                            // if not, update the property context
                             handler.UpdatePropertyContext(context, state, propContext);
                         }
 
@@ -209,33 +217,36 @@ namespace ForwardChanges.RecordHandlers.Abstracts
                     {
                         if (!PropertyContexts[propName].IsResolved)
                         {
-                            var originalValue = handler.GetValue(originalContext);
-                            PropertyContexts[propName] = new PropertyContext
-                            {
-                                OriginalValue = new ItemContext<object?>(originalValue, originalContext.ModKey.ToString()),
-                                ForwardValue = new ItemContext<object?>(originalValue, winningContext.ModKey.ToString())
-                            };
+                            handler.InitializeContext(originalContext, winningContext, PropertyContexts[propName]);
                         }
                     }
+
+                    // iterate from winning towards original
                     foreach (var context in recordContexts)
                     {
+                        allResolved = true;
+
                         // Skip if we've reached the original mod
                         if (context == originalContext)
                         {
                             break;
                         }
 
-                        allResolved = true;
                         foreach (var (propName, handler) in PropertyHandlers)
                         {
-                            var propState = PropertyContexts[propName];
-                            if (propState.IsResolved) continue;
+                            var propertyContext = PropertyContexts[propName];
+                            if (propertyContext.IsResolved)
+                            {
+                                continue;
+                            }
 
                             allResolved = false;
-                            handler.UpdatePropertyContext(context, state, propState);
+                            handler.UpdatePropertyContext(context, state, propertyContext);
 
                             // If property has changed, iterate back to check for valid reverts
-                            if (!handler.AreValuesEqual(propState.ForwardValue, propState.OriginalValue))
+                            var forwardValue = handler.GetValue(context.Record);
+                            var originalValue = handler.GetValue(originalContext.Record);
+                            if (!handler.AreValuesEqual(forwardValue, originalValue))
                             {
                                 // Find the index of current context
                                 var currentIndex = Array.IndexOf(recordContexts, context);
@@ -243,11 +254,11 @@ namespace ForwardChanges.RecordHandlers.Abstracts
                                 // Iterate back towards winning
                                 for (int i = currentIndex - 1; i >= 0; i--)
                                 {
-                                    handler.UpdatePropertyContext(recordContexts[i], state, propState);
+                                    handler.UpdatePropertyContext(recordContexts[i], state, propertyContext);
                                 }
 
                                 // Now we have the real final value, mark as resolved
-                                propState.IsResolved = true;
+                                propertyContext.IsResolved = true;
                             }
                         }
 
@@ -268,17 +279,58 @@ namespace ForwardChanges.RecordHandlers.Abstracts
 
                 // Forward changes to the patcher
                 var propertiesToForward = PropertyContexts
-                    .Where(kvp => !PropertyHandlers[kvp.Key].AreValuesEqual(kvp.Value.ForwardValue, PropertyHandlers[kvp.Key].GetValue(winningContext)))
-                    .ToDictionary(kvp => kvp.Key, kvp => kvp.Value.ForwardValue);
+                    .Where(kvp =>
+                    {
+                        var propertyContext = PropertyContexts[kvp.Key];
+                        var handler = PropertyHandlers[kvp.Key];
+
+                        // Skip if we can't determine the handler type
+                        if (handler == null) return false;
+
+                        // Handle simple properties
+                        if (propertyContext is SimplePropertyContext simpleContext)
+                        {
+                            var simpleHandler = handler as IPropertyHandler<object>;
+                            if (simpleHandler == null || simpleContext.ForwardValueContext == null) return false;
+
+                            var winningValue = simpleHandler.GetValue(winningContext.Record);
+                            var forwardValue = simpleContext.ForwardValueContext.Value;
+                            return !simpleHandler.AreValuesEqual(forwardValue, winningValue);
+                        }
+
+                        // Handle list properties
+                        if (propertyContext is ListPropertyContext listContext)
+                        {
+                            var listHandler = handler as IPropertyHandler<IReadOnlyList<object>>;
+                            if (listHandler == null || listContext.ForwardValueContexts == null) return false;
+
+                            var winningValue = listHandler.GetValue(winningContext.Record);
+                            var forwardItems = listContext.ForwardValueContexts.Where(i => !i.IsRemoved).Select(i => i.Value).ToList();
+                            return !listHandler.AreValuesEqual(forwardItems, winningValue);
+                        }
+
+                        return false;
+                    })
+                    .ToDictionary(kvp => kvp.Key, kvp =>
+                    {
+                        var propertyContext = PropertyContexts[kvp.Key];
+
+                        if (propertyContext is SimplePropertyContext simpleContext)
+                        {
+                            return simpleContext.ForwardValueContext?.Value;
+                        }
+                        else if (propertyContext is ListPropertyContext listContext)
+                        {
+                            return listContext.ForwardValueContexts?.Where(i => !i.IsRemoved).Select(i => i.Value).ToList();
+                        }
+
+                        return null;
+                    });
 
                 if (propertiesToForward.Count > 0)
                 {
                     var overrideRecord = GetOverrideRecord(winningContext, state);
-                    var propertiesToForwardDict = propertiesToForward.ToDictionary(
-                        kvp => kvp.Key,
-                        kvp => kvp.Value is ItemContext<object?> itemContext ? itemContext.Item : kvp.Value
-                    );
-                    ApplyForwardedProperties(overrideRecord, propertiesToForwardDict);
+                    ApplyForwardedProperties(overrideRecord, propertiesToForward);
                 }
             }
         }

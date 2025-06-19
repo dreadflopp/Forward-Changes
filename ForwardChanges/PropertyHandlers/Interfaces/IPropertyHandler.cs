@@ -1,86 +1,64 @@
-using Mutagen.Bethesda;
-using Mutagen.Bethesda.Synthesis;
-using Mutagen.Bethesda.Skyrim;
+using System;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Plugins.Cache;
-using ForwardChanges.Contexts;
+using Mutagen.Bethesda.Skyrim;
+using Mutagen.Bethesda.Synthesis;
+using ForwardChanges.Contexts.Interfaces;
 
 namespace ForwardChanges.PropertyHandlers.Interfaces
 {
     /// <summary>
-    /// Base interface for all property handlers that defines the common contract
+    /// Represents a handler for a specific property type in a record.
     /// </summary>
-    public interface IPropertyHandlerBase
+    /// <typeparam name="T">The type of value this handler manages</typeparam>
+    public interface IPropertyHandler<T>
     {
         /// <summary>
-        /// The name of the property this handler manages
+        /// Gets the name of the property this handler manages.
         /// </summary>
         string PropertyName { get; }
 
         /// <summary>
-        /// Whether this handler manages a list property
+        /// Gets whether this handler manages a list property.
         /// </summary>
         bool IsListHandler { get; }
 
         /// <summary>
-        /// Sets the value of the property on a record
+        /// Sets the value of the property on the given record.
         /// </summary>
-        void SetValue(IMajorRecord record, object? value);
+        /// <param name="record">The record to modify</param>
+        /// <param name="value">The value to set</param>
+        void SetValue(IMajorRecord record, T value);
 
         /// <summary>
-        /// Gets the current value of the property from a record context
+        /// Gets the value of the property from the given context.
         /// </summary>
-        object? GetValue(IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> context);
+        /// <param name="record">The record to get the value from</param>
+        /// <returns>The value of the property</returns>
+        T? GetValue(IMajorRecordGetter record);
 
         /// <summary>
-        /// Compares two values for equality
+        /// Compares two values of the property type for equality.
         /// </summary>
-        bool AreValuesEqual(object? value1, object? value2);
+        /// <param name="value1">The first value to compare</param>
+        /// <param name="value2">The second value to compare</param>
+        /// <returns>True if the values are equal, false otherwise</returns>
+        bool AreValuesEqual(T? value1, T? value2);
 
         /// <summary>
-        /// Updates the property context with the current state of the property
+        /// Initializes the property context for the given record.
         /// </summary>
+        /// <param name="originalContext">The original context</param>
+        /// <param name="winningContext">The winning context</param>
+        /// <param name="propertyContext">The property context</param>
+        void InitializeContext(
+            IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> originalContext,
+            IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> winningContext,
+            IPropertyContext<T> propertyContext);
+
         void UpdatePropertyContext(
             IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> context,
             IPatcherState<ISkyrimMod, ISkyrimModGetter> state,
-            PropertyContext propertyContext);
-
-        /// <summary>
-        /// Initializes the property context with the original and winning values
-        /// </summary>
-        void InitializeContext(
-            IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> originalContext,
-            IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> winningContext,
-            PropertyContext propertyContext);
-    }
-
-    /// <summary>
-    /// Generic interface for property handlers that provides type-safe operations
-    /// </summary>
-    /// <typeparam name="TItem">The type of value this handler manages</typeparam>
-    public interface IPropertyHandler<TItem> : IPropertyHandlerBase
-    {
-        /// <summary>
-        /// Sets the value of the property on a record
-        /// </summary>
-        void SetValue(IMajorRecord record, TItem? value);
-
-        /// <summary>
-        /// Gets the current value of the property from a record context
-        /// </summary>
-        new TItem? GetValue(IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> context);
-
-        /// <summary>
-        /// Compares two values for equality
-        /// </summary>
-        bool AreValuesEqual(TItem? value1, TItem? value2);
-
-        /// <summary>
-        /// Type-safe version of InitializeContext
-        /// </summary>
-        void InitializeContext(
-            IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> originalContext,
-            IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> winningContext,
-            PropertyContext<TItem> propertyContext);
+            IPropertyContext<T> propertyContext);
     }
 }

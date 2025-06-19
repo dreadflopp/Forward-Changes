@@ -6,19 +6,20 @@ using Mutagen.Bethesda.Plugins.Cache;
 using Noggog;
 using ForwardChanges.Contexts;
 using ForwardChanges.PropertyHandlers.Interfaces;
+using ForwardChanges.Contexts.Interfaces;
 
 namespace ForwardChanges.PropertyHandlers.ListPropertyHandlers.Abstracts
 {
-    public abstract class AbstractListPropertyHandler<TItem> : IPropertyHandler<IReadOnlyList<TItem>>
+    public abstract class AbstractListPropertyHandler<T> : IPropertyHandler<IReadOnlyList<T>>
     {
         public abstract string PropertyName { get; }
         public bool IsListHandler => true;
         protected virtual bool RequiresOrdering => false;
 
-        public abstract void SetValue(IMajorRecord record, IReadOnlyList<TItem>? value);
-        public abstract IReadOnlyList<TItem>? GetValue(IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> context);
+        public abstract void SetValue(IMajorRecord record, IReadOnlyList<T>? value);
+        public abstract IReadOnlyList<T>? GetValue(IMajorRecordGetter record);
 
-        public virtual bool AreValuesEqual(IReadOnlyList<TItem>? value1, IReadOnlyList<TItem>? value2)
+        public virtual bool AreValuesEqual(IReadOnlyList<T>? value1, IReadOnlyList<T>? value2)
         {
             if (value1 == null && value2 == null) return true;
             if (value1 == null || value2 == null) return false;
@@ -27,7 +28,7 @@ namespace ForwardChanges.PropertyHandlers.ListPropertyHandlers.Abstracts
             return value1.All(item1 => value2.Any(item2 => IsItemEqual(item1, item2)));
         }
 
-        public virtual bool AreValuesEqualInOrder(IReadOnlyList<TItem>? value1, IReadOnlyList<TItem>? value2)
+        public virtual bool AreValuesEqualInOrder(IReadOnlyList<T>? value1, IReadOnlyList<T>? value2)
         {
             if (value1 == null && value2 == null) return true;
             if (value1 == null || value2 == null) return false;
@@ -40,50 +41,10 @@ namespace ForwardChanges.PropertyHandlers.ListPropertyHandlers.Abstracts
             return true;
         }
 
-        // IPropertyHandlerBase implementation
-        void IPropertyHandlerBase.SetValue(IMajorRecord record, object? value)
-        {
-            try
-            {
-                SetValue(record, (IReadOnlyList<TItem>?)value);
-            }
-            catch (InvalidCastException)
-            {
-                Console.WriteLine($"[{PropertyName}] SetValue failed: Expected type IReadOnlyList<{typeof(TItem)}>, got {value?.GetType() ?? typeof(object)}");
-                throw;
-            }
-        }
-
-        object? IPropertyHandlerBase.GetValue(IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> context)
-        {
-            try
-            {
-                return GetValue(context);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[{PropertyName}] GetValue failed: {ex.Message}");
-                throw;
-            }
-        }
-
-        bool IPropertyHandlerBase.AreValuesEqual(object? value1, object? value2)
-        {
-            try
-            {
-                return AreValuesEqual((IReadOnlyList<TItem>?)value1, (IReadOnlyList<TItem>?)value2);
-            }
-            catch (InvalidCastException)
-            {
-                Console.WriteLine($"[{PropertyName}] AreValuesEqual failed: Expected type IReadOnlyList<{typeof(TItem)}>, got {value1?.GetType() ?? typeof(object)} and {value2?.GetType() ?? typeof(object)}");
-                throw;
-            }
-        }
-
         public virtual void UpdatePropertyContext(
             IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> context,
             IPatcherState<ISkyrimMod, ISkyrimModGetter> state,
-            PropertyContext propertyContext)
+            IPropertyContext<IReadOnlyList<T>> propertyContext)
         {
             if (context == null)
             {
@@ -91,9 +52,14 @@ namespace ForwardChanges.PropertyHandlers.ListPropertyHandlers.Abstracts
                 return;
             }
 
-            var recordItems = GetValue(context)?.ToList() ?? new List<TItem>();
-            var currentForwardItems = propertyContext.ForwardValue as List<ListItemContext<TItem>>;
-            if (currentForwardItems == null)
+            if (propertyContext is not ListPropertyContext<T> listPropertyContext)
+            {
+                throw new InvalidOperationException($"Property context is not a list property context for {PropertyName}");
+            }
+
+            var recordItems = GetValue(context.Record)?.ToList() ?? [];
+            var forwardValueContexts = listPropertyContext.ForwardValueContexts;
+            if (forwardValueContexts == null)
             {
                 Console.WriteLine($"Error: Property context is not properly initialized for {PropertyName}");
                 return;
@@ -107,9 +73,9 @@ namespace ForwardChanges.PropertyHandlers.ListPropertyHandlers.Abstracts
             }
 
             // Process removals
-            foreach (var item in currentForwardItems.Where(i => !i.IsRemoved).ToList())
+            foreach (var item in forwardValueContexts.Where(i => !i.IsRemoved).ToList())
             {
-                var matchingItemInRecord = recordItems.FirstOrDefault(c => IsItemEqual(c, item.Item));
+                var matchingItemInRecord = recordItems.FirstOrDefault(c => IsItemEqual(c, item.Value));
 
                 if (matchingItemInRecord == null)
                 {
@@ -121,11 +87,11 @@ namespace ForwardChanges.PropertyHandlers.ListPropertyHandlers.Abstracts
                         var oldOwner = item.OwnerMod;
                         item.IsRemoved = true;
                         item.OwnerMod = context.ModKey.ToString();
-                        LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: Removing item {FormatItem(item.Item)} (was owned by {oldOwner}) Success");
+                        LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: Removing item {FormatItem(item.Value)} (was owned by {oldOwner}) Success");
                     }
                     else
                     {
-                        LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: Removing item {FormatItem(item.Item)} (was owned by {item.OwnerMod}) Permission denied");
+                        LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: Removing item {FormatItem(item.Value)} (was owned by {item.OwnerMod}) Permission denied");
                     }
                 }
             }
@@ -133,18 +99,18 @@ namespace ForwardChanges.PropertyHandlers.ListPropertyHandlers.Abstracts
             // Process additions
             foreach (var item in recordItems)
             {
-                var existingItem = currentForwardItems.FirstOrDefault(i => IsItemEqual(i.Item, item));
+                var existingItem = forwardValueContexts.FirstOrDefault(i => IsItemEqual(i.Value, item));
                 if (existingItem == null)
                 {
                     // Check if this item was previously removed
-                    var previouslyRemovedItem = currentForwardItems.FirstOrDefault(i =>
-                        IsItemEqual(i.Item, item) && i.IsRemoved);
+                    var previouslyRemovedItem = forwardValueContexts.FirstOrDefault(i =>
+                        IsItemEqual(i.Value, item) && i.IsRemoved);
 
                     if (previouslyRemovedItem == null)
                     {
                         // New item
-                        var newItem = new ListItemContext<TItem>(item, context.ModKey.ToString());
-                        InsertItemAtCorrectPosition(newItem, recordItems, currentForwardItems);
+                        var newItem = new ListPropertyValueContext<T>(item, context.ModKey.ToString());
+                        InsertItemAtCorrectPosition(newItem, recordItems, forwardValueContexts);
                         LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: Adding new item {FormatItem(item)} Success");
                     }
                     else
@@ -167,10 +133,10 @@ namespace ForwardChanges.PropertyHandlers.ListPropertyHandlers.Abstracts
             }
 
             // Process any handler-specific logic
-            ProcessHandlerSpecificLogic(context, state, propertyContext, recordItems, currentForwardItems);
+            ProcessHandlerSpecificLogic(context, state, listPropertyContext, recordItems, forwardValueContexts);
 
             // Update the state
-            propertyContext.ForwardValue = currentForwardItems;
+            listPropertyContext.ForwardValueContexts = forwardValueContexts;
         }
 
         /// <summary>
@@ -178,20 +144,20 @@ namespace ForwardChanges.PropertyHandlers.ListPropertyHandlers.Abstracts
         /// </summary>
         /// <param name="context">The mod context</param>
         /// <param name="state">The patcher state</param>
-        /// <param name="propertyContext">The property context</param>
+        /// <param name="listPropertyContext">The property context</param>
         /// <param name="recordItems">The current items in the record</param>
         /// <param name="currentForwardItems">The current forward items</param>
         protected virtual void ProcessHandlerSpecificLogic(
             IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> context,
             IPatcherState<ISkyrimMod, ISkyrimModGetter> state,
-            PropertyContext propertyContext,
-            IReadOnlyList<TItem> recordItems,
-            List<ListItemContext<TItem>> currentForwardItems)
+            ListPropertyContext<T> listPropertyContext,
+            IReadOnlyList<T> recordItems,
+            List<ListPropertyValueContext<T>> currentForwardItems)
         {
             // Base implementation does nothing
         }
 
-        protected virtual bool IsItemEqual(TItem? item1, TItem? item2)
+        protected virtual bool IsItemEqual(T? item1, T? item2)
         {
             if (item1 == null && item2 == null) return true;
             if (item1 == null || item2 == null) return false;
@@ -199,9 +165,9 @@ namespace ForwardChanges.PropertyHandlers.ListPropertyHandlers.Abstracts
         }
 
         protected void InsertItemAtCorrectPosition(
-            ListItemContext<TItem> newItem,
-            IReadOnlyList<TItem> recordItems,
-            List<ListItemContext<TItem>> currentForwardItems)
+            ListPropertyValueContext<T> newItem,
+            IReadOnlyList<T> recordItems,
+            List<ListPropertyValueContext<T>> currentForwardItems)
         {
             if (!RequiresOrdering)
             {
@@ -211,7 +177,7 @@ namespace ForwardChanges.PropertyHandlers.ListPropertyHandlers.Abstracts
             }
 
             // Get new item's position in source
-            var newItemIndex = recordItems.IndexOf(newItem.Item!);
+            var newItemIndex = recordItems.IndexOf(newItem.Value!);
             if (newItemIndex == -1) return;
 
             // Find items that should come before/after based on source order
@@ -233,14 +199,14 @@ namespace ForwardChanges.PropertyHandlers.ListPropertyHandlers.Abstracts
                 if (currentForwardItems[i].IsRemoved) continue;
 
                 // Check if this item should come after our new item
-                if (newItem.ItemsBefore.Contains(currentForwardItems[i].Item?.ToString() ?? string.Empty))
+                if (newItem.ItemsBefore.Contains(currentForwardItems[i].Value?.ToString() ?? string.Empty))
                 {
                     insertIndex = i;
                     break;
                 }
 
                 // Check if this item should come before our new item
-                if (currentForwardItems[i].ItemsBefore.Contains(newItem.Item?.ToString() ?? string.Empty))
+                if (currentForwardItems[i].ItemsBefore.Contains(newItem.Value?.ToString() ?? string.Empty))
                 {
                     insertIndex = i + 1;
                 }
@@ -253,7 +219,7 @@ namespace ForwardChanges.PropertyHandlers.ListPropertyHandlers.Abstracts
             UpdateOrderingRelationships(currentForwardItems);
         }
 
-        private void UpdateOrderingRelationships(List<ListItemContext<TItem>> items)
+        private void UpdateOrderingRelationships(List<ListPropertyValueContext<T>> items)
         {
             // Clear existing relationships
             foreach (var item in items.Where(i => !i.IsRemoved))
@@ -272,7 +238,7 @@ namespace ForwardChanges.PropertyHandlers.ListPropertyHandlers.Abstracts
                 {
                     if (!items[j].IsRemoved)
                     {
-                        var itemStr = items[j].Item?.ToString() ?? string.Empty;
+                        var itemStr = items[j].Value?.ToString() ?? string.Empty;
                         items[i].ItemsBefore.Add(itemStr);
                         // Ensure it's not in ItemsAfter
                         items[i].ItemsAfter.Remove(itemStr);
@@ -284,7 +250,7 @@ namespace ForwardChanges.PropertyHandlers.ListPropertyHandlers.Abstracts
                 {
                     if (!items[j].IsRemoved)
                     {
-                        var itemStr = items[j].Item?.ToString() ?? string.Empty;
+                        var itemStr = items[j].Value?.ToString() ?? string.Empty;
                         items[i].ItemsAfter.Add(itemStr);
                         // Ensure it's not in ItemsBefore
                         items[i].ItemsBefore.Remove(itemStr);
@@ -298,7 +264,7 @@ namespace ForwardChanges.PropertyHandlers.ListPropertyHandlers.Abstracts
         /// </summary>
         /// <param name="item"></param>
         /// <returns>The formatted item</returns>
-        protected virtual string FormatItem(TItem? item)
+        protected virtual string FormatItem(T? item)
         {
             return item?.ToString() ?? "null";
         }
@@ -307,7 +273,7 @@ namespace ForwardChanges.PropertyHandlers.ListPropertyHandlers.Abstracts
         /// Updates ordering relationships based on current context and permissions, then sorts items.
         /// </summary>
         public virtual void UpdateOrderingAndSort(
-            List<ListItemContext<TItem>> currentForwardItems,
+            List<ListPropertyValueContext<T>> currentForwardItems,
             IPatcherState<ISkyrimMod, ISkyrimModGetter> state,
             IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> context)
         {
@@ -318,17 +284,17 @@ namespace ForwardChanges.PropertyHandlers.ListPropertyHandlers.Abstracts
             }
 
             // Get the list of items from the context's record
-            var contextList = GetValue(context)?.ToList() ?? new List<TItem>();
+            var itemList = GetValue(context.Record)?.ToList() ?? [];
             var recordMod = state.LoadOrder[context.ModKey].Mod;
             if (recordMod == null) return;
 
             // First, update ordering relationships for items we have permission to modify
-            for (int i = 0; i < contextList.Count; i++)
+            for (int i = 0; i < itemList.Count; i++)
             {
-                var contextItem = contextList[i];
+                var item = itemList[i];
                 var existingItem = currentForwardItems.FirstOrDefault(w =>
                     !w.IsRemoved &&
-                    IsItemEqual(w.Item, contextItem) &&
+                    IsItemEqual(w.Value, item) &&
                     CanAddBack(recordMod, w.OwnerMod));
 
                 if (existingItem != null)
@@ -336,7 +302,7 @@ namespace ForwardChanges.PropertyHandlers.ListPropertyHandlers.Abstracts
                     // Add items before this one that we have permission to modify
                     if (i > 0)
                     {
-                        var beforeItem = contextList[i - 1];
+                        var beforeItem = itemList[i - 1];
                         var beforeItemStr = beforeItem?.ToString() ?? string.Empty;
                         if (CanAddBack(recordMod, beforeItem?.ToString() ?? string.Empty))
                         {
@@ -346,9 +312,9 @@ namespace ForwardChanges.PropertyHandlers.ListPropertyHandlers.Abstracts
                     }
 
                     // Add items after this one that we have permission to modify
-                    if (i < contextList.Count - 1)
+                    if (i < itemList.Count - 1)
                     {
-                        var afterItem = contextList[i + 1];
+                        var afterItem = itemList[i + 1];
                         var afterItemStr = afterItem?.ToString() ?? string.Empty;
                         if (CanAddBack(recordMod, afterItem?.ToString() ?? string.Empty))
                         {
@@ -360,15 +326,15 @@ namespace ForwardChanges.PropertyHandlers.ListPropertyHandlers.Abstracts
             }
 
             // Now sort items based on their constraints
-            var orderedItems = new List<ListItemContext<TItem>>();
-            var remainingItems = new List<ListItemContext<TItem>>(currentForwardItems.Where(i => !i.IsRemoved));
+            var orderedItems = new List<ListPropertyValueContext<T>>();
+            var remainingItems = new List<ListPropertyValueContext<T>>(currentForwardItems.Where(i => !i.IsRemoved));
 
             while (remainingItems.Any())
             {
                 // Find items that have no "before" items in the remaining set
                 var nextItems = remainingItems
                     .Where(item => !remainingItems.Any(r =>
-                        item.ItemsBefore.Contains(r.Item?.ToString() ?? string.Empty)))
+                        item.ItemsBefore.Contains(r.Value?.ToString() ?? string.Empty)))
                     .ToList();
 
                 if (!nextItems.Any())
@@ -402,28 +368,21 @@ namespace ForwardChanges.PropertyHandlers.ListPropertyHandlers.Abstracts
         {
             return mod?.MasterReferences.Any(m => m.Master.ToString() == ownerMod) == true || mod?.ModKey.ToString() == ownerMod;
         }
-
-        // Non-generic InitializeContext implementation
-        void IPropertyHandlerBase.InitializeContext(
-            IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> originalContext,
-            IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> winningContext,
-            PropertyContext propertyContext)
-        {
-            InitializeContext(originalContext, winningContext, (PropertyContext<IReadOnlyList<TItem>>)propertyContext);
-        }
-
-        // Generic InitializeContext implementation
         public virtual void InitializeContext(
             IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> originalContext,
             IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> winningContext,
-            PropertyContext<IReadOnlyList<TItem>> propertyContext)
+            IPropertyContext<IReadOnlyList<T>> propertyContext)
         {
-            var originalValue = GetValue(originalContext);
-            var listItems = originalValue == null ? new List<ListItemContext<TItem>>() :
-                originalValue
+            if (propertyContext is not ListPropertyContext<T> listPropertyContext)
+            {
+                throw new InvalidOperationException($"Property context is not a list property context for {PropertyName}");
+            }
+            IReadOnlyList<T>? originalList = GetValue(originalContext.Record);
+            var listItems = originalList == null ? new List<ListPropertyValueContext<T>>() :
+                originalList
                     .Select((item, index) =>
                     {
-                        var listItem = new ListItemContext<TItem>(item, originalContext.ModKey.ToString());
+                        var listItem = new ListPropertyValueContext<T>(item, originalContext.ModKey.ToString());
 
                         // Only populate ordering information if required
                         if (RequiresOrdering)
@@ -432,16 +391,16 @@ namespace ForwardChanges.PropertyHandlers.ListPropertyHandlers.Abstracts
                             if (index > 0)
                             {
                                 listItem.ItemsBefore.AddRange(
-                                    originalValue.Take(index)
+                                    originalList.Take(index)
                                         .Select(i => i?.ToString() ?? string.Empty)
                                 );
                             }
 
                             // Add items after this one to ItemsAfter
-                            if (index < originalValue.Count - 1)
+                            if (index < originalList.Count - 1)
                             {
                                 listItem.ItemsAfter.AddRange(
-                                    originalValue.Skip(index + 1)
+                                    originalList.Skip(index + 1)
                                         .Select(i => i?.ToString() ?? string.Empty)
                                 );
                             }
@@ -451,14 +410,8 @@ namespace ForwardChanges.PropertyHandlers.ListPropertyHandlers.Abstracts
                     })
                     .ToList();
 
-            propertyContext.OriginalValue = new ItemContext<IReadOnlyList<TItem>>(
-                originalValue ?? Array.Empty<TItem>(),
-                originalContext.ModKey.ToString()
-            );
-            propertyContext.ForwardValue = new ItemContext<IReadOnlyList<TItem>>(
-                originalValue ?? Array.Empty<TItem>(),
-                winningContext.ModKey.ToString()
-            );
+            listPropertyContext.OriginalValueContexts = listItems;
+            listPropertyContext.ForwardValueContexts = listItems;
         }
     }
 }

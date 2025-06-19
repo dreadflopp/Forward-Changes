@@ -20,12 +20,15 @@ namespace ForwardChanges.PropertyHandlers.BasicPropertyHandlers
                 }
                 npc.AIData.Confidence = value;
             }
+            else
+            {
+                Console.WriteLine($"Error: Record is not an NPC for {PropertyName}");
+            }
         }
 
-        public override Confidence GetValue(
-            IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> context)
+        public override Confidence GetValue(IMajorRecordGetter record)
         {
-            if (context.Record is INpcGetter npc && npc.AIData?.Confidence != null)
+            if (record is INpcGetter npc && npc.AIData?.Confidence != null)
             {
                 return npc.AIData.Confidence;
             }

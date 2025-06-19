@@ -24,14 +24,21 @@ namespace ForwardChanges.PropertyHandlers.BasicPropertyHandlers
                     npc.Class.Clear();
                 }
             }
+            else
+            {
+                Console.WriteLine($"Error: Record is not an NPC for {PropertyName}");
+            }
         }
 
-        public override IFormLinkGetter<IClassGetter>? GetValue(
-            IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> context)
+        public override IFormLinkGetter<IClassGetter>? GetValue(IMajorRecordGetter record)
         {
-            if (context.Record is INpcGetter npc)
+            if (record is INpcGetter npc)
             {
                 return npc.Class;
+            }
+            else
+            {
+                Console.WriteLine($"Error: Record is not an NPC for {PropertyName}");
             }
             return null;
         }

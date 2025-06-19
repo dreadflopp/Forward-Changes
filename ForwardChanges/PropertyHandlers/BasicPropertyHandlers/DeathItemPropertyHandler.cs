@@ -3,7 +3,6 @@ using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Plugins.Cache;
 using ForwardChanges.PropertyHandlers.BasicPropertyHandlers.Abstracts;
 using Mutagen.Bethesda.Plugins;
-using ForwardChanges.PropertyHandlers.Interfaces;
 
 namespace ForwardChanges.PropertyHandlers.BasicPropertyHandlers
 {
@@ -24,16 +23,24 @@ namespace ForwardChanges.PropertyHandlers.BasicPropertyHandlers
                     npc.DeathItem.Clear();
                 }
             }
+            else
+            {
+                Console.WriteLine($"Error: Record is not an NPC for {PropertyName}");
+            }
         }
 
         public override IFormLinkGetter<ILeveledItemGetter>? GetValue(
-            IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> context)
+            IMajorRecordGetter record)
         {
-            if (context.Record is INpcGetter npc)
+            if (record is INpcGetter npc)
             {
                 return npc.DeathItem;
             }
-            return null;
+            else
+            {
+                Console.WriteLine($"Error: Record is not an NPC for {PropertyName}");
+                return null;
+            }
         }
 
         public override bool AreValuesEqual(IFormLinkGetter<ILeveledItemGetter>? value1, IFormLinkGetter<ILeveledItemGetter>? value2)
