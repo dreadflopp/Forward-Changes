@@ -25,7 +25,7 @@ namespace ForwardChanges.PropertyHandlers.ListPropertyHandlers
         /// </summary>
         /// <param name="factions">The list of factions to format.</param>
         /// <returns>A string representation of the factions.</returns>
-        public string FormatFactionList(IReadOnlyList<IRankPlacementGetter>? factions)
+        public string FormatFactionList(List<IRankPlacementGetter>? factions)
         {
             if (factions == null || factions.Count == 0)
                 return "No factions";
@@ -41,12 +41,9 @@ namespace ForwardChanges.PropertyHandlers.ListPropertyHandlers
         /// <returns>True if the factions are equal, false otherwise.</returns>
         protected override bool IsItemEqual(IRankPlacementGetter? item1, IRankPlacementGetter? item2)
         {
-            /*
-            if (ReferenceEquals(item1, item2)) return true;
-            if (item1 is null || item2 is null) return false;
-            return IsFactionReferenceEqual(item1, item2) && IsRankEqual(item1, item2);
-            */
-            return IsFactionReferenceEqual(item1, item2) && IsRankEqual(item1, item2);
+            // Only check faction reference equality, not rank
+            // This prevents duplicate factions with different ranks
+            return IsFactionReferenceEqual(item1, item2);
         }
 
         /// <summary>
@@ -91,7 +88,7 @@ namespace ForwardChanges.PropertyHandlers.ListPropertyHandlers
         /// </summary>
         /// <param name="record">The NPC to set the factions of.</param>
         /// <param name="value">The factions to set.</param>
-        public override void SetValue(IMajorRecord record, IReadOnlyList<IRankPlacementGetter>? value)
+        public override void SetValue(IMajorRecord record, List<IRankPlacementGetter>? value)
         {
             if (record is INpc npc)
             {
@@ -116,7 +113,7 @@ namespace ForwardChanges.PropertyHandlers.ListPropertyHandlers
         /// </summary>
         /// <param name="record">The context of the NPC.</param>
         /// <returns>The factions of the NPC.</returns>
-        public override IReadOnlyList<IRankPlacementGetter>? GetValue(IMajorRecordGetter record)
+        public override List<IRankPlacementGetter>? GetValue(IMajorRecordGetter record)
         {
             if (record is INpcGetter npc)
             {
@@ -130,11 +127,14 @@ namespace ForwardChanges.PropertyHandlers.ListPropertyHandlers
             IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> context,
             IPatcherState<ISkyrimMod, ISkyrimModGetter> state,
             ListPropertyContext<IRankPlacementGetter> listPropertyContext,
-            IReadOnlyList<IRankPlacementGetter> recordItems,
+            List<IRankPlacementGetter> recordItems,
             List<ListPropertyValueContext<IRankPlacementGetter>> currentForwardItems)
         {
             var recordMod = state.LoadOrder[context.ModKey].Mod;
             if (recordMod == null) return;
+
+            // Collect items to modify to avoid collection modification during enumeration
+            var itemsToModify = new List<(ListPropertyValueContext<IRankPlacementGetter> oldItem, ListPropertyValueContext<IRankPlacementGetter> newItem)>();
 
             // Check each current faction for rank changes
             foreach (var forwardItem in currentForwardItems.Where(i => !i.IsRemoved))
@@ -147,19 +147,29 @@ namespace ForwardChanges.PropertyHandlers.ListPropertyHandlers
                     if (canModify)
                     {
                         // Create new item with updated rank
-                        var newItem = new ListPropertyValueContext<IRankPlacementGetter>(matchingRecordItem, context.ModKey.ToString());
+                        var newItem = new ListPropertyValueContext<IRankPlacementGetter>(matchingRecordItem!, context.ModKey.ToString());
                         // Preserve ordering information
                         newItem.ItemsBefore.AddRange(forwardItem.ItemsBefore);
                         newItem.ItemsAfter.AddRange(forwardItem.ItemsAfter);
-                        // Replace old item with new one
-                        var index = currentForwardItems.IndexOf(forwardItem);
-                        currentForwardItems[index] = newItem;
+
+                        // Collect for later modification
+                        itemsToModify.Add((forwardItem, newItem));
                         LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: Updating rank for faction {FormatItem(matchingRecordItem)} Success");
                     }
                     else
                     {
                         LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: Updating rank for faction {FormatItem(matchingRecordItem)} Permission denied. Owned by {forwardItem.OwnerMod}");
                     }
+                }
+            }
+
+            // Apply modifications after iteration is complete
+            foreach (var (oldItem, newItem) in itemsToModify)
+            {
+                var index = currentForwardItems.IndexOf(oldItem);
+                if (index != -1)
+                {
+                    currentForwardItems[index] = newItem;
                 }
             }
         }

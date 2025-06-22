@@ -39,7 +39,7 @@ namespace ForwardChanges.PropertyHandlers.Interfaces
     {
         // Type-safe versions for handlers to implement
         void SetValue(IMajorRecord record, T? value);
-        T? GetValue(IMajorRecordGetter record);
+        new T? GetValue(IMajorRecordGetter record);
         bool AreValuesEqual(T? value1, T? value2);
     }
 }

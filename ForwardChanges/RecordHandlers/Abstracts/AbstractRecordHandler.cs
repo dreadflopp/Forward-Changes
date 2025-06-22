@@ -289,38 +289,18 @@ namespace ForwardChanges.RecordHandlers.Abstracts
                         var winningValue = handler.GetValue(winningContext.Record);
                         Console.WriteLine($"[{kvp.Key}] Winning value: {winningValue}");
 
-                        // Handle simple properties
-                        if (propertyContext is SimplePropertyContext<object> simpleContext)
-                        {
-                            Console.WriteLine($"[{kvp.Key}] Forward value: {simpleContext.ForwardValueContext?.Value}");
-                            if (simpleContext.ForwardValueContext?.Value == null) return false;
-                            return !handler.AreValuesEqual(simpleContext.ForwardValueContext.Value, winningValue);
-                        }
+                        // Get the forward value from the property context
+                        var forwardValue = propertyContext.GetForwardValue();
 
-                        // Handle list properties
-                        if (propertyContext is ListPropertyContext<object> listContext)
-                        {
-                            if (listContext.ForwardValueContexts == null) return false;
-                            var forwardItems = listContext.ForwardValueContexts.Where(i => !i.IsRemoved).Select(i => i.Value).ToList();
-                            return !handler.AreValuesEqual(forwardItems, winningValue);
-                        }
-
-                        return false;
+                        // Use the handler's AreValuesEqual method instead of the context's HasForwardValueDifferentFrom
+                        return !handler.AreValuesEqual(forwardValue, winningValue);
                     })
                     .ToDictionary(kvp => kvp.Key, kvp =>
                     {
                         var propertyContext = kvp.Value;
 
-                        if (propertyContext is SimplePropertyContext<object> simpleContext)
-                        {
-                            return simpleContext.ForwardValueContext?.Value;
-                        }
-                        else if (propertyContext is ListPropertyContext<object> listContext)
-                        {
-                            return listContext.ForwardValueContexts?.Where(i => !i.IsRemoved).Select(i => i.Value).ToList();
-                        }
-
-                        return null;
+                        // Get the forward value (could be single value or list)
+                        return propertyContext.GetForwardValue();
                     });
 
                 Console.WriteLine($"Properties to forward: {propertiesToForward.Count}");

@@ -23,5 +23,10 @@ namespace ForwardChanges.Contexts
             OriginalValueContext = originalValueContext;
             ForwardValueContext = forwardValueContext;
         }
+
+        public object? GetForwardValue()
+        {
+            return ForwardValueContext != null ? (object?)ForwardValueContext.Value : null;
+        }
     }
 }

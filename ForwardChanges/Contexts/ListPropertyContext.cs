@@ -17,13 +17,23 @@ namespace ForwardChanges.Contexts
             OriginalValueContexts = null;
             ForwardValueContexts = null;
         }
-            public ListPropertyContext(
-                List<ListPropertyValueContext<T>>? originalValueContexts,
-                List<ListPropertyValueContext<T>>? forwardValueContexts
-            )
-            {
+        public ListPropertyContext(
+            List<ListPropertyValueContext<T>>? originalValueContexts,
+            List<ListPropertyValueContext<T>>? forwardValueContexts
+        )
+        {
             OriginalValueContexts = originalValueContexts;
             ForwardValueContexts = forwardValueContexts;
+        }
+
+        public object? GetForwardValue()
+        {
+            if (ForwardValueContexts == null) return null;
+
+            return ForwardValueContexts
+                .Where(i => !i.IsRemoved)
+                .Select(i => (object)i.Value!)
+                .ToList();
         }
     }
 }
