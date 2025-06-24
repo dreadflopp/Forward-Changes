@@ -30,10 +30,13 @@ namespace ForwardChanges.Contexts
         {
             if (ForwardValueContexts == null) return null;
 
-            return ForwardValueContexts
+            var activeItems = ForwardValueContexts
                 .Where(i => !i.IsRemoved)
                 .Select(i => (object)i.Value!)
                 .ToList();
+
+            // Return null for empty lists to match the expected type
+            return activeItems.Count > 0 ? activeItems : null;
         }
     }
 }

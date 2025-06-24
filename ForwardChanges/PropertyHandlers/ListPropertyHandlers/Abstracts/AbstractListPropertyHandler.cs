@@ -52,11 +52,11 @@ namespace ForwardChanges.PropertyHandlers.ListPropertyHandlers.Abstracts
                 return;
             }
 
-            Console.WriteLine($"[{PropertyName}] Processing mod: {context.ModKey}");
+            LogCollector.Add(PropertyName, $"[{PropertyName}] Processing mod: {context.ModKey}");
 
             if (propertyContext is not ListPropertyContext<T> listPropertyContext)
             {
-                throw new InvalidOperationException($"Property context is not a list property context for {PropertyName}");
+                throw new InvalidOperationException($"Error: Property context is not a list property context for {PropertyName}");
             }
 
             var recordItems = GetValue(context.Record) ?? [];
@@ -77,12 +77,11 @@ namespace ForwardChanges.PropertyHandlers.ListPropertyHandlers.Abstracts
             // Process removals
             foreach (var item in forwardValueContexts.Where(i => !i.IsRemoved).ToList())
             {
-                Console.WriteLine($"[{PropertyName}] [{context.ModKey}] Checking removal for item: {FormatItem(item.Value)} (owned by {item.OwnerMod})");
+                LogCollector.Add(PropertyName, $"[{PropertyName}] [{context.ModKey}] Checking removal for item: {FormatItem(item.Value)} (owned by {item.OwnerMod})");
                 var matchingItemInRecord = recordItems.FirstOrDefault(c => IsItemEqual(c, item.Value));
 
                 if (matchingItemInRecord == null)
                 {
-                    Console.WriteLine($"[{PropertyName}] [{context.ModKey}] Item not found in record, marking for removal");
                     // Item is being removed
                     var canModify = recordMod.MasterReferences.Any(m => m.Master.ToString() == item.OwnerMod);
 
@@ -91,36 +90,32 @@ namespace ForwardChanges.PropertyHandlers.ListPropertyHandlers.Abstracts
                         var oldOwner = item.OwnerMod;
                         item.IsRemoved = true;
                         item.OwnerMod = context.ModKey.ToString();
-                        Console.WriteLine($"[{PropertyName}] [{context.ModKey}] Marked item as removed: {FormatItem(item.Value)}");
                         LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: Removing item {FormatItem(item.Value)} (was owned by {oldOwner}) Success");
                     }
                     else
                     {
-                        Console.WriteLine($"[{PropertyName}] [{context.ModKey}] Permission denied for removal: {FormatItem(item.Value)}");
                         LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: Removing item {FormatItem(item.Value)} (was owned by {item.OwnerMod}) Permission denied");
                     }
                 }
                 else
                 {
-                    Console.WriteLine($"[{PropertyName}] [{context.ModKey}] Item found in record, no removal needed: {FormatItem(matchingItemInRecord)}");
+                    LogCollector.Add(PropertyName, $"[{PropertyName}] [{context.ModKey}] Item found in record, no removal needed: {FormatItem(matchingItemInRecord)}");
                 }
             }
 
             // Process additions
             foreach (var item in recordItems)
             {
-                Console.WriteLine($"[{PropertyName}] [{context.ModKey}] Checking addition for item: {FormatItem(item)}");
+                LogCollector.Add(PropertyName, $"[{PropertyName}] [{context.ModKey}] Checking addition for item: {FormatItem(item)}");
                 var existingItem = forwardValueContexts.FirstOrDefault(i => IsItemEqual(i.Value, item));
                 if (existingItem == null || existingItem.IsRemoved)
                 {
-                    Console.WriteLine($"[{PropertyName}] [{context.ModKey}] No existing item or existing item is removed, checking if previously removed");
                     // Check if this item was previously removed
                     var previouslyRemovedItem = existingItem?.IsRemoved == true ? existingItem :
                         forwardValueContexts.FirstOrDefault(i => IsItemEqual(i.Value, item) && i.IsRemoved);
 
                     if (previouslyRemovedItem == null)
                     {
-                        Console.WriteLine($"[{PropertyName}] [{context.ModKey}] Adding new item: {FormatItem(item)}");
                         // New item
                         var newItem = new ListPropertyValueContext<T>(item, context.ModKey.ToString());
                         InsertItemAtCorrectPosition(newItem, recordItems, forwardValueContexts);
@@ -128,28 +123,24 @@ namespace ForwardChanges.PropertyHandlers.ListPropertyHandlers.Abstracts
                     }
                     else
                     {
-                        Console.WriteLine($"[{PropertyName}] [{context.ModKey}] Found previously removed item: {FormatItem(previouslyRemovedItem.Value)} (owned by {previouslyRemovedItem.OwnerMod})");
                         // Item was previously removed, check if we can add it back
                         var canModify = recordMod.MasterReferences.Any(m => m.Master.ToString() == previouslyRemovedItem.OwnerMod);
-                        Console.WriteLine($"[{PropertyName}] [{context.ModKey}] Can modify: {canModify}");
 
                         if (canModify)
                         {
-                            Console.WriteLine($"[{PropertyName}] [{context.ModKey}] Adding back previously removed item: {FormatItem(item)}");
                             previouslyRemovedItem.IsRemoved = false;
                             previouslyRemovedItem.OwnerMod = context.ModKey.ToString();
                             LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: Adding back previously removed item {FormatItem(item)} Success");
                         }
                         else
                         {
-                            Console.WriteLine($"[{PropertyName}] [{context.ModKey}] Permission denied for adding back item: {FormatItem(item)}");
                             LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: Adding new item {FormatItem(item)} Permission denied. Previously removed by {previouslyRemovedItem.OwnerMod}");
                         }
                     }
                 }
                 else
                 {
-                    Console.WriteLine($"[{PropertyName}] [{context.ModKey}] Found existing item: {FormatItem(existingItem.Value)} (removed: {existingItem.IsRemoved})");
+                    LogCollector.Add(PropertyName, $"[{PropertyName}] [{context.ModKey}] Found existing item: {FormatItem(existingItem.Value)} (removed: {existingItem.IsRemoved})");
                 }
             }
 

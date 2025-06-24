@@ -2,6 +2,7 @@ using Mutagen.Bethesda.Synthesis;
 using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Plugins.Cache;
+using Mutagen.Bethesda.Plugins.Aspects;
 using ForwardChanges.PropertyHandlers.BasicPropertyHandlers.Abstracts;
 using ForwardChanges.PropertyHandlers.Interfaces;
 using Mutagen.Bethesda.Strings;
@@ -14,34 +15,34 @@ namespace ForwardChanges.PropertyHandlers.BasicPropertyHandlers
 
         public override void SetValue(IMajorRecord record, string? value)
         {
-            if (record is INpc npc)
+            if (record is INamed named)
             {
                 if (value != null)
                 {
                     var translatedString = new TranslatedString(Language.English);
                     translatedString.String = value;
-                    npc.Name = translatedString;
+                    named.Name = translatedString;
                 }
                 else
                 {
-                    npc.Name = null;
+                    named.Name = null;
                 }
             }
             else
             {
-                Console.WriteLine($"Error: Record is not an NPC for {PropertyName}");
+                Console.WriteLine($"Error: Record does not implement INamed for {PropertyName}");
             }
         }
 
         public override string? GetValue(IMajorRecordGetter record)
         {
-            if (record is INpcGetter npc)
+            if (record is INamedGetter named)
             {
-                return npc.Name?.String;
+                return named.Name;
             }
             else
             {
-                Console.WriteLine($"Error: Record is not an NPC for {PropertyName}");
+                Console.WriteLine($"Error: Record does not implement INamedGetter for {PropertyName}");
             }
             return null;
         }

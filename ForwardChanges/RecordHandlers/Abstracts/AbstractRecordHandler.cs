@@ -4,7 +4,6 @@ using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Plugins.Cache;
 using ForwardChanges.RecordHandlers.Interfaces;
-using ForwardChanges.Contexts;
 using ForwardChanges.PropertyHandlers.Interfaces;
 using ForwardChanges.Contexts.Interfaces;
 
@@ -12,89 +11,6 @@ namespace ForwardChanges.RecordHandlers.Abstracts
 {
     public abstract class AbstractRecordHandler : IRecordHandler
     {
-        protected static readonly HashSet<string> VanillaMods = new(StringComparer.OrdinalIgnoreCase)
-        {
-            "Skyrim.esm",
-            "Update.esm",
-            "Dawnguard.esm",
-            "HearthFires.esm",
-            "Dragonborn.esm",
-            "ccasvsse001-almsivi.esm",
-            "ccbgssse001-fish.esm",
-            "ccbgssse002-exoticarrows.esl",
-            "ccbgssse003-zombies.esl",
-            "ccbgssse004-ruinsedge.esl",
-            "ccbgssse005-goldbrand.esl",
-            "ccbgssse006-stendarshammer.esl",
-            "ccbgssse007-chrysamere.esl",
-            "ccbgssse010-petdwarvenarmoredmudcrab.esl",
-            "ccbgssse011-hrsarmrelvn.esl",
-            "ccbgssse012-hrsarmrstl.esl",
-            "ccbgssse014-spellpack01.esl",
-            "ccbgssse019-staffofsheogorath.esl",
-            "ccbgssse020-graycowl.esl",
-            "ccbgssse021-lordsmail.esl",
-            "ccmtysse001-knightsofthenine.esl",
-            "ccqdrsse001-survivalmode.esl",
-            "cctwbsse001-puzzledungeon.esm",
-            "cceejsse001-hstead.esm",
-            "ccqdrsse002-firewood.esl",
-            "ccbgssse018-shadowrend.esl",
-            "ccbgssse035-petnhound.esl",
-            "ccfsvsse001-backpacks.esl",
-            "cceejsse002-tower.esl",
-            "ccedhsse001-norjewel.esl",
-            "ccvsvsse002-pets.esl",
-            "ccbgssse037-curios.esl",
-            "ccbgssse034-mntuni.esl",
-            "ccbgssse045-hasedoki.esl",
-            "ccbgssse008-wraithguard.esl",
-            "ccbgssse036-petbwolf.esl",
-            "ccffbsse001-imperialdragon.esl",
-            "ccmtysse002-ve.esl",
-            "ccbgssse043-crosselv.esl",
-            "ccvsvsse001-winter.esl",
-            "cceejsse003-hollow.esl",
-            "ccbgssse016-umbra.esm",
-            "ccbgssse031-advcyrus.esm",
-            "ccbgssse038-bowofshadows.esl",
-            "ccbgssse040-advobgobs.esl",
-            "ccbgssse050-ba_daedric.esl",
-            "ccbgssse052-ba_iron.esl",
-            "ccbgssse054-ba_orcish.esl",
-            "ccbgssse058-ba_steel.esl",
-            "ccbgssse059-ba_dragonplate.esl",
-            "ccbgssse061-ba_dwarven.esl",
-            "ccpewsse002-armsofchaos.esl",
-            "ccbgssse041-netchleather.esl",
-            "ccedhsse002-splkntset.esl",
-            "ccbgssse064-ba_elven.esl",
-            "ccbgssse063-ba_ebony.esl",
-            "ccbgssse062-ba_dwarvenmail.esl",
-            "ccbgssse060-ba_dragonscale.esl",
-            "ccbgssse056-ba_silver.esl",
-            "ccbgssse055-ba_orcishscaled.esl",
-            "ccbgssse053-ba_leather.esl",
-            "ccbgssse051-ba_daedricmail.esl",
-            "ccbgssse057-ba_stalhrim.esl",
-            "ccbgssse066-staves.esl",
-            "ccbgssse067-daedinv.esm",
-            "ccbgssse068-bloodfall.esl",
-            "ccbgssse069-contest.esl",
-            "ccvsvsse003-necroarts.esl",
-            "ccvsvsse004-beafarmer.esl",
-            "ccbgssse025-advdsgs.esm",
-            "ccffbsse002-crossbowpack.esl",
-            "ccbgssse013-dawnfang.esl",
-            "ccrmssse001-necrohouse.esl",
-            "ccedhsse003-redguard.esl",
-            "cceejsse004-hall.esl",
-            "cceejsse005-cave.esm",
-            "cckrtsse001_altar.esl",
-            "cccbhsse001-gaunt.esl",
-            "ccafdsse001-dwesanctuary.esm"
-        };
-
         // Abstract property that all record handlers must implement
         public abstract Dictionary<string, IPropertyHandler> PropertyHandlers { get; }
 
@@ -120,23 +36,37 @@ namespace ForwardChanges.RecordHandlers.Abstracts
             }
         }
 
-        public void Process(IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
+        public void Process(IPatcherState<ISkyrimMod, ISkyrimModGetter> state, IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter>[] filteredWinningContexts)
         {
-            var winningContexts = GetWinningContexts(state);
-            foreach (var winningContext in winningContexts)
+            foreach (var winningContext in filteredWinningContexts)
             {
                 Console.WriteLine(new string('-', 80));
                 Console.WriteLine($"Processing: {winningContext.Record.FormKey} ({winningContext.Record.EditorID})");
 
-                // Get all contexts for this record in load order
-                var recordContexts = GetRecordContexts(winningContext, state);
-                Console.WriteLine($"Record contexts: {recordContexts.Length}");
-
-                // Check for early break conditions
-                if (ShouldBreakEarly(recordContexts))
+                // some break early checks if pre-filtering failed
+                if (Utility.IsVanilla(winningContext))
                 {
+                    Console.WriteLine("Breaking early: Winning context is vanilla");
                     continue;
                 }
+
+                // Get all contexts for this record in load order using concrete handler
+                var recordContexts = GetRecordContexts(winningContext, state);
+
+                if (recordContexts.Length <= 2)
+                {
+                    Console.WriteLine("Breaking early: 2 or less contexts");
+                    continue;
+                }
+
+                // Check if the mod before the winning context is vanilla
+                var previousContext = recordContexts[1];
+                if (Utility.IsVanilla(previousContext))
+                {
+                    Console.WriteLine("Breaking early: Previous context is vanilla");
+                    continue;
+                }
+                Console.WriteLine($"Record contexts: {recordContexts.Length}");
 
                 // Initialize property states and quick initial check for simple properties
                 var originalContext = recordContexts.Last();
@@ -169,6 +99,14 @@ namespace ForwardChanges.RecordHandlers.Abstracts
                     }
                 }
 
+                // print original and winning values for all properties
+                foreach (var (propName, handler) in PropertyHandlers)
+                {
+                    var originalValue = handler.GetValue(originalContext.Record);
+                    var winningValue = handler.GetValue(winningContext.Record);
+                    Console.WriteLine($"[{propName}] Original: {originalValue}, Winning: {winningValue}");
+                }
+
                 // Pass 1: Process from original to winning (for lists and unresolved properties)
                 // Pass 1 is required for lists
                 // Check if we have any list properties to process
@@ -185,9 +123,11 @@ namespace ForwardChanges.RecordHandlers.Abstracts
                     {
                         // Update the property contexts, skip if resolved
                         foreach (var (propName, handler) in PropertyHandlers)
-                        {
+                        {                            
                             var propContext = PropertyContexts[propName];
                             if (propContext.IsResolved) continue;
+
+                            LogCollector.Add(propName, $"[{propName}] Processing mod: {context.ModKey} with value: {handler.GetValue(context.Record)}");
 
                             // if not, update the property context
                             handler.UpdatePropertyContext(context, state, propContext);
@@ -247,6 +187,7 @@ namespace ForwardChanges.RecordHandlers.Abstracts
                             }
 
                             allResolved = false;
+                            LogCollector.Add(propName, $"[{propName}] Processing mod: {context.ModKey} with value: {handler.GetValue(context.Record)}");
                             handler.UpdatePropertyContext(context, state, propertyContext);
 
                             // If property has changed, iterate back to check for valid reverts
@@ -291,8 +232,7 @@ namespace ForwardChanges.RecordHandlers.Abstracts
 
                         // Get the forward value from the property context
                         var forwardValue = propertyContext.GetForwardValue();
-
-                        // Use the handler's AreValuesEqual method instead of the context's HasForwardValueDifferentFrom
+                        
                         return !handler.AreValuesEqual(forwardValue, winningValue);
                     })
                     .ToDictionary(kvp => kvp.Key, kvp =>
@@ -312,41 +252,6 @@ namespace ForwardChanges.RecordHandlers.Abstracts
             }
         }
 
-        public abstract bool CanHandle(IMajorRecord record);
-
-        public virtual bool ShouldBreakEarly(IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter>[] recordContexts)
-        {
-            // Break early if only 2 or less contexts found
-            if (recordContexts.Length <= 2)
-            {
-                Console.WriteLine("Breaking early: Only 2 or less contexts found");
-                return true;
-            }
-
-            // Break early if all mods are vanilla
-            var allVanilla = recordContexts.All(context => VanillaMods.Contains(context.ModKey.Name));
-            if (allVanilla)
-            {
-                Console.WriteLine("Breaking early: All mods are vanilla");
-                return true;
-            }
-
-            // Break early if the mod before the winning context is a vanilla mod
-            if (recordContexts.Length > 1)
-            {
-                var previousContext = recordContexts[recordContexts.Length - 2];
-                if (VanillaMods.Contains(previousContext.ModKey.Name))
-                {
-                    Console.WriteLine("Breaking early: Winning mod is the only non-vanilla mod");
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        public abstract IEnumerable<IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter>> GetWinningContexts(
-            IPatcherState<ISkyrimMod, ISkyrimModGetter> state);
 
         public abstract IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter>[] GetRecordContexts(
             IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> winningContext,

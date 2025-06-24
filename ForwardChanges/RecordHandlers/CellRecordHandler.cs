@@ -1,24 +1,90 @@
 using Mutagen.Bethesda;
-using Mutagen.Bethesda.Synthesis;
 using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Plugins.Records;
+using Mutagen.Bethesda.Synthesis;
 using Mutagen.Bethesda.Plugins.Cache;
-using System.Collections.Generic;
+using ForwardChanges.RecordHandlers.Abstracts;
+using ForwardChanges.PropertyHandlers.BasicPropertyHandlers;
+using ForwardChanges.PropertyHandlers.Interfaces;
+using ForwardChanges.PropertyHandlers.ListPropertyHandlers;
+using ForwardChanges.PropertyHandlers.FlagPropertyHandlers;
 
 namespace ForwardChanges.RecordHandlers
 {
-    public static class CellRecordHandler
+    public class CellRecordHandler : AbstractRecordHandler
     {
-        public static void ProcessCellRecords(IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
+        private readonly Dictionary<string, IPropertyHandler> _propertyHandlers;
+
+        public CellRecordHandler()
         {
-            // TODO: Implement cell record processing
-            Console.WriteLine("Cell record processing not yet implemented");
+            // Initialize property handlers for Cell records
+            _propertyHandlers = new Dictionary<string, IPropertyHandler>
+            {
+                { "EditorID", new EditorIDPropertyHandler() },
+                { "Name", new NamePropertyHandler() },
+                { "Flags", new CellFlagsPropertyHandler() },
+                { "MajorFlags", new CellMajorFlagsPropertyHandler() },
+                { "Regions", new CellRegionsPropertyHandler() },
+                { "Location", new CellLocationPropertyHandler() },
+                { "Owner", new CellOwnerPropertyHandler() },
+                { "Water", new CellWaterPropertyHandler() },
+                //{ "WaterHeight", new CellWaterHeightPropertyHandler() },
+                { "Lighting", new CellLightingPropertyHandler() },
+                { "LightingTemplate", new CellLightingTemplatePropertyHandler() },
+                { "AcousticSpace", new CellAcousticSpacePropertyHandler() },
+                { "EncounterZone", new CellEncounterZonePropertyHandler() },
+                { "Music", new CellMusicPropertyHandler() },
+                { "ImageSpace", new CellImageSpacePropertyHandler() }
+            };
         }
 
-        private static void ApplyForwardedProperties(ICell record, Dictionary<string, object?> propertiesToForward)
+        public override Dictionary<string, IPropertyHandler> PropertyHandlers => _propertyHandlers;
+
+        public override IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter>[] GetRecordContexts(
+            IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> winningContext,
+            IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
         {
-            // TODO: Implement cell property forwarding
-            Console.WriteLine("Cell property forwarding not yet implemented");
+            if (winningContext.Record is not ICellGetter cellRecord)
+            {
+                throw new InvalidOperationException($"Expected ICellGetter but got {winningContext.Record.GetType()}");
+            }
+            var contexts = cellRecord
+                .ToLink<ICellGetter>()
+                .ResolveAllContexts<ISkyrimMod, ISkyrimModGetter, ICell, ICellGetter>(state.LinkCache)
+                .ToArray();
+
+            return contexts;
+        }
+
+        public override IMajorRecord GetOverrideRecord(
+            IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> winningContext,
+            IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
+        {
+            // Use the context's GetOrAddAsOverride method like Fusion does
+            return winningContext.GetOrAddAsOverride(state.PatchMod);
+        }
+
+        public override void ApplyForwardedProperties(IMajorRecord record, Dictionary<string, object?> propertiesToForward)
+        {
+            foreach (var (propertyName, value) in propertiesToForward)
+            {
+                if (PropertyHandlers.TryGetValue(propertyName, out var handler))
+                {
+                    try
+                    {
+                        Console.WriteLine($"[{propertyName}] Applying value: {value}, Type: {value?.GetType()}");
+                        if (value != null)
+                        {
+                            handler.SetValue(record, value);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        // Property doesn't exist on this cell type - just continue
+                        Console.WriteLine($"Warning: Property {propertyName} not available on cell {record.FormKey}: {ex.Message}");
+                    }
+                }
+            }
         }
     }
 }

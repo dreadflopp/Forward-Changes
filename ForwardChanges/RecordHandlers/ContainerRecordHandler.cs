@@ -7,36 +7,35 @@ using ForwardChanges.PropertyHandlers.BasicPropertyHandlers;
 using ForwardChanges.RecordHandlers.Abstracts;
 using ForwardChanges.PropertyHandlers.Interfaces;
 using ForwardChanges.PropertyHandlers.ListPropertyHandlers;
+using ForwardChanges.Contexts;
+using ForwardChanges.Contexts.Interfaces;
+using System.Collections.Generic;
+using System.Linq;
 using System;
 
 namespace ForwardChanges.RecordHandlers
 {
-    public class NpcRecordHandler : AbstractRecordHandler
+    public class ContainerRecordHandler : AbstractRecordHandler
     {
         public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()
         {
-                { "Name", new NamePropertyHandler() },
-                { "DeathItem", new DeathItemPropertyHandler() },
-                { "CombatOverridePackageList", new CombatOverridePackageListHandler() },
-                { "SpectatorOverridePackageList", new SpectatorOverridePackageListHandler() },
-                { "Configuration.Flags", new ProtectionFlagsHandler() },
-                { "Configuration.MagickaOffset", new NpcConfigurationMagickaOffsetPropertyHandler() },
-                { "EditorID", new EditorIDPropertyHandler() },
-                { "Class", new ClassPropertyHandler() },
-                { "AIData.Confidence", new AIDataConfidencePropertyHandler() },
-                { "ObserveDeadBodyOverridePackageList", new ObserveDeadBodyOverridePackageListHandler() },
-                { "Factions", new FactionListPropertyHandler() },
-                { "Packages", new PackageListPropertyHandler() },
-                { "ActorEffect", new ActorEffectsListPropertyHandler() }
+            { "Name", new NamePropertyHandler() },
+            { "EditorID", new EditorIDPropertyHandler() },
+            { "Items", new ContainerItemListPropertyHandler() }
         };
 
         public override IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter>[] GetRecordContexts(
             IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> winningContext,
             IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
         {
-            return winningContext.Record
-                .ToLink<INpcGetter>()
-                .ResolveAllContexts<ISkyrimMod, ISkyrimModGetter, INpc, INpcGetter>(state.LinkCache)
+            if (winningContext.Record is not IContainerGetter containerRecord)
+            {
+                throw new InvalidOperationException($"Expected IContainerGetter but got {winningContext.Record.GetType()}");
+            }
+
+            return containerRecord
+                .ToLink<IContainerGetter>()
+                .ResolveAllContexts<ISkyrimMod, ISkyrimModGetter, IContainer, IContainerGetter>(state.LinkCache)
                 .ToArray();
         }
 
@@ -44,7 +43,7 @@ namespace ForwardChanges.RecordHandlers
             IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> winningContext,
             IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
         {
-            return state.PatchMod.Npcs.GetOrAddAsOverride(winningContext.Record);
+            return state.PatchMod.Containers.GetOrAddAsOverride(winningContext.Record);
         }
 
         public override void ApplyForwardedProperties(IMajorRecord record, Dictionary<string, object?> propertiesToForward)

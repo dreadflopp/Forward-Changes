@@ -12,28 +12,12 @@ namespace ForwardChanges.PropertyHandlers.BasicPropertyHandlers
 
         public override void SetValue(IMajorRecord record, string? value)
         {
-            if (record is INpc npc)
-            {
-                npc.EditorID = value;
-            }
-            else
-            {
-                Console.WriteLine($"Error: Record is not an NPC for {PropertyName}");
-            }
+            record.EditorID = value;
         }
 
-        public override string? GetValue(
-            IMajorRecordGetter record)
+        public override string? GetValue(IMajorRecordGetter record)
         {
-            if (record is INpcGetter npc)
-            {
-                return npc.EditorID;
-            }
-            else
-            {
-                Console.WriteLine($"Error: Record is not an NPC for {PropertyName}");
-            }
-            return null;
+            return record.EditorID;
         }
     }
 }

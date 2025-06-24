@@ -9,13 +9,7 @@ namespace ForwardChanges.RecordHandlers.Interfaces
 {
     public interface IRecordHandler
     {
-        void Process(IPatcherState<ISkyrimMod, ISkyrimModGetter> state);
-        bool CanHandle(IMajorRecord record);
-        bool ShouldBreakEarly(IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter>[] recordContexts);
-
-        // Protected methods that are part of the contract
-        IEnumerable<IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter>> GetWinningContexts(
-            IPatcherState<ISkyrimMod, ISkyrimModGetter> state);
+        void Process(IPatcherState<ISkyrimMod, ISkyrimModGetter> state, IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter>[] filteredWinningContexts);
 
         IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter>[] GetRecordContexts(
             IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> winningContext,
