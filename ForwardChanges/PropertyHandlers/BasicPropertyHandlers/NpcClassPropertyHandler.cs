@@ -7,7 +7,7 @@ using Mutagen.Bethesda.Plugins;
 
 namespace ForwardChanges.PropertyHandlers.BasicPropertyHandlers
 {
-    public class ClassPropertyHandler : AbstractPropertyHandler<IFormLinkGetter<IClassGetter>>
+    public class NpcClassPropertyHandler : AbstractPropertyHandler<IFormLinkGetter<IClassGetter>>
     {
         public override string PropertyName => "Class";
 

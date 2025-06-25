@@ -10,7 +10,7 @@ using ForwardChanges.PropertyHandlers.Interfaces;
 
 namespace ForwardChanges.PropertyHandlers.BasicPropertyHandlers
 {
-    public class ProtectionFlagsHandler : AbstractPropertyHandler<ProtectionStatus>
+    public class NpcProtectionFlagsHandler : AbstractPropertyHandler<ProtectionStatus>
     {
         public override string PropertyName => "Configuration.Flags";
 

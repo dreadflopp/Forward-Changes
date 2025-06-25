@@ -12,11 +12,11 @@ using System.Linq;
 
 namespace ForwardChanges.PropertyHandlers.ListPropertyHandlers
 {
-    public class FactionListPropertyHandler : AbstractListPropertyHandler<IRankPlacementGetter>
+    public class NpcFactionListPropertyHandler : AbstractListPropertyHandler<IRankPlacementGetter>
     {
         public override string PropertyName => "Factions";
 
-        public FactionListPropertyHandler()
+        public NpcFactionListPropertyHandler()
         {
         }
 

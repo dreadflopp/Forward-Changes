@@ -16,18 +16,19 @@ namespace ForwardChanges.RecordHandlers
         public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()
         {
                 { "Name", new NamePropertyHandler() },
-                { "DeathItem", new DeathItemPropertyHandler() },
-                { "CombatOverridePackageList", new CombatOverridePackageListHandler() },
+                { "DeathItem", new NpcDeathItemPropertyHandler() },
+                { "CombatOverridePackageList", new NpcCombatOverridePackageListHandler() },
                 { "SpectatorOverridePackageList", new SpectatorOverridePackageListHandler() },
-                { "Configuration.Flags", new ProtectionFlagsHandler() },
+                { "Configuration.Flags", new NpcProtectionFlagsHandler() },
                 { "Configuration.MagickaOffset", new NpcConfigurationMagickaOffsetPropertyHandler() },
                 { "EditorID", new EditorIDPropertyHandler() },
-                { "Class", new ClassPropertyHandler() },
+                { "Class", new NpcClassPropertyHandler() },
                 { "AIData.Confidence", new AIDataConfidencePropertyHandler() },
-                { "ObserveDeadBodyOverridePackageList", new ObserveDeadBodyOverridePackageListHandler() },
-                { "Factions", new FactionListPropertyHandler() },
-                { "Packages", new PackageListPropertyHandler() },
-                { "ActorEffect", new ActorEffectsListPropertyHandler() }
+                { "ObserveDeadBodyOverridePackageList", new NpcObserveDeadBodyOverridePackageListHandler() },
+                { "Factions", new NpcFactionListPropertyHandler() },
+                { "Packages", new NpcPackageListPropertyHandler() },
+                { "ActorEffect", new NpcActorEffectsListPropertyHandler() },
+                { "VirtualMachineAdapter.Scripts", new NpcVirtualMachineAdapterScriptsListPropertyHandler() }
         };
 
         public override IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter>[] GetRecordContexts(

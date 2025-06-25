@@ -13,11 +13,11 @@ using Noggog;
 
 namespace ForwardChanges.PropertyHandlers.ListPropertyHandlers
 {
-    public class ActorEffectsListPropertyHandler : AbstractListPropertyHandler<IFormLinkGetter<ISpellRecordGetter>>
+    public class NpcActorEffectsListPropertyHandler : AbstractListPropertyHandler<IFormLinkGetter<ISpellRecordGetter>>
     {
         public override string PropertyName => "ActorEffect";
 
-        public ActorEffectsListPropertyHandler()
+        public NpcActorEffectsListPropertyHandler()
         {
         }
 

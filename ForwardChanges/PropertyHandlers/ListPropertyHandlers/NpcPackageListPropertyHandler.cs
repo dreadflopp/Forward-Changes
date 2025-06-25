@@ -13,11 +13,11 @@ using Noggog;
 
 namespace ForwardChanges.PropertyHandlers.ListPropertyHandlers
 {
-    public class PackageListPropertyHandler : AbstractListPropertyHandler<IFormLinkGetter<IPackageGetter>>
+    public class NpcPackageListPropertyHandler : AbstractListPropertyHandler<IFormLinkGetter<IPackageGetter>>
     {
         public override string PropertyName => "Packages";
 
-        public PackageListPropertyHandler()
+        public NpcPackageListPropertyHandler()
         {
         }
 

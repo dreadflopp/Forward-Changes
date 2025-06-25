@@ -7,9 +7,9 @@ using Mutagen.Bethesda.Plugins;
 
 namespace ForwardChanges.PropertyHandlers.BasicPropertyHandlers
 {
-    public class CombatOverridePackageListHandler : AbstractPropertyHandler<IFormLinkNullableGetter<IFormListGetter>>
+    public class NpcObserveDeadBodyOverridePackageListHandler : AbstractPropertyHandler<IFormLinkNullableGetter<IFormListGetter>>
     {
-        public override string PropertyName => "CombatOverridePackageList";
+        public override string PropertyName => "ObserveDeadBodyOverridePackageList";
 
         public override void SetValue(IMajorRecord record, IFormLinkNullableGetter<IFormListGetter>? value)
         {
@@ -17,11 +17,11 @@ namespace ForwardChanges.PropertyHandlers.BasicPropertyHandlers
             {
                 if (value != null && !value.FormKey.IsNull)
                 {
-                    npc.CombatOverridePackageList = new FormLinkNullable<IFormListGetter>(value.FormKey);
+                    npc.ObserveDeadBodyOverridePackageList = new FormLinkNullable<IFormListGetter>(value.FormKey);
                 }
                 else
                 {
-                    npc.CombatOverridePackageList.Clear();
+                    npc.ObserveDeadBodyOverridePackageList.Clear();
                 }
             }
             else
@@ -34,7 +34,7 @@ namespace ForwardChanges.PropertyHandlers.BasicPropertyHandlers
         {
             if (record is INpcGetter npc)
             {
-                return npc.CombatOverridePackageList;
+                return npc.ObserveDeadBodyOverridePackageList;
             }
             else
             {

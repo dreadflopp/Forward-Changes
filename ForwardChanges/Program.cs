@@ -20,8 +20,11 @@ namespace ForwardChanges
                 typeof(INpcGetter),
                 typeof(IContainerGetter),
             //typeof(IWeaponGetter),
-                typeof(ICellGetter)
-        };
+                typeof(ICellGetter),
+                typeof(IPlacedObjectGetter),
+                typeof(IIngestibleGetter),
+                typeof(IWorldspaceGetter)
+            };
 
         /// <summary>
         /// Determines if processing can be skipped early based on optimization checks.
@@ -51,7 +54,7 @@ namespace ForwardChanges
                 // If we have ≤2 contexts, we can break early
                 if (contexts.Length <= 2)
                 {
-                   // Console.WriteLine("Breaking early: 2 or less contexts");
+                    // Console.WriteLine("Breaking early: 2 or less contexts");
                     return true;
                 }
 
@@ -68,9 +71,9 @@ namespace ForwardChanges
             }
             catch (Exception ex)
             {
-                // If optimization fails due to data corruption, don't break early
-                // Let the concrete handler decide with its safer type-specific implementation
-                //Console.WriteLine($"\n     Early break optimization failed for {winningContext.Record.FormKey}, falling back to safe processing for record: {ex.Message}\n");
+                Console.WriteLine($"     Early break optimization failed for {winningContext.Record.FormKey} ({winningContext.ModKey}): {ex.Message}");
+                Console.WriteLine($"     Record type: {winningContext.Record.GetType().Name}");
+                Console.WriteLine($"     Exception type: {ex.GetType().Name}");
                 return false;
             }
         }
@@ -96,30 +99,36 @@ namespace ForwardChanges
             var containerContexts = state.LoadOrder.PriorityOrder.WinningContextOverrides<ISkyrimMod, ISkyrimModGetter, IContainer, IContainerGetter>(state.LinkCache).ToArray();
             var cellContexts = state.LoadOrder.PriorityOrder.WinningContextOverrides<ISkyrimMod, ISkyrimModGetter, ICell, ICellGetter>(state.LinkCache).ToArray();
             var weaponContexts = state.LoadOrder.PriorityOrder.WinningContextOverrides<ISkyrimMod, ISkyrimModGetter, IWeapon, IWeaponGetter>(state.LinkCache).ToArray();
+            var placedObjectContexts = state.LoadOrder.PriorityOrder.WinningContextOverrides<ISkyrimMod, ISkyrimModGetter, IPlacedObject, IPlacedObjectGetter>(state.LinkCache).ToArray();
+            var ingestibleContexts = state.LoadOrder.PriorityOrder.WinningContextOverrides<ISkyrimMod, ISkyrimModGetter, IIngestible, IIngestibleGetter>(state.LinkCache).ToArray();
+            var worldspaceContexts = state.LoadOrder.PriorityOrder.WinningContextOverrides<ISkyrimMod, ISkyrimModGetter, IWorldspace, IWorldspaceGetter>(state.LinkCache).ToArray();
 
             // Filter out contexts that would break early
             Console.WriteLine("Filtering contexts (this may take a while)...");
-            Console.Write("Filtering NPCs...");
-            var filteredNpcContexts = npcContexts.Where(context => !ShouldBreakEarly(context, state)).ToArray();
-            Console.Write("done\n");
-            Console.Write("Filtering Containers...");
+            Console.WriteLine("Filtering Ingestibles...");
+            var filteredIngestibleContexts = ingestibleContexts.Where(context => !ShouldBreakEarly(context, state)).ToArray();
+            Console.WriteLine($"Ingestible contexts: {ingestibleContexts.Length} -> {filteredIngestibleContexts.Length} (filtered: {ingestibleContexts.Length - filteredIngestibleContexts.Length})");
+            Console.WriteLine("Filtering Worldspaces...");
+            var filteredWorldspaceContexts = worldspaceContexts.Where(context => !ShouldBreakEarly(context, state)).ToArray();
+            Console.WriteLine($"Worldspace contexts: {worldspaceContexts.Length} -> {filteredWorldspaceContexts.Length} (filtered: {worldspaceContexts.Length - filteredWorldspaceContexts.Length})");
+            Console.WriteLine("Filtering Containers...");
             var filteredContainerContexts = containerContexts.Where(context => !ShouldBreakEarly(context, state)).ToArray();
-            Console.Write("done\n");
-            Console.Write("Filtering Cells...");
+            Console.WriteLine($"Container contexts: {containerContexts.Length} -> {filteredContainerContexts.Length} (filtered: {containerContexts.Length - filteredContainerContexts.Length})");
+            Console.WriteLine("Filtering Cells...");
             var filteredCellContexts = cellContexts.Where(context => !ShouldBreakEarly(context, state)).ToArray();
-            Console.Write("done\n");
-            Console.Write("Filtering Weapons...");
+            Console.WriteLine($"Cell contexts: {cellContexts.Length} -> {filteredCellContexts.Length} (filtered: {cellContexts.Length - filteredCellContexts.Length})");
+            Console.WriteLine("Filtering Weapons...");
             var filteredWeaponContexts = weaponContexts.Where(context => !ShouldBreakEarly(context, state)).ToArray();
-            Console.WriteLine("done\n");
+            Console.WriteLine($"Weapon contexts: {weaponContexts.Length} -> {filteredWeaponContexts.Length} (filtered: {weaponContexts.Length - filteredWeaponContexts.Length})");
+            Console.WriteLine("Filtering Placed Objects...");
+            var filteredPlacedObjectContexts = placedObjectContexts.Where(context => !ShouldBreakEarly(context, state)).ToArray();
+            Console.WriteLine($"Placed Object contexts: {placedObjectContexts.Length} -> {filteredPlacedObjectContexts.Length} (filtered: {placedObjectContexts.Length - filteredPlacedObjectContexts.Length})");
+            Console.WriteLine("Filtering NPCs...");
+            var filteredNpcContexts = npcContexts.Where(context => !ShouldBreakEarly(context, state)).ToArray();
+            Console.WriteLine($"NPC contexts: {npcContexts.Length} -> {filteredNpcContexts.Length} (filtered: {npcContexts.Length - filteredNpcContexts.Length})");
 
-            var totalContexts = npcContexts.Length + containerContexts.Length + cellContexts.Length + weaponContexts.Length;
-            var totalFilteredContexts = filteredNpcContexts.Length + filteredContainerContexts.Length + filteredCellContexts.Length + filteredWeaponContexts.Length;
 
             Console.WriteLine();
-            Console.WriteLine($"NPC contexts: {npcContexts.Length} -> {filteredNpcContexts.Length} (filtered: {npcContexts.Length - filteredNpcContexts.Length})");
-            Console.WriteLine($"Container contexts: {containerContexts.Length} -> {filteredContainerContexts.Length} (filtered: {containerContexts.Length - filteredContainerContexts.Length})");
-            Console.WriteLine($"Cell contexts: {cellContexts.Length} -> {filteredCellContexts.Length} (filtered: {cellContexts.Length - filteredCellContexts.Length})");
-            Console.WriteLine($"Weapon contexts: {weaponContexts.Length} -> {filteredWeaponContexts.Length} (filtered: {weaponContexts.Length - filteredWeaponContexts.Length})");
 
             foreach (var recordType in SupportedRecordTypes)
             {
@@ -145,6 +154,18 @@ namespace ForwardChanges
                         case Type t when t == typeof(ICellGetter):
                             var cellHandler = new CellRecordHandler();
                             cellHandler.Process(state, filteredCellContexts);
+                            break;
+                        case Type t when t == typeof(IPlacedObjectGetter):
+                            var placedObjectHandler = new PlacedObjectRecordHandler();
+                            placedObjectHandler.Process(state, filteredPlacedObjectContexts);
+                            break;
+                        case Type t when t == typeof(IIngestibleGetter):
+                            var ingestibleHandler = new IngestibleRecordHandler();
+                            ingestibleHandler.Process(state, filteredIngestibleContexts);
+                            break;
+                        case Type t when t == typeof(IWorldspaceGetter):
+                            var worldspaceHandler = new WorldspaceRecordHandler();
+                            worldspaceHandler.Process(state, filteredWorldspaceContexts);
                             break;
                         default:
                             Console.WriteLine($"Warning: No handler implemented for {recordType.Name}");

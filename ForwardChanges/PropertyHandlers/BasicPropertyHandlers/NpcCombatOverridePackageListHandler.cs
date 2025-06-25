@@ -2,25 +2,26 @@ using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Plugins.Cache;
 using ForwardChanges.PropertyHandlers.BasicPropertyHandlers.Abstracts;
+using ForwardChanges.PropertyHandlers.Interfaces;
 using Mutagen.Bethesda.Plugins;
 
 namespace ForwardChanges.PropertyHandlers.BasicPropertyHandlers
 {
-    public class DeathItemPropertyHandler : AbstractPropertyHandler<IFormLinkGetter<ILeveledItemGetter>>
+    public class NpcCombatOverridePackageListHandler : AbstractPropertyHandler<IFormLinkNullableGetter<IFormListGetter>>
     {
-        public override string PropertyName => "DeathItem";
+        public override string PropertyName => "CombatOverridePackageList";
 
-        public override void SetValue(IMajorRecord record, IFormLinkGetter<ILeveledItemGetter>? value)
+        public override void SetValue(IMajorRecord record, IFormLinkNullableGetter<IFormListGetter>? value)
         {
             if (record is INpc npc)
             {
                 if (value != null && !value.FormKey.IsNull)
                 {
-                    npc.DeathItem = new FormLinkNullable<ILeveledItemGetter>(value.FormKey);
+                    npc.CombatOverridePackageList = new FormLinkNullable<IFormListGetter>(value.FormKey);
                 }
                 else
                 {
-                    npc.DeathItem.Clear();
+                    npc.CombatOverridePackageList.Clear();
                 }
             }
             else
@@ -29,21 +30,20 @@ namespace ForwardChanges.PropertyHandlers.BasicPropertyHandlers
             }
         }
 
-        public override IFormLinkGetter<ILeveledItemGetter>? GetValue(
-            IMajorRecordGetter record)
+        public override IFormLinkNullableGetter<IFormListGetter>? GetValue(IMajorRecordGetter record)
         {
             if (record is INpcGetter npc)
             {
-                return npc.DeathItem;
+                return npc.CombatOverridePackageList;
             }
             else
             {
                 Console.WriteLine($"Error: Record is not an NPC for {PropertyName}");
-                return null;
             }
+            return null;
         }
 
-        public override bool AreValuesEqual(IFormLinkGetter<ILeveledItemGetter>? value1, IFormLinkGetter<ILeveledItemGetter>? value2)
+        public override bool AreValuesEqual(IFormLinkNullableGetter<IFormListGetter>? value1, IFormLinkNullableGetter<IFormListGetter>? value2)
         {
             if (value1 == null && value2 == null) return true;
             if (value1 == null || value2 == null) return false;
