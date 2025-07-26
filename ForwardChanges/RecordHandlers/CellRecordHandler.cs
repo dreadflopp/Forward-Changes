@@ -4,10 +4,9 @@ using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Synthesis;
 using Mutagen.Bethesda.Plugins.Cache;
 using ForwardChanges.RecordHandlers.Abstracts;
-using ForwardChanges.PropertyHandlers.BasicPropertyHandlers;
 using ForwardChanges.PropertyHandlers.Interfaces;
-using ForwardChanges.PropertyHandlers.ListPropertyHandlers;
-using ForwardChanges.PropertyHandlers.FlagPropertyHandlers;
+using ForwardChanges.PropertyHandlers.Cell;
+using ForwardChanges.PropertyHandlers.General;
 
 namespace ForwardChanges.RecordHandlers
 {

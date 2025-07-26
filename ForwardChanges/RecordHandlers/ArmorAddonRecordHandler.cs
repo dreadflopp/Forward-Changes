@@ -3,10 +3,10 @@ using Mutagen.Bethesda.Synthesis;
 using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Plugins.Cache;
-using ForwardChanges.PropertyHandlers.BasicPropertyHandlers;
-using ForwardChanges.PropertyHandlers.ListPropertyHandlers;
 using ForwardChanges.RecordHandlers.Abstracts;
 using ForwardChanges.PropertyHandlers.Interfaces;
+using ForwardChanges.PropertyHandlers.ArmorAddon;
+using ForwardChanges.PropertyHandlers.General;
 using System;
 
 namespace ForwardChanges.RecordHandlers

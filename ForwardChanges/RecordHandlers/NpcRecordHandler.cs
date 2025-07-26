@@ -3,10 +3,10 @@ using Mutagen.Bethesda.Synthesis;
 using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Plugins.Cache;
-using ForwardChanges.PropertyHandlers.BasicPropertyHandlers;
+using ForwardChanges.PropertyHandlers.Npc;
+using ForwardChanges.PropertyHandlers.General;
 using ForwardChanges.RecordHandlers.Abstracts;
 using ForwardChanges.PropertyHandlers.Interfaces;
-using ForwardChanges.PropertyHandlers.ListPropertyHandlers;
 using System;
 
 namespace ForwardChanges.RecordHandlers
@@ -23,7 +23,7 @@ namespace ForwardChanges.RecordHandlers
                 { "Configuration.MagickaOffset", new NpcConfigurationMagickaOffsetPropertyHandler() },
                 { "EditorID", new EditorIDPropertyHandler() },
                 { "Class", new NpcClassPropertyHandler() },
-                { "AIData.Confidence", new AIDataConfidencePropertyHandler() },
+                { "AIData.Confidence", new NpcAIDataConfidencePropertyHandler() },
                 { "ObserveDeadBodyOverridePackageList", new NpcObserveDeadBodyOverridePackageListHandler() },
                 { "Factions", new NpcFactionListPropertyHandler() },
                 { "Packages", new NpcPackageListPropertyHandler() },

@@ -3,11 +3,11 @@ using Mutagen.Bethesda.Synthesis;
 using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Plugins.Cache;
-using ForwardChanges.PropertyHandlers.BasicPropertyHandlers;
+using ForwardChanges.PropertyHandlers.Ingredient;
+using ForwardChanges.PropertyHandlers.General;
 using ForwardChanges.RecordHandlers.Abstracts;
 using ForwardChanges.PropertyHandlers.Interfaces;
 using System;
-using ForwardChanges.PropertyHandlers.ListPropertyHandlers;
 
 namespace ForwardChanges.RecordHandlers
 {
