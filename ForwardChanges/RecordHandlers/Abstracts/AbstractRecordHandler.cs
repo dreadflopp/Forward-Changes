@@ -36,6 +36,11 @@ namespace ForwardChanges.RecordHandlers.Abstracts
             }
         }
 
+        /// <summary>
+        /// Process the record
+        /// </summary>
+        /// <param name="state"></param>
+        /// <param name="filteredWinningContexts"></param>
         public void Process(IPatcherState<ISkyrimMod, ISkyrimModGetter> state, IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter>[] filteredWinningContexts)
         {
             foreach (var winningContext in filteredWinningContexts)
@@ -43,7 +48,7 @@ namespace ForwardChanges.RecordHandlers.Abstracts
                 Console.WriteLine(new string('-', 80));
                 Console.WriteLine($"Processing: {winningContext.Record.FormKey} ({winningContext.Record.EditorID})");
 
-                // some break early checks if pre-filtering failed
+                // some break early checks if the pre-filtering failed
                 if (Utility.IsVanilla(winningContext))
                 {
                     Console.WriteLine("Breaking early: Winning context is vanilla");
@@ -67,17 +72,20 @@ namespace ForwardChanges.RecordHandlers.Abstracts
                     continue;
                 }
                 Console.WriteLine($"Record contexts: {recordContexts.Length}");
+                Console.WriteLine($"Winning context: {winningContext.ModKey}");
 
                 // Initialize property states and quick initial check for simple properties
                 var originalContext = recordContexts.Last();
+                Console.WriteLine($"Original context: {originalContext.ModKey}");
                 InitializePropertyContexts(originalContext, winningContext);
 
                 // Quick initial check for simple properties
+                // all simple properties (not lists) should be resolved if the original and winning values are different
                 bool allResolved = true;
-                bool hasListProperties = false;
+                bool requiresPass1 = false;
                 foreach (var (propName, handler) in PropertyHandlers)
                 {
-                    if (!handler.IsListHandler)
+                    if (!handler.RequiresFullLoadOrderProcessing)
                     {
                         var originalValue = handler.GetValue(originalContext.Record);
                         var winningValue = handler.GetValue(winningContext.Record);
@@ -86,7 +94,7 @@ namespace ForwardChanges.RecordHandlers.Abstracts
                         if (!handler.AreValuesEqual(originalValue, winningValue))
                         {
                             propContext.IsResolved = true;
-                            Console.WriteLine($"[{propName}] {winningContext.ModKey} Resolved, nothing to forward");
+                            Console.WriteLine($"[{propName}] {winningContext.Record.FormKey} Resolved, nothing to forward. Original: {handler.FormatValue(originalValue)}, Winning: {handler.FormatValue(winningValue)}");
                         }
                         else
                         {
@@ -95,7 +103,7 @@ namespace ForwardChanges.RecordHandlers.Abstracts
                     }
                     else
                     {
-                        hasListProperties = true;
+                        requiresPass1 = true;
                     }
                 }
 
@@ -104,15 +112,15 @@ namespace ForwardChanges.RecordHandlers.Abstracts
                 {
                     var originalValue = handler.GetValue(originalContext.Record);
                     var winningValue = handler.GetValue(winningContext.Record);
-                    Console.WriteLine($"[{propName}] Original: {originalValue}, Winning: {winningValue}");
+                    Console.WriteLine($"[{propName}] Original: {handler.FormatValue(originalValue)}, Winning: {handler.FormatValue(winningValue)}");
                 }
 
                 // Pass 1: Process from original to winning (for lists and unresolved properties)
-                // Pass 1 is required for lists
-                // Check if we have any list properties to process
-                if (!hasListProperties)
+                // Pass 1 is required for lists and flags
+                // Check if we have any list properties to process. If not we can skip pass 1.
+                if (!requiresPass1)
                 {
-                    Console.WriteLine("Skipping first pass: No list properties to process");
+                    Console.WriteLine("Skipping first pass: No list or flag properties to process");
                 }
                 else
                 {
@@ -123,13 +131,13 @@ namespace ForwardChanges.RecordHandlers.Abstracts
                     {
                         // Update the property contexts, skip if resolved
                         foreach (var (propName, handler) in PropertyHandlers)
-                        {                            
+                        {
                             var propContext = PropertyContexts[propName];
                             if (propContext.IsResolved) continue;
 
-                            LogCollector.Add(propName, $"[{propName}] Processing mod: {context.ModKey} with value: {handler.GetValue(context.Record)}");
+                            var mod = state.LoadOrder[context.ModKey].Mod;
+                            LogCollector.Add(propName, $"[{propName}] Processing mod: {context.ModKey} with value: {handler.FormatValue(handler.GetValue(context.Record))} with masters: {(mod != null ? string.Join(", ", mod.MasterReferences.Select(m => m.Master.FileName)) : "")}");
 
-                            // if not, update the property context
                             handler.UpdatePropertyContext(context, state, propContext);
                         }
                     }
@@ -150,7 +158,7 @@ namespace ForwardChanges.RecordHandlers.Abstracts
                 }
 
                 // Pass 2: Process from winning to original (for any remaining unresolved properties)
-                // This will only run if there are no list properties. It is much more efficent than pass 1
+                // This will only run if there are no list or flag properties. It is more efficent than pass 1.
                 if (!allResolved)
                 {
                     Console.WriteLine("Processing second pass");
@@ -179,6 +187,7 @@ namespace ForwardChanges.RecordHandlers.Abstracts
 
                         foreach (var (propName, handler) in PropertyHandlers)
                         {
+                            // if the property is resolved, skip it
                             allResolved = true;
                             var propertyContext = PropertyContexts[propName];
                             if (propertyContext.IsResolved)
@@ -186,8 +195,10 @@ namespace ForwardChanges.RecordHandlers.Abstracts
                                 continue;
                             }
 
+                            // if the property is not resolved, update the property context
                             allResolved = false;
-                            LogCollector.Add(propName, $"[{propName}] Processing mod: {context.ModKey} with value: {handler.GetValue(context.Record)}");
+                            var mod = state.LoadOrder[context.ModKey].Mod;
+                            LogCollector.Add(propName, $"[{propName}] Processing mod: {context.ModKey} with value: {handler.FormatValue(handler.GetValue(context.Record))} with masters: {(mod != null ? string.Join(", ", mod.MasterReferences.Select(m => m.Master.FileName)) : "")}");
                             handler.UpdatePropertyContext(context, state, propertyContext);
 
                             // If property has changed, iterate back to check for valid reverts
@@ -228,11 +239,11 @@ namespace ForwardChanges.RecordHandlers.Abstracts
                         if (propertyContext == null || handler == null) return false;
 
                         var winningValue = handler.GetValue(winningContext.Record);
-                        Console.WriteLine($"[{kvp.Key}] Winning value: {winningValue}");
+                        Console.WriteLine($"[{kvp.Key}] Winning value: {handler.FormatValue(winningValue)}");
 
                         // Get the forward value from the property context
                         var forwardValue = propertyContext.GetForwardValue();
-                        
+
                         return !handler.AreValuesEqual(forwardValue, winningValue);
                     })
                     .ToDictionary(kvp => kvp.Key, kvp =>

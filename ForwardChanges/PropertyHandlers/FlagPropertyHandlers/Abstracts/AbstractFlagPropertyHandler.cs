@@ -13,7 +13,7 @@ namespace ForwardChanges.PropertyHandlers.FlagPropertyHandlers.Abstracts
     public abstract class AbstractFlagPropertyHandler<TFlag> : IPropertyHandler<TFlag> where TFlag : struct, Enum
     {
         public abstract string PropertyName { get; }
-        public bool IsListHandler => false;
+        public bool RequiresFullLoadOrderProcessing => false;
 
         public abstract void SetValue(IMajorRecord record, TFlag value);
         public abstract TFlag GetValue(IMajorRecordGetter record);
@@ -65,21 +65,19 @@ namespace ForwardChanges.PropertyHandlers.FlagPropertyHandlers.Abstracts
             IPatcherState<ISkyrimMod, ISkyrimModGetter> state,
             IPropertyContext propertyContext)
         {
+            LogCollector.Add(PropertyName, $"[{PropertyName}] Processing mod: {context.ModKey}");
+
             if (context == null)
             {
                 Console.WriteLine($"Error: Context is null for {PropertyName}");
                 return;
             }
 
-            LogCollector.Add(PropertyName, $"[{PropertyName}] Processing mod: {context.ModKey}");
-
             if (propertyContext is not FlagPropertyContext<TFlag> flagPropertyContext)
             {
-                throw new InvalidOperationException($"Error: Property context is not a flag property context for {PropertyName}");
+                Console.WriteLine($"Error: Property context is not a flag property context for {PropertyName}");
+                return;
             }
-
-            // Add timing measurement for property access
-            var recordFlags = GetValue(context.Record);
 
             var forwardFlagContexts = flagPropertyContext.ForwardFlagContexts;
             if (forwardFlagContexts == null)
@@ -95,7 +93,7 @@ namespace ForwardChanges.PropertyHandlers.FlagPropertyHandlers.Abstracts
                 return;
             }
 
-            // Get all possible flags
+            var recordFlags = GetValue(context.Record);
             var allFlags = GetAllFlags();
 
             // Process each individual flag
@@ -113,22 +111,35 @@ namespace ForwardChanges.PropertyHandlers.FlagPropertyHandlers.Abstracts
                 }
                 else
                 {
-                    // Existing flag context - check if it needs updating
-                    if (existingFlagContext.IsSet != isFlagSetInRecord)
-                    {
-                        // Flag state has changed
-                        var canModify = recordMod.MasterReferences.Any(m => m.Master.ToString() == existingFlagContext.OwnerMod);
+                    // Get original flag value for comparison
+                    var originalFlagContext = flagPropertyContext.OriginalFlagContexts.FirstOrDefault(fc => fc.Flag.Equals(flag));
+                    var originalValue = originalFlagContext?.IsSet ?? false;
 
-                        if (canModify)
+                    if (isFlagSetInRecord != existingFlagContext.IsSet)
+                    {
+                        if (isFlagSetInRecord != originalValue)
                         {
+                            // Change/Addition: Different from original - always allowed
                             var oldState = existingFlagContext.IsSet;
                             existingFlagContext.IsSet = isFlagSetInRecord;
                             existingFlagContext.OwnerMod = context.ModKey.ToString();
-                            LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: Updating flag {flag} {oldState} -> {isFlagSetInRecord} Success");
+                            LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: Change: {originalValue} -> {isFlagSetInRecord} Success");
                         }
                         else
                         {
-                            LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: Updating flag {flag} {existingFlagContext.IsSet} -> {isFlagSetInRecord} Permission denied");
+                            // Reversion: Same as original, different from current - check permission
+                            var canRevert = recordMod.MasterReferences.Any(m => m.Master.ToString() == existingFlagContext.OwnerMod);
+                            if (canRevert)
+                            {
+                                var oldState = existingFlagContext.IsSet;
+                                existingFlagContext.IsSet = isFlagSetInRecord;
+                                existingFlagContext.OwnerMod = context.ModKey.ToString();
+                                LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: Reversion: {oldState} -> {isFlagSetInRecord} Success");
+                            }
+                            else
+                            {
+                                LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: Reversion: {existingFlagContext.IsSet} -> {isFlagSetInRecord} Permission denied");
+                            }
                         }
                     }
                     else
@@ -165,7 +176,7 @@ namespace ForwardChanges.PropertyHandlers.FlagPropertyHandlers.Abstracts
                     originalContext.ModKey.ToString()))
                 .ToList();
 
-            // Initialize forward flag contexts
+            // Initialize forward flag contexts with winning values and winning context as owner
             flagPropertyContext.ForwardFlagContexts = allFlags
                 .Select(flag => new FlagPropertyValueContext<TFlag>(
                     flag,

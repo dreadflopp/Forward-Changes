@@ -1,44 +1,38 @@
 using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Plugins.Cache;
+using Mutagen.Bethesda.Plugins;
 using ForwardChanges.PropertyHandlers.BasicPropertyHandlers.Abstracts;
 using ForwardChanges.PropertyHandlers.Interfaces;
-using Mutagen.Bethesda.Plugins;
 
 namespace ForwardChanges.PropertyHandlers.BasicPropertyHandlers
 {
-    public class SpectatorOverridePackageListHandler : AbstractPropertyHandler<IFormLinkNullableGetter<IFormListGetter>>
+    public class ObjectEffectWornRestrictionsPropertyHandler : AbstractPropertyHandler<IFormLinkNullableGetter<IFormListGetter>>
     {
-        public override string PropertyName => "SpectatorOverridePackageList";
+        public override string PropertyName => "WornRestrictions";
 
         public override void SetValue(IMajorRecord record, IFormLinkNullableGetter<IFormListGetter>? value)
         {
-            if (record is INpc npc)
+            if (record is IObjectEffect objectEffectRecord)
             {
-                if (value != null && !value.FormKey.IsNull)
-                {
-                    npc.SpectatorOverridePackageList = new FormLinkNullable<IFormListGetter>(value.FormKey);
-                }
-                else
-                {
-                    npc.SpectatorOverridePackageList.Clear();
-                }
+                objectEffectRecord.WornRestrictions = new FormLinkNullable<IFormListGetter>(value?.FormKey ?? FormKey.Null);
             }
             else
             {
-                Console.WriteLine($"Error: Record is not an NPC for {PropertyName}");
+                Console.WriteLine($"Error: Record does not implement IObjectEffect for {PropertyName}");
             }
         }
 
         public override IFormLinkNullableGetter<IFormListGetter>? GetValue(IMajorRecordGetter record)
         {
-            if (record is INpcGetter npc)
+            if (record is IObjectEffectGetter objectEffectRecord)
             {
-                return npc.SpectatorOverridePackageList;
+                // Convert IFormLinkGetter to IFormLinkNullableGetter
+                return objectEffectRecord.WornRestrictions as IFormLinkNullableGetter<IFormListGetter>;
             }
             else
             {
-                Console.WriteLine($"Error: Record is not an NPC for {PropertyName}");
+                Console.WriteLine($"Error: Record does not implement IObjectEffectGetter for {PropertyName}");
             }
             return null;
         }

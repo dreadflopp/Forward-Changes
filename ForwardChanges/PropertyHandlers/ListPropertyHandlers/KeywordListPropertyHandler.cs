@@ -21,10 +21,6 @@ namespace ForwardChanges.PropertyHandlers.ListPropertyHandlers
                 {
                     keyworded.Keywords = new ExtendedList<IFormLinkGetter<IKeywordGetter>>(value);
                 }
-                else
-                {
-                    keyworded.Keywords = null;
-                }
             }
             else
             {

@@ -1,36 +1,37 @@
 using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Plugins.Cache;
+using Mutagen.Bethesda.Plugins.Aspects;
 using ForwardChanges.PropertyHandlers.BasicPropertyHandlers.Abstracts;
 using ForwardChanges.PropertyHandlers.Interfaces;
 
 namespace ForwardChanges.PropertyHandlers.BasicPropertyHandlers
 {
-    public class IngestibleWeightPropertyHandler : AbstractPropertyHandler<float?>
+    public class WeightPropertyHandler : AbstractPropertyHandler<float?>
     {
         public override string PropertyName => "Weight";
 
         public override void SetValue(IMajorRecord record, float? value)
         {
-            if (record is IIngestible ingestible)
+            if (record is IWeightValue weightValue)
             {
-                ingestible.Weight = value ?? 0f;
+                weightValue.Weight = value ?? 0f;
             }
             else
             {
-                Console.WriteLine($"Error: Record is not an Ingestible for {PropertyName}");
+                Console.WriteLine($"Error: Record does not implement IWeightValue for {PropertyName}");
             }
         }
 
         public override float? GetValue(IMajorRecordGetter record)
         {
-            if (record is IIngestibleGetter ingestible)
+            if (record is IWeightValueGetter weightValue)
             {
-                return ingestible.Weight;
+                return weightValue.Weight;
             }
             else
             {
-                Console.WriteLine($"Error: Record is not an Ingestible for {PropertyName}");
+                Console.WriteLine($"Error: Record does not implement IWeightValueGetter for {PropertyName}");
             }
             return null;
         }

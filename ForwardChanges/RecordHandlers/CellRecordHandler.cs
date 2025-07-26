@@ -24,7 +24,7 @@ namespace ForwardChanges.RecordHandlers
                 { "Name", new NamePropertyHandler() },
                 { "Flags", new CellFlagsPropertyHandler() },
                 { "MajorFlags", new CellMajorFlagsPropertyHandler() },
-                { "Regions", new CellRegionsPropertyHandler() },
+                { "Regions", new CellRegionsListPropertyHandler() },
                 { "Location", new CellLocationPropertyHandler() },
                 { "Owner", new CellOwnerPropertyHandler() },
                 { "Water", new CellWaterPropertyHandler() },
@@ -34,7 +34,8 @@ namespace ForwardChanges.RecordHandlers
                 { "AcousticSpace", new CellAcousticSpacePropertyHandler() },
                 { "EncounterZone", new CellEncounterZonePropertyHandler() },
                 { "Music", new CellMusicPropertyHandler() },
-                { "ImageSpace", new CellImageSpacePropertyHandler() }
+                { "ImageSpace", new CellImageSpacePropertyHandler() },
+                { "SkyAndWeatherFromRegion", new CellSkyWeatherPropertyHandler() }
             };
         }
 
@@ -72,7 +73,7 @@ namespace ForwardChanges.RecordHandlers
                 {
                     try
                     {
-                        Console.WriteLine($"[{propertyName}] Applying value: {value}, Type: {value?.GetType()}");
+                        Console.WriteLine($"[{propertyName}] Applying value: {handler.FormatValue(value)}, Type: {value?.GetType()}");
                         if (value != null)
                         {
                             handler.SetValue(record, value);

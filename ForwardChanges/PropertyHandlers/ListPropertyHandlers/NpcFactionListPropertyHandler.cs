@@ -130,6 +130,7 @@ namespace ForwardChanges.PropertyHandlers.ListPropertyHandlers
             List<IRankPlacementGetter> recordItems,
             List<ListPropertyValueContext<IRankPlacementGetter>> currentForwardItems)
         {
+
             var recordMod = state.LoadOrder[context.ModKey].Mod;
             if (recordMod == null) return;
 
@@ -154,7 +155,7 @@ namespace ForwardChanges.PropertyHandlers.ListPropertyHandlers
 
                         // Collect for later modification
                         itemsToModify.Add((forwardItem, newItem));
-                        LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: Updating rank for faction {FormatItem(matchingRecordItem)} Success");
+                        LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: Updating rank for faction {FormatItem(matchingRecordItem)} (new owner: {newItem.OwnerMod}) Success");
                     }
                     else
                     {
@@ -172,6 +173,7 @@ namespace ForwardChanges.PropertyHandlers.ListPropertyHandlers
                     currentForwardItems[index] = newItem;
                 }
             }
+
         }
     }
 }

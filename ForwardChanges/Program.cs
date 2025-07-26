@@ -10,6 +10,7 @@ using System.Linq;
 using Noggog;
 using Mutagen.Bethesda.Plugins.Cache;
 using ForwardChanges.RecordHandlers;
+using Mutagen.Bethesda.Plugins.Aspects;
 
 namespace ForwardChanges
 {
@@ -23,7 +24,19 @@ namespace ForwardChanges
                 typeof(ICellGetter),
                 typeof(IPlacedObjectGetter),
                 typeof(IIngestibleGetter),
-                typeof(IWorldspaceGetter)
+                typeof(IIngredientGetter),
+                typeof(IObjectEffectGetter),
+                typeof(IWorldspaceGetter),
+                typeof(IDialogTopicGetter),
+                typeof(IDialogResponsesGetter),
+                typeof(IFormListGetter),
+                typeof(ISoundDescriptorGetter),
+                typeof(IEffectShaderGetter),
+                typeof(IArmorAddonGetter),
+                typeof(IBookGetter),
+                typeof(ISpellGetter),
+                typeof(ILocationGetter),
+                typeof(IFactionGetter)
             };
 
         /// <summary>
@@ -101,13 +114,31 @@ namespace ForwardChanges
             var weaponContexts = state.LoadOrder.PriorityOrder.WinningContextOverrides<ISkyrimMod, ISkyrimModGetter, IWeapon, IWeaponGetter>(state.LinkCache).ToArray();
             var placedObjectContexts = state.LoadOrder.PriorityOrder.WinningContextOverrides<ISkyrimMod, ISkyrimModGetter, IPlacedObject, IPlacedObjectGetter>(state.LinkCache).ToArray();
             var ingestibleContexts = state.LoadOrder.PriorityOrder.WinningContextOverrides<ISkyrimMod, ISkyrimModGetter, IIngestible, IIngestibleGetter>(state.LinkCache).ToArray();
+            var ingredientContexts = state.LoadOrder.PriorityOrder.WinningContextOverrides<ISkyrimMod, ISkyrimModGetter, IIngredient, IIngredientGetter>(state.LinkCache).ToArray();
+            var objectEffectContexts = state.LoadOrder.PriorityOrder.WinningContextOverrides<ISkyrimMod, ISkyrimModGetter, IObjectEffect, IObjectEffectGetter>(state.LinkCache).ToArray();
             var worldspaceContexts = state.LoadOrder.PriorityOrder.WinningContextOverrides<ISkyrimMod, ISkyrimModGetter, IWorldspace, IWorldspaceGetter>(state.LinkCache).ToArray();
+            var dialogTopicContexts = state.LoadOrder.PriorityOrder.WinningContextOverrides<ISkyrimMod, ISkyrimModGetter, IDialogTopic, IDialogTopicGetter>(state.LinkCache).ToArray();
+            var dialogResponseContexts = state.LoadOrder.PriorityOrder.WinningContextOverrides<ISkyrimMod, ISkyrimModGetter, IDialogResponses, IDialogResponsesGetter>(state.LinkCache).ToArray();
+            var formListContexts = state.LoadOrder.PriorityOrder.WinningContextOverrides<ISkyrimMod, ISkyrimModGetter, IFormList, IFormListGetter>(state.LinkCache).ToArray();
+            var soundDescriptorContexts = state.LoadOrder.PriorityOrder.WinningContextOverrides<ISkyrimMod, ISkyrimModGetter, ISoundDescriptor, ISoundDescriptorGetter>(state.LinkCache).ToArray();
+            var effectShaderContexts = state.LoadOrder.PriorityOrder.WinningContextOverrides<ISkyrimMod, ISkyrimModGetter, IEffectShader, IEffectShaderGetter>(state.LinkCache).ToArray();
+            var armorAddonContexts = state.LoadOrder.PriorityOrder.WinningContextOverrides<ISkyrimMod, ISkyrimModGetter, IArmorAddon, IArmorAddonGetter>(state.LinkCache).ToArray();
+            var bookContexts = state.LoadOrder.PriorityOrder.WinningContextOverrides<ISkyrimMod, ISkyrimModGetter, IBook, IBookGetter>(state.LinkCache).ToArray();
+            var spellContexts = state.LoadOrder.PriorityOrder.WinningContextOverrides<ISkyrimMod, ISkyrimModGetter, ISpell, ISpellGetter>(state.LinkCache).ToArray();
+            var locationContexts = state.LoadOrder.PriorityOrder.WinningContextOverrides<ISkyrimMod, ISkyrimModGetter, ILocation, ILocationGetter>(state.LinkCache).ToArray();
+            var factionContexts = state.LoadOrder.PriorityOrder.WinningContextOverrides<ISkyrimMod, ISkyrimModGetter, IFaction, IFactionGetter>(state.LinkCache).ToArray();
 
             // Filter out contexts that would break early
             Console.WriteLine("Filtering contexts (this may take a while)...");
             Console.WriteLine("Filtering Ingestibles...");
             var filteredIngestibleContexts = ingestibleContexts.Where(context => !ShouldBreakEarly(context, state)).ToArray();
             Console.WriteLine($"Ingestible contexts: {ingestibleContexts.Length} -> {filteredIngestibleContexts.Length} (filtered: {ingestibleContexts.Length - filteredIngestibleContexts.Length})");
+            Console.WriteLine("Filtering Ingredients...");
+            var filteredIngredientContexts = ingredientContexts.Where(context => !ShouldBreakEarly(context, state)).ToArray();
+            Console.WriteLine($"Ingredient contexts: {ingredientContexts.Length} -> {filteredIngredientContexts.Length} (filtered: {ingredientContexts.Length - filteredIngredientContexts.Length})");
+            Console.WriteLine("Filtering Object Effects...");
+            var filteredObjectEffectContexts = objectEffectContexts.Where(context => !ShouldBreakEarly(context, state)).ToArray();
+            Console.WriteLine($"Object Effect contexts: {objectEffectContexts.Length} -> {filteredObjectEffectContexts.Length} (filtered: {objectEffectContexts.Length - filteredObjectEffectContexts.Length})");
             Console.WriteLine("Filtering Worldspaces...");
             var filteredWorldspaceContexts = worldspaceContexts.Where(context => !ShouldBreakEarly(context, state)).ToArray();
             Console.WriteLine($"Worldspace contexts: {worldspaceContexts.Length} -> {filteredWorldspaceContexts.Length} (filtered: {worldspaceContexts.Length - filteredWorldspaceContexts.Length})");
@@ -126,6 +157,36 @@ namespace ForwardChanges
             Console.WriteLine("Filtering NPCs...");
             var filteredNpcContexts = npcContexts.Where(context => !ShouldBreakEarly(context, state)).ToArray();
             Console.WriteLine($"NPC contexts: {npcContexts.Length} -> {filteredNpcContexts.Length} (filtered: {npcContexts.Length - filteredNpcContexts.Length})");
+            Console.WriteLine("Filtering Dialog Topics...");
+            var filteredDialogTopicContexts = dialogTopicContexts.Where(context => !ShouldBreakEarly(context, state)).ToArray();
+            Console.WriteLine($"Dialog Topic contexts: {dialogTopicContexts.Length} -> {filteredDialogTopicContexts.Length} (filtered: {dialogTopicContexts.Length - filteredDialogTopicContexts.Length})");
+            Console.WriteLine("Filtering Dialog Responses...");
+            var filteredDialogResponseContexts = dialogResponseContexts.Where(context => !ShouldBreakEarly(context, state)).ToArray();
+            Console.WriteLine($"Dialog Response contexts: {dialogResponseContexts.Length} -> {filteredDialogResponseContexts.Length} (filtered: {dialogResponseContexts.Length - filteredDialogResponseContexts.Length})");
+            Console.WriteLine("Filtering Form Lists...");
+            var filteredFormListContexts = formListContexts.Where(context => !ShouldBreakEarly(context, state)).ToArray();
+            Console.WriteLine($"Form List contexts: {formListContexts.Length} -> {filteredFormListContexts.Length} (filtered: {formListContexts.Length - filteredFormListContexts.Length})");
+            Console.WriteLine("Filtering Sound Descriptors...");
+            var filteredSoundDescriptorContexts = soundDescriptorContexts.Where(context => !ShouldBreakEarly(context, state)).ToArray();
+            Console.WriteLine($"Sound Descriptor contexts: {soundDescriptorContexts.Length} -> {filteredSoundDescriptorContexts.Length} (filtered: {soundDescriptorContexts.Length - filteredSoundDescriptorContexts.Length})");
+            Console.WriteLine("Filtering Effect Shaders...");
+            var filteredEffectShaderContexts = effectShaderContexts.Where(context => !ShouldBreakEarly(context, state)).ToArray();
+            Console.WriteLine($"Effect Shader contexts: {effectShaderContexts.Length} -> {filteredEffectShaderContexts.Length} (filtered: {effectShaderContexts.Length - filteredEffectShaderContexts.Length})");
+            Console.WriteLine("Filtering Armor Addons...");
+            var filteredArmorAddonContexts = armorAddonContexts.Where(context => !ShouldBreakEarly(context, state)).ToArray();
+            Console.WriteLine($"Armor Addon contexts: {armorAddonContexts.Length} -> {filteredArmorAddonContexts.Length} (filtered: {armorAddonContexts.Length - filteredArmorAddonContexts.Length})");
+            Console.WriteLine("Filtering Books...");
+            var filteredBookContexts = bookContexts.Where(context => !ShouldBreakEarly(context, state)).ToArray();
+            Console.WriteLine($"Book contexts: {bookContexts.Length} -> {filteredBookContexts.Length} (filtered: {bookContexts.Length - filteredBookContexts.Length})");
+            Console.WriteLine("Filtering Spells...");
+            var filteredSpellContexts = spellContexts.Where(context => !ShouldBreakEarly(context, state)).ToArray();
+            Console.WriteLine($"Spell contexts: {spellContexts.Length} -> {filteredSpellContexts.Length} (filtered: {spellContexts.Length - filteredSpellContexts.Length})");
+            Console.WriteLine("Filtering Locations...");
+            var filteredLocationContexts = locationContexts.Where(context => !ShouldBreakEarly(context, state)).ToArray();
+            Console.WriteLine($"Location contexts: {locationContexts.Length} -> {filteredLocationContexts.Length} (filtered: {locationContexts.Length - filteredLocationContexts.Length})");
+            Console.WriteLine("Filtering Factions...");
+            var filteredFactionContexts = factionContexts.Where(context => !ShouldBreakEarly(context, state)).ToArray();
+            Console.WriteLine($"Faction contexts: {factionContexts.Length} -> {filteredFactionContexts.Length} (filtered: {factionContexts.Length - filteredFactionContexts.Length})");
 
 
             Console.WriteLine();
@@ -163,13 +224,62 @@ namespace ForwardChanges
                             var ingestibleHandler = new IngestibleRecordHandler();
                             ingestibleHandler.Process(state, filteredIngestibleContexts);
                             break;
+                        case Type t when t == typeof(IIngredientGetter):
+                            var ingredientHandler = new IngredientRecordHandler();
+                            ingredientHandler.Process(state, filteredIngredientContexts);
+                            break;
+                        case Type t when t == typeof(IObjectEffectGetter):
+                            var objectEffectHandler = new ObjectEffectRecordHandler();
+                            objectEffectHandler.Process(state, filteredObjectEffectContexts);
+                            break;
                         case Type t when t == typeof(IWorldspaceGetter):
                             var worldspaceHandler = new WorldspaceRecordHandler();
                             worldspaceHandler.Process(state, filteredWorldspaceContexts);
                             break;
+                        case Type t when t == typeof(IDialogTopicGetter):
+                            var dialogTopicHandler = new DialogTopicRecordHandler();
+                            dialogTopicHandler.Process(state, filteredDialogTopicContexts);
+                            break;
+                        case Type t when t == typeof(IDialogResponsesGetter):
+                            var dialogResponseHandler = new DialogResponseRecordHandler();
+                            dialogResponseHandler.Process(state, filteredDialogResponseContexts);
+                            break;
+                        case Type t when t == typeof(IFormListGetter):
+                            var formListHandler = new FormIdRecordHandler();
+                            formListHandler.Process(state, filteredFormListContexts);
+                            break;
+                        case Type t when t == typeof(ISoundDescriptorGetter):
+                            var soundDescriptorHandler = new SoundDescriptorRecordHandler();
+                            soundDescriptorHandler.Process(state, filteredSoundDescriptorContexts);
+                            break;
+                        case Type t when t == typeof(IEffectShaderGetter):
+                            var effectShaderHandler = new EffectShaderRecordHandler();
+                            effectShaderHandler.Process(state, filteredEffectShaderContexts);
+                            break;
+                        case Type t when t == typeof(IArmorAddonGetter):
+                            var armorAddonHandler = new ArmorAddonRecordHandler();
+                            armorAddonHandler.Process(state, filteredArmorAddonContexts);
+                            break;
+                        case Type t when t == typeof(IBookGetter):
+                            var bookHandler = new BookRecordHandler();
+                            bookHandler.Process(state, filteredBookContexts);
+                            break;
+                        case Type t when t == typeof(ISpellGetter):
+                            var spellHandler = new SpellRecordHandler();
+                            spellHandler.Process(state, filteredSpellContexts);
+                            break;
+                        case Type t when t == typeof(ILocationGetter):
+                            var locationHandler = new LocationRecordHandler();
+                            locationHandler.Process(state, filteredLocationContexts);
+                            break;
+                        case Type t when t == typeof(IFactionGetter):
+                            var factionHandler = new FactionRecordHandler();
+                            factionHandler.Process(state, filteredFactionContexts);
+                            break;
                         default:
                             Console.WriteLine($"Warning: No handler implemented for {recordType.Name}");
                             break;
+
                     }
 
                     Console.WriteLine($"Completed processing {recordType.Name} records");

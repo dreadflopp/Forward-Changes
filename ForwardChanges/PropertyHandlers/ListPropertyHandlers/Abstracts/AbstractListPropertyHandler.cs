@@ -13,7 +13,7 @@ namespace ForwardChanges.PropertyHandlers.ListPropertyHandlers.Abstracts
     public abstract class AbstractListPropertyHandler<T> : IPropertyHandler<List<T>>
     {
         public abstract string PropertyName { get; }
-        public bool IsListHandler => true;
+        public bool RequiresFullLoadOrderProcessing => true;
         protected virtual bool RequiresOrdering => false;
 
         public abstract void SetValue(IMajorRecord record, List<T>? value);
@@ -28,19 +28,6 @@ namespace ForwardChanges.PropertyHandlers.ListPropertyHandlers.Abstracts
             return value1.All(item1 => value2.Any(item2 => IsItemEqual(item1, item2)));
         }
 
-        public virtual bool AreValuesEqualInOrder(List<T>? value1, List<T>? value2)
-        {
-            if (value1 == null && value2 == null) return true;
-            if (value1 == null || value2 == null) return false;
-            if (value1.Count != value2.Count) return false;
-
-            for (int i = 0; i < value1.Count; i++)
-            {
-                if (!IsItemEqual(value1[i], value2[i])) return false;
-            }
-            return true;
-        }
-
         public virtual void UpdatePropertyContext(
             IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> context,
             IPatcherState<ISkyrimMod, ISkyrimModGetter> state,
@@ -52,14 +39,13 @@ namespace ForwardChanges.PropertyHandlers.ListPropertyHandlers.Abstracts
                 return;
             }
 
-            LogCollector.Add(PropertyName, $"[{PropertyName}] Processing mod: {context.ModKey}");
-
             if (propertyContext is not ListPropertyContext<T> listPropertyContext)
             {
                 throw new InvalidOperationException($"Error: Property context is not a list property context for {PropertyName}");
             }
 
             var recordItems = GetValue(context.Record) ?? [];
+
             var forwardValueContexts = listPropertyContext.ForwardValueContexts;
             if (forwardValueContexts == null)
             {
@@ -74,81 +60,270 @@ namespace ForwardChanges.PropertyHandlers.ListPropertyHandlers.Abstracts
                 return;
             }
 
-            // Process removals
-            foreach (var item in forwardValueContexts.Where(i => !i.IsRemoved).ToList())
-            {
-                LogCollector.Add(PropertyName, $"[{PropertyName}] [{context.ModKey}] Checking removal for item: {FormatItem(item.Value)} (owned by {item.OwnerMod})");
-                var matchingItemInRecord = recordItems.FirstOrDefault(c => IsItemEqual(c, item.Value));
+            // Step 1: Process removals
+            ProcessRemovals(context, recordMod, recordItems, forwardValueContexts);
 
-                if (matchingItemInRecord == null)
-                {
-                    // Item is being removed
-                    var canModify = recordMod.MasterReferences.Any(m => m.Master.ToString() == item.OwnerMod);
+            // Step 2: Process additions and re-additions
+            ProcessAdditions(context, recordMod, recordItems, forwardValueContexts);
 
-                    if (canModify)
-                    {
-                        var oldOwner = item.OwnerMod;
-                        item.IsRemoved = true;
-                        item.OwnerMod = context.ModKey.ToString();
-                        LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: Removing item {FormatItem(item.Value)} (was owned by {oldOwner}) Success");
-                    }
-                    else
-                    {
-                        LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: Removing item {FormatItem(item.Value)} (was owned by {item.OwnerMod}) Permission denied");
-                    }
-                }
-                else
-                {
-                    LogCollector.Add(PropertyName, $"[{PropertyName}] [{context.ModKey}] Item found in record, no removal needed: {FormatItem(matchingItemInRecord)}");
-                }
-            }
-
-            // Process additions
-            foreach (var item in recordItems)
-            {
-                LogCollector.Add(PropertyName, $"[{PropertyName}] [{context.ModKey}] Checking addition for item: {FormatItem(item)}");
-                var existingItem = forwardValueContexts.FirstOrDefault(i => IsItemEqual(i.Value, item));
-                if (existingItem == null || existingItem.IsRemoved)
-                {
-                    // Check if this item was previously removed
-                    var previouslyRemovedItem = existingItem?.IsRemoved == true ? existingItem :
-                        forwardValueContexts.FirstOrDefault(i => IsItemEqual(i.Value, item) && i.IsRemoved);
-
-                    if (previouslyRemovedItem == null)
-                    {
-                        // New item
-                        var newItem = new ListPropertyValueContext<T>(item, context.ModKey.ToString());
-                        InsertItemAtCorrectPosition(newItem, recordItems, forwardValueContexts);
-                        LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: Adding new item {FormatItem(item)} Success");
-                    }
-                    else
-                    {
-                        // Item was previously removed, check if we can add it back
-                        var canModify = recordMod.MasterReferences.Any(m => m.Master.ToString() == previouslyRemovedItem.OwnerMod);
-
-                        if (canModify)
-                        {
-                            previouslyRemovedItem.IsRemoved = false;
-                            previouslyRemovedItem.OwnerMod = context.ModKey.ToString();
-                            LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: Adding back previously removed item {FormatItem(item)} Success");
-                        }
-                        else
-                        {
-                            LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: Adding new item {FormatItem(item)} Permission denied. Previously removed by {previouslyRemovedItem.OwnerMod}");
-                        }
-                    }
-                }
-                else
-                {
-                    LogCollector.Add(PropertyName, $"[{PropertyName}] [{context.ModKey}] Found existing item: {FormatItem(existingItem.Value)} (removed: {existingItem.IsRemoved})");
-                }
-            }
-
-            // Process any handler-specific logic
+            // Step 3: Process handler-specific logic (metadata updates)
             ProcessHandlerSpecificLogic(context, state, listPropertyContext, recordItems, forwardValueContexts);
+
+            // Step 4: Sort according to record order (only if required)
+            if (RequiresOrdering)
+            {
+                SortAccordingToRecord(recordItems, forwardValueContexts);
+            }
 
             // Update the state
             listPropertyContext.ForwardValueContexts = forwardValueContexts;
+        }
+
+        private void ProcessRemovals(
+            IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> context,
+            ISkyrimModGetter recordMod,
+            List<T> recordItems,
+            List<ListPropertyValueContext<T>> forwardValueContexts)
+        {
+            // ============================================================================
+            // SECTION 1: PREPARE DATA STRUCTURES
+            // ============================================================================
+
+            // Group active (non-removed) forward items by their values for efficient lookup
+            var activeForwardItems = forwardValueContexts.Where(i => !i.IsRemoved).ToList();
+
+            var forwardItemGroups = activeForwardItems.GroupBy(item => item.Value)
+                                                     .Select(g => (Item: g.Key, Items: g.ToList()))
+                                                     .ToList();
+
+            // Group record items by their values for efficient lookup (used in both sections)
+            var recordItemGroups = recordItems.GroupBy(item => item)
+                                             .Select(g => (Item: g.Key, Count: g.Count()))
+                                             .ToList();
+
+            // ============================================================================
+            // SECTION 2: REMOVE EXCESS ITEMS (MORE FORWARD ITEMS THAN RECORD ITEMS)
+            // ============================================================================
+            // For each unique item in the current record, check if we have too many forward items
+            foreach (var recordGroup in recordItemGroups)
+            {
+                var recordItem = recordGroup.Item;
+                var recordCount = recordGroup.Count;
+
+                // Find if this record item exists in our forward contexts
+                var forwardGroup = forwardItemGroups.FirstOrDefault(g => IsItemEqual(g.Item, recordItem));
+                if (forwardGroup.Item != null)
+                {
+                    var forwardItems = forwardGroup.Items;
+                    var forwardCount = forwardItems.Count;
+
+                    // If we have more forward items than record items, remove the excess
+                    while (forwardCount > recordCount)
+                    {
+                        // Find an item to remove by working backwards through the list
+                        // This avoids collection modification issues during enumeration
+                        var itemToRemove = null as ListPropertyValueContext<T>;
+                        for (int i = forwardItems.Count - 1; i >= 0; i--)
+                        {
+                            // Only remove items from mods we have permission to modify
+                            // (either our own mod or mods we have as masters)
+                            if (HasPermissionsToModify(recordMod, forwardItems[i].OwnerMod))
+                            {
+                                itemToRemove = forwardItems[i];
+                                break;
+                            }
+                        }
+
+                        if (itemToRemove != null)
+                        {
+                            // Mark the item as removed and transfer ownership to current mod
+                            var oldOwner = itemToRemove.OwnerMod;
+                            itemToRemove.IsRemoved = true;
+                            itemToRemove.OwnerMod = context.ModKey.ToString();
+                            forwardCount--;
+                            LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: Removing item {FormatItem(recordItem)} (was owned by {oldOwner}) Success");
+                        }
+                        else
+                        {
+                            // No items can be removed due to permission restrictions
+                            LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: Cannot remove item {FormatItem(recordItem)} - no permission");
+                            break; // Can't remove any more instances of this item
+                        }
+                    }
+                }
+            }
+
+            // ============================================================================
+            // SECTION 3: REMOVE ITEMS NOT PRESENT IN CURRENT RECORD
+            // ============================================================================
+            // Find all forward items that are active but don't exist in the current record
+            var itemsNotInRecord = forwardValueContexts
+                .Where(item => !item.IsRemoved && !recordItemGroups.Any(g => IsItemEqual(g.Item, item.Value)))
+                .ToList();
+
+            // Process each item that should be removed
+            foreach (var item in itemsNotInRecord)
+            {
+                // Check if we have permission to remove this item
+                if (HasPermissionsToModify(recordMod, item.OwnerMod))
+                {
+                    // Mark as removed and transfer ownership
+                    var oldOwner = item.OwnerMod;
+                    item.IsRemoved = true;
+                    item.OwnerMod = context.ModKey.ToString();
+                    LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: Removing item not in record {FormatItem(item.Value)} (was owned by {oldOwner}, new owner: {item.OwnerMod}) Success");
+                }
+                else
+                {
+                    // Log permission denial for debugging
+                    LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: Cannot remove item not in record {FormatItem(item.Value)} - no permission. Current owner: {item.OwnerMod}");
+                }
+            }
+
+        }
+
+        private void ProcessAdditions(
+            IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> context,
+            ISkyrimModGetter recordMod,
+            List<T> recordItems,
+            List<ListPropertyValueContext<T>> forwardValueContexts)
+        {
+            // ============================================================================
+            // SECTION 1: PREPARE DATA STRUCTURES
+            // ============================================================================
+
+            // Group forward context items by equality (including removed items for un-removal)
+            // This includes both active and removed items to handle un-removal scenarios
+            var forwardItemGroups = forwardValueContexts.GroupBy(item => item.Value)
+                                                       .Select(g => (Item: g.Key, Items: g.ToList()))
+                                                       .ToList();
+
+            // Group record items by their values for efficient lookup
+            var recordItemGroups = recordItems.GroupBy(item => item)
+                                             .Select(g => (Item: g.Key, Count: g.Count()))
+                                             .ToList();
+
+            // ============================================================================
+            // SECTION 2: PROCESS EACH RECORD ITEM (ADD MISSING OR UN-REMOVE ITEMS)
+            // ============================================================================
+            // For each unique item in the current record, ensure we have the right number in forward contexts
+            foreach (var recordGroup in recordItemGroups)
+            {
+                var recordItem = recordGroup.Item;
+                var recordCount = recordGroup.Count;
+
+                // Find if this record item exists in our forward contexts
+                var forwardGroup = forwardItemGroups.FirstOrDefault(g => IsItemEqual(g.Item, recordItem));
+
+                if (forwardGroup.Item != null)
+                {
+                    // ============================================================================
+                    // SECTION 2A: ITEM EXISTS IN FORWARD CONTEXTS - HANDLE COUNT MISMATCH
+                    // ============================================================================
+                    var forwardItems = forwardGroup.Items;
+                    var activeForwardCount = forwardItems.Count(item => !item.IsRemoved);
+                    var removedForwardCount = forwardItems.Count(item => item.IsRemoved);
+
+                    // If we need more active items than we currently have
+                    while (activeForwardCount < recordCount)
+                    {
+                        // ============================================================================
+                        // SECTION 2A.1: PRIORITIZE UN-REMOVING EXISTING ITEMS
+                        // ============================================================================
+                        // First, try to un-remove a removed item that we have permission to modify
+                        var itemToUnremove = forwardItems.FirstOrDefault(item =>
+                            item.IsRemoved && HasPermissionsToModify(recordMod, item.OwnerMod));
+
+                        if (itemToUnremove != null)
+                        {
+                            // Successfully un-remove an existing item
+                            var oldOwner = itemToUnremove.OwnerMod;
+                            itemToUnremove.IsRemoved = false;
+                            itemToUnremove.OwnerMod = context.ModKey.ToString();
+                            activeForwardCount++;
+                            LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: Adding back previously removed item {FormatItem(recordItem)} (was owned by {oldOwner}, new owner: {itemToUnremove.OwnerMod}) Success");
+                        }
+                        else
+                        {
+                            // ============================================================================
+                            // SECTION 2A.2: HANDLE PERMISSION RESTRICTIONS OR ADD NEW ITEMS
+                            // ============================================================================
+                            // Check if there's a removed item we can't un-remove due to permissions
+                            var removedItemWithoutPermission = forwardItems.FirstOrDefault(item => item.IsRemoved);
+                            if (removedItemWithoutPermission != null)
+                            {
+                                // Permission denied - can't un-remove this item
+                                LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: Cannot add back previously removed item {FormatItem(recordItem)} - no permission (owned by {removedItemWithoutPermission.OwnerMod})");
+                                break; // Can't add any more instances of this item
+                            }
+                            else
+                            {
+                                // ============================================================================
+                                // SECTION 2A.3: ADD COMPLETELY NEW ITEM
+                                // ============================================================================
+                                // No removed item exists, so add as new item
+                                var newItem = new ListPropertyValueContext<T>(recordItem, context.ModKey.ToString());
+                                forwardValueContexts.Add(newItem);
+                                forwardItems.Add(newItem);
+                                activeForwardCount++;
+                                LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: Adding new item {FormatItem(recordItem)} (new owner: {newItem.OwnerMod}) Success");
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    // ============================================================================
+                    // SECTION 2B: ITEM DOESN'T EXIST IN FORWARD CONTEXTS - ADD ALL INSTANCES
+                    // ============================================================================
+                    // Item doesn't exist in forward contexts, add all required instances
+                    for (int i = 0; i < recordCount; i++)
+                    {
+                        var newItem = new ListPropertyValueContext<T>(recordItem, context.ModKey.ToString());
+                        forwardValueContexts.Add(newItem);
+                        LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: Adding new item {FormatItem(recordItem)} (new owner: {newItem.OwnerMod}) Success");
+                    }
+                }
+            }
+
+        }
+
+        private void SortAccordingToRecord(
+            List<T> recordItems,
+            List<ListPropertyValueContext<T>> forwardValueContexts)
+        {
+            // Separate active and removed items
+            var activeItems = forwardValueContexts.Where(item => !item.IsRemoved).ToList();
+            var removedItems = forwardValueContexts.Where(item => item.IsRemoved).ToList();
+
+            var sortedActiveItems = new List<ListPropertyValueContext<T>>();
+            var remainingActiveItems = activeItems.ToList();
+
+            // First, sort active items according to record order
+            foreach (var recordItem in recordItems)
+            {
+                var matchingItems = remainingActiveItems
+                    .Where(item => IsItemEqual(item.Value, recordItem))
+                    .ToList();
+
+                foreach (var matchingItem in matchingItems)
+                {
+                    sortedActiveItems.Add(matchingItem);
+                    remainingActiveItems.Remove(matchingItem);
+                }
+            }
+
+            // Then append remaining active items in their current order
+            sortedActiveItems.AddRange(remainingActiveItems);
+
+            // Combine sorted active items with removed items
+            var finalSortedItems = new List<ListPropertyValueContext<T>>();
+            finalSortedItems.AddRange(sortedActiveItems);
+            finalSortedItems.AddRange(removedItems);
+
+            // Update the forward contexts list
+            forwardValueContexts.Clear();
+            forwardValueContexts.AddRange(finalSortedItems);
         }
 
         /// <summary>
@@ -184,101 +359,6 @@ namespace ForwardChanges.PropertyHandlers.ListPropertyHandlers.Abstracts
             return Equals(item1, item2);
         }
 
-        protected void InsertItemAtCorrectPosition(
-            ListPropertyValueContext<T> newItem,
-            List<T> recordItems,
-            List<ListPropertyValueContext<T>> currentForwardItems)
-        {
-            if (!RequiresOrdering)
-            {
-                // If order doesn't matter, just add at the end
-                currentForwardItems.Add(newItem);
-                return;
-            }
-
-            // Get new item's position in source
-            var newItemIndex = recordItems.IndexOf(newItem.Value!);
-            if (newItemIndex == -1) return;
-
-            // Find items that should come before/after based on source order
-            var sourceBeforeItems = recordItems.Take(newItemIndex)
-                .Select(r => r?.ToString() ?? string.Empty)
-                .ToList();
-            var sourceAfterItems = recordItems.Skip(newItemIndex + 1)
-                .Select(r => r?.ToString() ?? string.Empty)
-                .ToList();
-
-            // Add source ordering to ItemsBefore/ItemsAfter
-            newItem.ItemsBefore.AddRange(sourceBeforeItems);
-            newItem.ItemsAfter.AddRange(sourceAfterItems);
-
-            // Find insertion point that satisfies both source order and explicit constraints
-            var insertIndex = 0;
-            for (int i = 0; i < currentForwardItems.Count; i++)
-            {
-                if (currentForwardItems[i].IsRemoved) continue;
-
-                // Check if this item should come after our new item
-                if (newItem.ItemsBefore.Contains(currentForwardItems[i].Value?.ToString() ?? string.Empty))
-                {
-                    insertIndex = i;
-                    break;
-                }
-
-                // Check if this item should come before our new item
-                if (currentForwardItems[i].ItemsBefore.Contains(newItem.Value?.ToString() ?? string.Empty))
-                {
-                    insertIndex = i + 1;
-                }
-            }
-
-            // Insert the new item
-            currentForwardItems.Insert(insertIndex, newItem);
-
-            // Update relationships for all items
-            UpdateOrderingRelationships(currentForwardItems);
-        }
-
-        private void UpdateOrderingRelationships(List<ListPropertyValueContext<T>> items)
-        {
-            // Clear existing relationships
-            foreach (var item in items.Where(i => !i.IsRemoved))
-            {
-                item.ItemsBefore.Clear();
-                item.ItemsAfter.Clear();
-            }
-
-            // Rebuild relationships based on current order
-            for (int i = 0; i < items.Count; i++)
-            {
-                if (items[i].IsRemoved) continue;
-
-                // Add all items before this one to ItemsBefore
-                for (int j = 0; j < i; j++)
-                {
-                    if (!items[j].IsRemoved)
-                    {
-                        var itemStr = items[j].Value?.ToString() ?? string.Empty;
-                        items[i].ItemsBefore.Add(itemStr);
-                        // Ensure it's not in ItemsAfter
-                        items[i].ItemsAfter.Remove(itemStr);
-                    }
-                }
-
-                // Add all items after this one to ItemsAfter
-                for (int j = i + 1; j < items.Count; j++)
-                {
-                    if (!items[j].IsRemoved)
-                    {
-                        var itemStr = items[j].Value?.ToString() ?? string.Empty;
-                        items[i].ItemsAfter.Add(itemStr);
-                        // Ensure it's not in ItemsBefore
-                        items[i].ItemsBefore.Remove(itemStr);
-                    }
-                }
-            }
-        }
-
         /// <summary>
         /// Format the item for display in the log.
         /// </summary>
@@ -290,104 +370,23 @@ namespace ForwardChanges.PropertyHandlers.ListPropertyHandlers.Abstracts
         }
 
         /// <summary>
-        /// Updates ordering relationships based on current context and permissions, then sorts items.
-        /// </summary>
-        public virtual void UpdateOrderingAndSort(
-            List<ListPropertyValueContext<T>> currentForwardItems,
-            IPatcherState<ISkyrimMod, ISkyrimModGetter> state,
-            IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> context)
-        {
-            if (!RequiresOrdering)
-            {
-                // If order doesn't matter, no need to sort
-                return;
-            }
-
-            // Get the list of items from the context's record
-            var itemList = GetValue(context.Record) ?? [];
-            var recordMod = state.LoadOrder[context.ModKey].Mod;
-            if (recordMod == null) return;
-
-            // First, update ordering relationships for items we have permission to modify
-            for (int i = 0; i < itemList.Count; i++)
-            {
-                var item = itemList[i];
-                var existingItem = currentForwardItems.FirstOrDefault(w =>
-                    !w.IsRemoved &&
-                    IsItemEqual(w.Value, item) &&
-                    CanAddBack(recordMod, w.OwnerMod));
-
-                if (existingItem != null)
-                {
-                    // Add items before this one that we have permission to modify
-                    if (i > 0)
-                    {
-                        var beforeItem = itemList[i - 1];
-                        var beforeItemStr = beforeItem?.ToString() ?? string.Empty;
-                        if (CanAddBack(recordMod, beforeItem?.ToString() ?? string.Empty))
-                        {
-                            existingItem.ItemsBefore.Add(beforeItemStr);
-                            existingItem.ItemsAfter.Remove(beforeItemStr);
-                        }
-                    }
-
-                    // Add items after this one that we have permission to modify
-                    if (i < itemList.Count - 1)
-                    {
-                        var afterItem = itemList[i + 1];
-                        var afterItemStr = afterItem?.ToString() ?? string.Empty;
-                        if (CanAddBack(recordMod, afterItem?.ToString() ?? string.Empty))
-                        {
-                            existingItem.ItemsAfter.Add(afterItemStr);
-                            existingItem.ItemsBefore.Remove(afterItemStr);
-                        }
-                    }
-                }
-            }
-
-            // Now sort items based on their constraints
-            var orderedItems = new List<ListPropertyValueContext<T>>();
-            var remainingItems = new List<ListPropertyValueContext<T>>(currentForwardItems.Where(i => !i.IsRemoved));
-
-            while (remainingItems.Any())
-            {
-                // Find items that have no "before" items in the remaining set
-                var nextItems = remainingItems
-                    .Where(item => !remainingItems.Any(r =>
-                        item.ItemsBefore.Contains(r.Value?.ToString() ?? string.Empty)))
-                    .ToList();
-
-                if (!nextItems.Any())
-                {
-                    // If we can't find any items without dependencies, add the rest
-                    orderedItems.AddRange(remainingItems);
-                    break;
-                }
-
-                // Add these items to the ordered list
-                orderedItems.AddRange(nextItems);
-                remainingItems.RemoveAll(item => nextItems.Contains(item));
-            }
-
-            // Update the final list
-            currentForwardItems.Clear();
-            currentForwardItems.AddRange(orderedItems);
-
-            // Update all relationships based on final order
-            UpdateOrderingRelationships(currentForwardItems);
-        }
-
-        /// <summary>
-        /// Check if the mod can add back an item that was previously removed. It is able to do so if the mod is a master of the owner mod.
+        /// Check if the mod can modify an item. It is able to do so if has the owner mod in its master list
         /// or if the mod is the owner mod.
         /// </summary>
         /// <param name="mod">The mod to check</param>
         /// <param name="ownerMod">The mod that owns the item</param>
         /// <returns></returns>
-        protected bool CanAddBack(ISkyrimModGetter mod, string ownerMod)
+        protected bool HasPermissionsToModify(ISkyrimModGetter mod, string ownerMod)
         {
             return mod?.MasterReferences.Any(m => m.Master.ToString() == ownerMod) == true || mod?.ModKey.ToString() == ownerMod;
         }
+
+        /// <summary>
+        /// Initialize the context for the list property.
+        /// </summary>
+        /// <param name="originalContext">The original context</param>
+        /// <param name="winningContext">The winning context</param>
+        /// <param name="propertyContext">The property context</param>
         public virtual void InitializeContext(
             IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> originalContext,
             IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> winningContext,
@@ -395,7 +394,7 @@ namespace ForwardChanges.PropertyHandlers.ListPropertyHandlers.Abstracts
         {
             if (propertyContext is not ListPropertyContext<T> listPropertyContext)
             {
-                throw new InvalidOperationException($"Property context is not a list property context for {PropertyName}");
+                throw new InvalidOperationException($"Error: Property context is not a list property context for {PropertyName}");
             }
             List<T>? originalList = GetValue(originalContext.Record);
             var listItems = originalList == null ? new List<ListPropertyValueContext<T>>() :
@@ -487,6 +486,23 @@ namespace ForwardChanges.PropertyHandlers.ListPropertyHandlers.Abstracts
         IPropertyContext IPropertyHandler.CreatePropertyContext()
         {
             return new ListPropertyContext<T>();
+        }
+
+        /// <summary>
+        /// Format a value for display in logs. Overrides the default implementation to handle lists properly.
+        /// </summary>
+        /// <param name="value">The value to format</param>
+        /// <returns>The formatted value</returns>
+        public string FormatValue(object? value)
+        {
+            if (value is List<T> list)
+            {
+                if (list == null || list.Count == 0)
+                    return "Empty";
+
+                return string.Join(", ", list.Select(item => FormatItem(item)));
+            }
+            return value?.ToString() ?? "null";
         }
     }
 }

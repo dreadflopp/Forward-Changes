@@ -12,7 +12,7 @@ namespace ForwardChanges.PropertyHandlers.BasicPropertyHandlers.Abstracts
     public abstract class AbstractPropertyHandler<T> : IPropertyHandler<T>
     {
         public abstract string PropertyName { get; }
-        public bool IsListHandler => false;
+        public bool RequiresFullLoadOrderProcessing => false;
 
         public abstract void SetValue(IMajorRecord record, T? value);
         public abstract T? GetValue(IMajorRecordGetter record);

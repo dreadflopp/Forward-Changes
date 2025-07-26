@@ -7,7 +7,7 @@ using Noggog;
 
 namespace ForwardChanges.PropertyHandlers.ListPropertyHandlers
 {
-    public class CellRegionsPropertyHandler : AbstractListPropertyHandler<IFormLinkGetter<IRegionGetter>>
+    public class CellRegionsListPropertyHandler : AbstractListPropertyHandler<IFormLinkGetter<IRegionGetter>>
     {
         public override string PropertyName => "Regions";
 
@@ -18,10 +18,6 @@ namespace ForwardChanges.PropertyHandlers.ListPropertyHandlers
                 if (value != null)
                 {
                     cell.Regions = new ExtendedList<IFormLinkGetter<IRegionGetter>>(value);
-                }
-                else
-                {
-                    cell.Regions = null;
                 }
             }
         }

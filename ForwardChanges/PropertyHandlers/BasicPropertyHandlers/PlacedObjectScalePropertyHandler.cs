@@ -39,7 +39,8 @@ namespace ForwardChanges.PropertyHandlers.BasicPropertyHandlers
         {
             if (value1 == null && value2 == null) return true;
             if (value1 == null || value2 == null) return false;
-            return Math.Abs(value1.Value - value2.Value) < 0.001f; // Use small epsilon for float comparison
+            // Use a smaller epsilon for more precise float comparison to handle rounding issues
+            return Math.Abs(value1.Value - value2.Value) < 0.0001f;
         }
     }
 }

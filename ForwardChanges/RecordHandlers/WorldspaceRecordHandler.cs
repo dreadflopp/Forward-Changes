@@ -65,7 +65,7 @@ namespace ForwardChanges.RecordHandlers
                 {
                     try
                     {
-                        Console.WriteLine($"[{propertyName}] Applying value: {value}, Type: {value?.GetType()}");
+                        Console.WriteLine($"[{propertyName}] Applying value: {handler.FormatValue(value)}, Type: {value?.GetType()}");
                         if (value != null)
                         {
                             handler.SetValue(record, value);

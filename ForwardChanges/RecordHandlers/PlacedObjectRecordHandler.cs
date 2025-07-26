@@ -4,6 +4,7 @@ using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Plugins.Cache;
 using ForwardChanges.PropertyHandlers.BasicPropertyHandlers;
+using ForwardChanges.PropertyHandlers.ListPropertyHandlers;
 using ForwardChanges.RecordHandlers.Abstracts;
 using ForwardChanges.PropertyHandlers.Interfaces;
 using System;
@@ -15,12 +16,17 @@ namespace ForwardChanges.RecordHandlers
         public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()
         {
             { "EditorID", new EditorIDPropertyHandler() },
-            //{ "Name", new NamePropertyHandler() },
+            { "Base", new PlacedObjectBasePropertyHandler() },
             { "Owner", new PlacedObjectOwnerPropertyHandler() },
             { "Scale", new PlacedObjectScalePropertyHandler() },
             { "LocationReference", new PlacedObjectLocationReferencePropertyHandler() },
             { "Placement.Position", new PlacedObjectPositionPropertyHandler() },
-            { "Placement.Rotation", new PlacedObjectRotationPropertyHandler() }
+            { "Placement.Rotation", new PlacedObjectRotationPropertyHandler() },
+            { "LinkedReferences", new PlacedObjectLinkedReferencesListPropertyHandler() },
+            { "LinkedRooms", new PlacedObjectLinkedRoomsListPropertyHandler() },
+            { "ImageSpace", new PlacedObjectImageSpacePropertyHandler() },
+            { "LightingTemplate", new PlacedObjectLightingTemplatePropertyHandler() },
+            { "Unknown", new PlacedObjectUnknownPropertyHandler() }
         };
 
         public override IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter>[] GetRecordContexts(
@@ -55,7 +61,7 @@ namespace ForwardChanges.RecordHandlers
                 {
                     try
                     {
-                        Console.WriteLine($"[{propertyName}] Applying value: {value}, Type: {value?.GetType()}");
+                        Console.WriteLine($"[{propertyName}] Applying value: {handler.FormatValue(value)}, Type: {value?.GetType()}");
                         if (value != null)
                         {
                             handler.SetValue(record, value);

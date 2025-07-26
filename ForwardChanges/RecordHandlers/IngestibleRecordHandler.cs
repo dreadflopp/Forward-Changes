@@ -20,10 +20,10 @@ namespace ForwardChanges.RecordHandlers
             { "Name", new NamePropertyHandler() },
             { "PickUpSound", new IngestiblePickUpSoundPropertyHandler() },
             { "PutDownSound", new IngestiblePutDownSoundPropertyHandler() },
-            { "Weight", new IngestibleWeightPropertyHandler() },
-            { "Value", new IngestibleValuePropertyHandler() },
+            { "Weight", new WeightPropertyHandler() },
+            { "Value", new ValuePropertyHandler() },
             { "Keywords", new KeywordListPropertyHandler() },
-            { "Effects", new EffectListPropertyHandler() },
+            { "Effects", new IngestibleEffectPropertyHandler() },
             { "Flags", new IngestibleFlagsPropertyHandler() }
         };
 
@@ -59,7 +59,7 @@ namespace ForwardChanges.RecordHandlers
                 {
                     try
                     {
-                        Console.WriteLine($"[{propertyName}] Applying value: {value}, Type: {value?.GetType()}");
+                        Console.WriteLine($"[{propertyName}] Applying value: {handler.FormatValue(value)}, Type: {value?.GetType()}");
                         if (value != null)
                         {
                             handler.SetValue(record, value);

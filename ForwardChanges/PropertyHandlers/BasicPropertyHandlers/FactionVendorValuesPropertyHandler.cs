@@ -1,0 +1,36 @@
+using Mutagen.Bethesda;
+using Mutagen.Bethesda.Skyrim;
+using Mutagen.Bethesda.Plugins.Records;
+using ForwardChanges.PropertyHandlers.BasicPropertyHandlers.Abstracts;
+using ForwardChanges.PropertyHandlers.Interfaces;
+
+namespace ForwardChanges.PropertyHandlers.BasicPropertyHandlers
+{
+    public class FactionVendorValuesPropertyHandler : AbstractPropertyHandler<VendorValues>
+    {
+        public override string PropertyName => "VendorValues";
+
+                public override VendorValues? GetValue(IMajorRecordGetter record)
+        {
+            if (record is IFactionGetter factionRecord)
+            {
+                return factionRecord.VendorValues as VendorValues;
+            }
+            
+            Console.WriteLine($"Error: Record does not implement IFactionGetter for {PropertyName}");
+            return null;
+        }
+
+        public override void SetValue(IMajorRecord record, VendorValues? value)
+        {
+            if (record is IFaction factionRecord)
+            {
+                factionRecord.VendorValues = value;
+            }
+            else
+            {
+                Console.WriteLine($"Error: Record does not implement IFaction for {PropertyName}");
+            }
+        }
+    }
+}

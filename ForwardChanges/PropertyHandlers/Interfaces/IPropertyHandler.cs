@@ -10,7 +10,7 @@ namespace ForwardChanges.PropertyHandlers.Interfaces
     public interface IPropertyHandler
     {
         string PropertyName { get; }
-        bool IsListHandler { get; }
+        bool RequiresFullLoadOrderProcessing { get; }
 
         // Non-generic versions for the registry
         void SetValue(IMajorRecord record, object? value);
@@ -29,6 +29,9 @@ namespace ForwardChanges.PropertyHandlers.Interfaces
             IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> originalContext,
             IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> winningContext,
             IPropertyContext propertyContext);
+
+        // Default implementation for formatting values
+        string FormatValue(object? value) => value?.ToString() ?? "null";
     }
 
     /// <summary>

@@ -18,7 +18,7 @@ namespace ForwardChanges.RecordHandlers
                 { "Name", new NamePropertyHandler() },
                 { "DeathItem", new NpcDeathItemPropertyHandler() },
                 { "CombatOverridePackageList", new NpcCombatOverridePackageListHandler() },
-                { "SpectatorOverridePackageList", new SpectatorOverridePackageListHandler() },
+                { "SpectatorOverridePackageList", new NpcSpectatorOverridePackageListHandler() },
                 { "Configuration.Flags", new NpcProtectionFlagsHandler() },
                 { "Configuration.MagickaOffset", new NpcConfigurationMagickaOffsetPropertyHandler() },
                 { "EditorID", new EditorIDPropertyHandler() },
@@ -28,7 +28,9 @@ namespace ForwardChanges.RecordHandlers
                 { "Factions", new NpcFactionListPropertyHandler() },
                 { "Packages", new NpcPackageListPropertyHandler() },
                 { "ActorEffect", new NpcActorEffectsListPropertyHandler() },
-                { "VirtualMachineAdapter.Scripts", new NpcVirtualMachineAdapterScriptsListPropertyHandler() }
+                { "VirtualMachineAdapter.Scripts", new NpcVirtualMachineAdapterScriptsListPropertyHandler() },
+                { "Items", new NpcItemListPropertyHandler() },
+                { "Keywords", new KeywordListPropertyHandler() }
         };
 
         public override IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter>[] GetRecordContexts(
@@ -54,7 +56,7 @@ namespace ForwardChanges.RecordHandlers
             {
                 if (PropertyHandlers.TryGetValue(propertyName, out var handler))
                 {
-                    Console.WriteLine($"[{propertyName}] Applying value: {value}, Type: {value?.GetType()}");
+                    Console.WriteLine($"[{propertyName}] Applying value: {handler.FormatValue(value)}, Type: {value?.GetType()}");
                     if (value != null)
                     {
                         handler.SetValue(record, value);
