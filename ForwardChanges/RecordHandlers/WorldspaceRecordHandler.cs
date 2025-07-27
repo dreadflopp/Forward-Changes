@@ -19,16 +19,16 @@ namespace ForwardChanges.RecordHandlers
             // Initialize property handlers for Worldspace records
             _propertyHandlers = new Dictionary<string, IPropertyHandler>
             {
-                { "EditorID", new EditorIDPropertyHandler() },
-                { "Name", new NamePropertyHandler() },
-                { "MaxHeight", new WorldspaceMaxHeightPropertyHandler() },
-                { "Location", new WorldspaceLocationPropertyHandler() },
-                { "Water", new WorldspaceWaterPropertyHandler() },
-                { "LodWater", new WorldspaceLodWaterPropertyHandler() },
-                { "Music", new WorldspaceMusicPropertyHandler() },
-                { "ObjectBoundsMin", new WorldspaceObjectBoundsMinPropertyHandler() },
-                { "ObjectBoundsMax", new WorldspaceObjectBoundsMaxPropertyHandler() },
-                { "MapData", new WorldspaceMapDataPropertyHandler() }
+                { "EditorID", new EditorIDHandler() },
+                { "Name", new NameHandler() },
+                { "MaxHeight", new MaxHeightHandler() },
+                { "Location", new LocationHandler() },
+                { "Water", new WaterHandler() },
+                { "LodWater", new LodWaterHandler() },
+                { "Music", new MusicHandler() },
+                { "ObjectBoundsMin", new ObjectBoundsMinHandler() },
+                { "ObjectBoundsMax", new ObjectBoundsMaxHandler() },
+                { "MapData", new MapDataHandler() }
             };
         }
 
@@ -54,7 +54,6 @@ namespace ForwardChanges.RecordHandlers
             IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> winningContext,
             IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
         {
-            // Use the context's GetOrAddAsOverride method like Fusion does
             return winningContext.GetOrAddAsOverride(state.PatchMod);
         }
 

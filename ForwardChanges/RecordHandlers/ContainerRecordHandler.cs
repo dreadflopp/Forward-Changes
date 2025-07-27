@@ -19,9 +19,9 @@ namespace ForwardChanges.RecordHandlers
     {
         public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()
         {
-            { "Name", new NamePropertyHandler() },
-            { "EditorID", new EditorIDPropertyHandler() },
-            { "Items", new ContainerItemListPropertyHandler() }
+            { "Name", new NameHandler() },
+            { "EditorID", new EditorIDHandler() },
+            { "Items", new ItemHandler() }
         };
 
         public override IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter>[] GetRecordContexts(

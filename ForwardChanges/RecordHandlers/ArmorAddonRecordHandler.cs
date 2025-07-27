@@ -15,11 +15,11 @@ namespace ForwardChanges.RecordHandlers
     {
         public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()
         {
-            { "EditorID", new EditorIDPropertyHandler() },
-            { "WeightSliderEnabled", new ArmorAddonWeightSliderEnabledPropertyHandler() },
-            { "WorldModel", new ArmorAddonWorldModelPropertyHandler() },
-            { "FirstPersonModel", new ArmorAddonFirstPersonModelPropertyHandler() },
-            { "AdditionalRaces", new ArmorAddonAdditionalRacesListPropertyHandler() }
+            { "EditorID", new EditorIDHandler() },
+            { "WeightSliderEnabled", new WeightSliderEnabledHandler() },
+            { "WorldModel", new WorldModelHandler() },
+            { "FirstPersonModel", new FirstPersonModelHandler() },
+            { "AdditionalRaces", new AdditionalRacesHandler() }
         };
 
         public override IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter>[] GetRecordContexts(
@@ -42,7 +42,6 @@ namespace ForwardChanges.RecordHandlers
             IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> winningContext,
             IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
         {
-            // Use the context's GetOrAddAsOverride method like Fusion does
             return winningContext.GetOrAddAsOverride(state.PatchMod);
         }
 

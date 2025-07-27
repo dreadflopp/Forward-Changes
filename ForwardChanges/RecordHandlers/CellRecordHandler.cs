@@ -19,22 +19,22 @@ namespace ForwardChanges.RecordHandlers
             // Initialize property handlers for Cell records
             _propertyHandlers = new Dictionary<string, IPropertyHandler>
             {
-                { "EditorID", new EditorIDPropertyHandler() },
-                { "Name", new NamePropertyHandler() },
-                { "Flags", new CellFlagsPropertyHandler() },
-                { "MajorFlags", new CellMajorFlagsPropertyHandler() },
-                { "Regions", new CellRegionsListPropertyHandler() },
-                { "Location", new CellLocationPropertyHandler() },
-                { "Owner", new CellOwnerPropertyHandler() },
-                { "Water", new CellWaterPropertyHandler() },
-                //{ "WaterHeight", new CellWaterHeightPropertyHandler() },
-                { "Lighting", new CellLightingPropertyHandler() },
-                { "LightingTemplate", new CellLightingTemplatePropertyHandler() },
-                { "AcousticSpace", new CellAcousticSpacePropertyHandler() },
-                { "EncounterZone", new CellEncounterZonePropertyHandler() },
-                { "Music", new CellMusicPropertyHandler() },
-                { "ImageSpace", new CellImageSpacePropertyHandler() },
-                { "SkyAndWeatherFromRegion", new CellSkyWeatherPropertyHandler() }
+                { "EditorID", new EditorIDHandler() },
+                { "Name", new NameHandler() },
+                { "Flags", new FlagsHandler() },
+                { "MajorFlags", new MajorFlagsHandler() },
+                { "Regions", new RegionsHandler() },
+                { "Location", new LocationHandler() },
+                { "Owner", new OwnerHandler() },
+                { "Water", new WaterHandler() },
+                //{ "WaterHeight", new WaterHeightHandler() },
+                { "Lighting", new LightingHandler() },
+                { "LightingTemplate", new LightingTemplateHandler() },
+                { "AcousticSpace", new AcousticSpaceHandler() },
+                { "EncounterZone", new EncounterZoneHandler() },
+                { "Music", new MusicHandler() },
+                { "ImageSpace", new ImageSpaceHandler() },
+                { "SkyAndWeatherFromRegion", new SkyWeatherHandler() }
             };
         }
 
@@ -60,7 +60,6 @@ namespace ForwardChanges.RecordHandlers
             IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> winningContext,
             IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
         {
-            // Use the context's GetOrAddAsOverride method like Fusion does
             return winningContext.GetOrAddAsOverride(state.PatchMod);
         }
 

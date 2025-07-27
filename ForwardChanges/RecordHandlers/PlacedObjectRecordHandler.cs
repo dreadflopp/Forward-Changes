@@ -15,18 +15,18 @@ namespace ForwardChanges.RecordHandlers
     {
         public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()
         {
-            { "EditorID", new EditorIDPropertyHandler() },
-            { "Base", new PlacedObjectBasePropertyHandler() },
-            { "Owner", new PlacedObjectOwnerPropertyHandler() },
-            { "Scale", new PlacedObjectScalePropertyHandler() },
-            { "LocationReference", new PlacedObjectLocationReferencePropertyHandler() },
-            { "Placement.Position", new PlacedObjectPositionPropertyHandler() },
-            { "Placement.Rotation", new PlacedObjectRotationPropertyHandler() },
-            { "LinkedReferences", new PlacedObjectLinkedReferencesListPropertyHandler() },
-            { "LinkedRooms", new PlacedObjectLinkedRoomsListPropertyHandler() },
-            { "ImageSpace", new PlacedObjectImageSpacePropertyHandler() },
-            { "LightingTemplate", new PlacedObjectLightingTemplatePropertyHandler() },
-            { "Unknown", new PlacedObjectUnknownPropertyHandler() }
+            { "EditorID", new EditorIDHandler() },
+            { "Base", new BaseHandler() },
+            { "Owner", new OwnerHandler() },
+            { "Scale", new ScaleHandler() },
+            { "LocationReference", new LocationReferenceHandler() },
+            { "Placement.Position", new PositionHandler() },
+            { "Placement.Rotation", new RotationHandler() },
+            { "LinkedReferences", new LinkedReferencesHandler() },
+            { "LinkedRooms", new LinkedRoomsHandler() },
+            { "ImageSpace", new ImageSpaceHandler() },
+            { "LightingTemplate", new LightingTemplateHandler() },
+            { "Unknown", new UnknownHandler() }
         };
 
         public override IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter>[] GetRecordContexts(
@@ -49,7 +49,6 @@ namespace ForwardChanges.RecordHandlers
             IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> winningContext,
             IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
         {
-            // Use the context's GetOrAddAsOverride method like Fusion does
             return winningContext.GetOrAddAsOverride(state.PatchMod);
         }
 

@@ -36,7 +36,8 @@ namespace ForwardChanges
                 typeof(IBookGetter),
                 typeof(ISpellGetter),
                 typeof(ILocationGetter),
-                typeof(IFactionGetter)
+                typeof(IFactionGetter),
+                typeof(IEncounterZoneGetter)
             };
 
         /// <summary>
@@ -127,6 +128,7 @@ namespace ForwardChanges
             var spellContexts = state.LoadOrder.PriorityOrder.WinningContextOverrides<ISkyrimMod, ISkyrimModGetter, ISpell, ISpellGetter>(state.LinkCache).ToArray();
             var locationContexts = state.LoadOrder.PriorityOrder.WinningContextOverrides<ISkyrimMod, ISkyrimModGetter, ILocation, ILocationGetter>(state.LinkCache).ToArray();
             var factionContexts = state.LoadOrder.PriorityOrder.WinningContextOverrides<ISkyrimMod, ISkyrimModGetter, IFaction, IFactionGetter>(state.LinkCache).ToArray();
+            var encounterZoneContexts = state.LoadOrder.PriorityOrder.WinningContextOverrides<ISkyrimMod, ISkyrimModGetter, IEncounterZone, IEncounterZoneGetter>(state.LinkCache).ToArray();
 
             // Filter out contexts that would break early
             Console.WriteLine("Filtering contexts (this may take a while)...");
@@ -187,6 +189,9 @@ namespace ForwardChanges
             Console.WriteLine("Filtering Factions...");
             var filteredFactionContexts = factionContexts.Where(context => !ShouldBreakEarly(context, state)).ToArray();
             Console.WriteLine($"Faction contexts: {factionContexts.Length} -> {filteredFactionContexts.Length} (filtered: {factionContexts.Length - filteredFactionContexts.Length})");
+            Console.WriteLine("Filtering Encounter Zones...");
+            var filteredEncounterZoneContexts = encounterZoneContexts.Where(context => !ShouldBreakEarly(context, state)).ToArray();
+            Console.WriteLine($"Encounter Zone contexts: {encounterZoneContexts.Length} -> {filteredEncounterZoneContexts.Length} (filtered: {encounterZoneContexts.Length - filteredEncounterZoneContexts.Length})");
 
 
             Console.WriteLine();
@@ -275,6 +280,10 @@ namespace ForwardChanges
                         case Type t when t == typeof(IFactionGetter):
                             var factionHandler = new FactionRecordHandler();
                             factionHandler.Process(state, filteredFactionContexts);
+                            break;
+                        case Type t when t == typeof(IEncounterZoneGetter):
+                            var encounterZoneHandler = new EncounterZoneRecordHandler();
+                            encounterZoneHandler.Process(state, filteredEncounterZoneContexts);
                             break;
                         default:
                             Console.WriteLine($"Warning: No handler implemented for {recordType.Name}");

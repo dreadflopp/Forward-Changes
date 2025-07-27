@@ -15,22 +15,22 @@ namespace ForwardChanges.RecordHandlers
     {
         public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()
         {
-                { "Name", new NamePropertyHandler() },
-                { "DeathItem", new NpcDeathItemPropertyHandler() },
-                { "CombatOverridePackageList", new NpcCombatOverridePackageListHandler() },
-                { "SpectatorOverridePackageList", new NpcSpectatorOverridePackageListHandler() },
-                { "Configuration.Flags", new NpcProtectionFlagsHandler() },
-                { "Configuration.MagickaOffset", new NpcConfigurationMagickaOffsetPropertyHandler() },
-                { "EditorID", new EditorIDPropertyHandler() },
-                { "Class", new NpcClassPropertyHandler() },
-                { "AIData.Confidence", new NpcAIDataConfidencePropertyHandler() },
-                { "ObserveDeadBodyOverridePackageList", new NpcObserveDeadBodyOverridePackageListHandler() },
-                { "Factions", new NpcFactionListPropertyHandler() },
-                { "Packages", new NpcPackageListPropertyHandler() },
-                { "ActorEffect", new NpcActorEffectsListPropertyHandler() },
-                { "VirtualMachineAdapter.Scripts", new NpcVirtualMachineAdapterScriptsListPropertyHandler() },
-                { "Items", new NpcItemListPropertyHandler() },
-                { "Keywords", new KeywordListPropertyHandler() }
+                { "Name", new NameHandler() },
+                { "DeathItem", new DeathItemHandler() },
+                { "CombatOverridePackageList", new CombatOverridePackageListHandler() },
+                { "SpectatorOverridePackageList", new SpectatorOverridePackageListHandler() },
+                { "Configuration.Flags", new ProtectionFlagsHandler() },
+                { "Configuration.MagickaOffset", new ConfigurationMagickaOffsetHandler() },
+                { "EditorID", new EditorIDHandler() },
+                { "Class", new ClassHandler() },
+                { "AIData.Confidence", new AIDataConfidenceHandler() },
+                { "ObserveDeadBodyOverridePackageList", new ObserveDeadBodyOverridePackageListHandler() },
+                { "Factions", new FactionHandler() },
+                { "Packages", new PackageHandler() },
+                { "ActorEffect", new ActorEffectsHandler() },
+                { "VirtualMachineAdapter.Scripts", new VirtualMachineAdapterScriptsHandler() },
+                { "Items", new ItemHandler() },
+                { "Keywords", new KeywordListHandler() }
         };
 
         public override IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter>[] GetRecordContexts(

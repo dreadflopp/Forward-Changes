@@ -16,32 +16,32 @@ namespace ForwardChanges.RecordHandlers
     {
         public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()
         {
-            { "EditorID", new EditorIDPropertyHandler() },
-            { "Name", new NamePropertyHandler() },
-            { "Keywords", new KeywordListPropertyHandler() },
-            { "ActorCellPersistentReferences", new LocationActorCellPersistentReferencesListPropertyHandler() },
-            { "LocationCellPersistentReferences", new LocationLocationCellPersistentReferencesListPropertyHandler() },
-            { "ReferenceCellPersistentReferences", new LocationReferenceCellPersistentReferencesListPropertyHandler() },
-            { "ActorCellUniques", new LocationActorCellUniquesListPropertyHandler() },
-            { "LocationCellUniques", new LocationLocationCellUniquesListPropertyHandler() },
-            { "ReferenceCellUnique", new LocationReferenceCellUniqueListPropertyHandler() },
-            { "ActorCellStaticReferences", new LocationActorCellStaticReferencesListPropertyHandler() },
-            { "LocationCellStaticReferences", new LocationLocationCellStaticReferencesListPropertyHandler() },
-            { "ReferenceCellStaticReferences", new LocationReferenceCellStaticReferencesListPropertyHandler() },
-            { "ActorCellEncounterCell", new LocationActorCellEncounterCellListPropertyHandler() },
-            { "LocationCellEncounterCell", new LocationLocationCellEncounterCellListPropertyHandler() },
-            { "ReferenceCellEncounterCell", new LocationReferenceCellEncounterCellListPropertyHandler() },
-            { "ActorCellMarkerReference", new LocationActorCellMarkerReferenceListPropertyHandler() },
-            { "LocationCellMarkerReference", new LocationLocationCellMarkerReferenceListPropertyHandler() },
-            { "ActorCellEnablePoint", new LocationActorCellEnablePointListPropertyHandler() },
-            { "LocationCellEnablePoint", new LocationLocationCellEnablePointListPropertyHandler() },
-            { "ParentLocation", new LocationParentLocationPropertyHandler() },
-            { "Music", new LocationMusicPropertyHandler() },
-            { "UnreportedCrimeFaction", new LocationUnreportedCrimeFactionPropertyHandler() },
-            { "WorldLocationMarkerRef", new LocationWorldLocationMarkerRefPropertyHandler() },
-            { "WorldLocationRadius", new LocationWorldLocationRadiusPropertyHandler() },
-            { "HorseMarkerRef", new LocationHorseMarkerRefPropertyHandler() },
-            { "Color", new LocationColorPropertyHandler() }
+            { "EditorID", new EditorIDHandler() },
+            { "Name", new NameHandler() },
+            { "Keywords", new KeywordListHandler() },
+            { "ActorCellPersistentReferences", new ActorCellPersistentReferencesHandler() },
+            { "LocationCellPersistentReferences", new LocationCellPersistentReferencesHandler() },
+            { "ReferenceCellPersistentReferences", new ReferenceCellPersistentReferencesHandler() },
+            { "ActorCellUniques", new ActorCellUniquesHandler() },
+            { "LocationCellUniques", new LocationCellUniquesHandler() },
+            { "ReferenceCellUnique", new ReferenceCellUniqueHandler() },
+            { "ActorCellStaticReferences", new ActorCellStaticReferencesHandler() },
+            { "LocationCellStaticReferences", new LocationCellStaticReferencesHandler() },
+            { "ReferenceCellStaticReferences", new ReferenceCellStaticReferencesHandler() },
+            { "ActorCellEncounterCell", new ActorCellEncounterCellHandler() },
+            { "LocationCellEncounterCell", new LocationCellEncounterCellHandler() },
+            { "ReferenceCellEncounterCell", new ReferenceCellEncounterCellHandler() },
+            { "ActorCellMarkerReference", new ActorCellMarkerReferenceHandler() },
+            { "LocationCellMarkerReference", new LocationCellMarkerReferenceHandler() },
+            { "ActorCellEnablePoint", new ActorCellEnablePointHandler() },
+            { "LocationCellEnablePoint", new LocationCellEnablePointHandler() },
+            { "ParentLocation", new ParentLocationHandler() },
+            { "Music", new MusicHandler() },
+            { "UnreportedCrimeFaction", new UnreportedCrimeFactionHandler() },
+            { "WorldLocationMarkerRef", new WorldLocationMarkerRefHandler() },
+            { "WorldLocationRadius", new WorldLocationRadiusHandler() },
+            { "HorseMarkerRef", new HorseMarkerRefHandler() },
+            { "Color", new ColorHandler() }
         };
 
         public override IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter>[] GetRecordContexts(
@@ -64,7 +64,6 @@ namespace ForwardChanges.RecordHandlers
             IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> winningContext,
             IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
         {
-            // Use the context's GetOrAddAsOverride method like Fusion does
             return winningContext.GetOrAddAsOverride(state.PatchMod);
         }
 

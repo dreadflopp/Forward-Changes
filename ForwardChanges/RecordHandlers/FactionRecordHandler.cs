@@ -16,23 +16,23 @@ namespace ForwardChanges.RecordHandlers
     {
         public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()
         {
-            { "EditorID", new EditorIDPropertyHandler() },
-            { "Name", new NamePropertyHandler() },
-            { "Relations", new FactionRelationsListPropertyHandler() },
-            { "Ranks", new FactionRanksListPropertyHandler() },
-            { "Conditions", new FactionConditionsListPropertyHandler() },
-            { "Flags", new FactionFlagsPropertyHandler() },
-            { "ExteriorJailMarker", new FactionExteriorJailMarkerPropertyHandler() },
-            { "FollowerWaitMarker", new FactionFollowerWaitMarkerPropertyHandler() },
-            { "StolenGoodsContainer", new FactionStolenGoodsContainerPropertyHandler() },
-            { "PlayerInventoryContainer", new FactionPlayerInventoryContainerPropertyHandler() },
-            { "SharedCrimeFactionList", new FactionSharedCrimeFactionListPropertyHandler() },
-            { "JailOutfit", new FactionJailOutfitPropertyHandler() },
-            { "CrimeValues", new FactionCrimeValuesPropertyHandler() },
-            { "VendorBuySellList", new FactionVendorBuySellListPropertyHandler() },
-            { "MerchantContainer", new FactionMerchantContainerPropertyHandler() },
-            { "VendorValues", new FactionVendorValuesPropertyHandler() },
-            { "VendorLocation", new FactionVendorLocationPropertyHandler() }
+            { "EditorID", new EditorIDHandler() },
+            { "Name", new NameHandler() },
+            { "Relations", new RelationsHandler() },
+            { "Ranks", new RanksHandler() },
+            { "Conditions", new ConditionsHandler() },
+            { "Flags", new FlagHandler() },
+            { "ExteriorJailMarker", new ExteriorJailMarkerHandler() },
+            { "FollowerWaitMarker", new FollowerWaitMarkerHandler() },
+            { "StolenGoodsContainer", new StolenGoodsContainerHandler() },
+            { "PlayerInventoryContainer", new PlayerInventoryContainerHandler() },
+            { "SharedCrimeFactionList", new SharedCrimeFactionHandler() },
+            { "JailOutfit", new JailOutfitHandler() },
+            { "CrimeValues", new CrimeValuesHandler() },
+            { "VendorBuySellList", new VendorBuySellHandler() },
+            { "MerchantContainer", new MerchantContainerHandler() },
+            { "VendorValues", new VendorValuesHandler() },
+            { "VendorLocation", new VendorLocationHandler() }
         };
 
         public override IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter>[] GetRecordContexts(
@@ -55,7 +55,6 @@ namespace ForwardChanges.RecordHandlers
             IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> winningContext,
             IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
         {
-            // Use the context's GetOrAddAsOverride method like Fusion does
             return winningContext.GetOrAddAsOverride(state.PatchMod);
         }
 
