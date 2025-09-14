@@ -20,7 +20,7 @@ namespace ForwardChanges
             {
                 typeof(INpcGetter),
                 typeof(IContainerGetter),
-            //typeof(IWeaponGetter),
+                typeof(IWeaponGetter),
                 typeof(ICellGetter),
                 typeof(IPlacedObjectGetter),
                 typeof(IPlacedNpcGetter),
@@ -39,7 +39,8 @@ namespace ForwardChanges
                 typeof(ILocationGetter),
                 typeof(IFactionGetter),
                 typeof(IEncounterZoneGetter),
-                typeof(IActivatorGetter)
+                typeof(IActivatorGetter),
+                typeof(ILightGetter)
             };
 
         /// <summary>
@@ -136,6 +137,7 @@ namespace ForwardChanges
             var factionContexts = state.LoadOrder.PriorityOrder.WinningContextOverrides<ISkyrimMod, ISkyrimModGetter, IFaction, IFactionGetter>(state.LinkCache).ToArray();
             var encounterZoneContexts = state.LoadOrder.PriorityOrder.WinningContextOverrides<ISkyrimMod, ISkyrimModGetter, IEncounterZone, IEncounterZoneGetter>(state.LinkCache).ToArray();
             var activatorContexts = state.LoadOrder.PriorityOrder.WinningContextOverrides<ISkyrimMod, ISkyrimModGetter, IActivator, IActivatorGetter>(state.LinkCache).ToArray();
+            var lightContexts = state.LoadOrder.PriorityOrder.WinningContextOverrides<ISkyrimMod, ISkyrimModGetter, ILight, ILightGetter>(state.LinkCache).ToArray();
 
             // Filter out contexts that would break early
             Console.WriteLine("Filtering contexts (this may take a while)...");
@@ -205,6 +207,9 @@ namespace ForwardChanges
             Console.WriteLine("Filtering Activators...");
             var filteredActivatorContexts = activatorContexts.Where(context => !ShouldBreakEarly(context, state)).ToArray();
             Console.WriteLine($"Activator contexts: {activatorContexts.Length} -> {filteredActivatorContexts.Length} (filtered: {activatorContexts.Length - filteredActivatorContexts.Length})");
+            Console.WriteLine("Filtering Lights...");
+            var filteredLightContexts = lightContexts.Where(context => !ShouldBreakEarly(context, state)).ToArray();
+            Console.WriteLine($"Light contexts: {lightContexts.Length} -> {filteredLightContexts.Length} (filtered: {lightContexts.Length - filteredLightContexts.Length})");
 
 
             Console.WriteLine();
@@ -306,6 +311,10 @@ namespace ForwardChanges
                         case Type t when t == typeof(IActivatorGetter):
                             var activatorHandler = new ActivatorRecordHandler();
                             activatorHandler.Process(state, filteredActivatorContexts);
+                            break;
+                        case Type t when t == typeof(ILightGetter):
+                            var lightHandler = new LightRecordHandler();
+                            lightHandler.Process(state, filteredLightContexts);
                             break;
                         default:
                             Console.WriteLine($"Warning: No handler implemented for {recordType.Name}");
