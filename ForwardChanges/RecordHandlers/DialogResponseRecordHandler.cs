@@ -16,9 +16,23 @@ namespace ForwardChanges.RecordHandlers
         public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()
         {
             { "EditorID", new EditorIDHandler() },
+            { "SkyrimMajorRecordFlags", new SkyrimMajorRecordFlagsHandler() },
+            { "VirtualMachineAdapter", new VirtualMachineAdapterHandler() },
+            { "Flags", new FlagsHandler() },
+            { "MajorFlags", new MajorFlagsHandler() },
+            { "ResetHours", new ResetHoursHandler() },
+            { "Topic", new TopicHandler() },
+            { "PreviousDialog", new PreviousDialogHandler() },
+            { "FavorLevel", new FavorLevelHandler() },
+            { "LinkTo", new LinkToHandler() },
+            { "ResponseData", new ResponseDataHandler() },
             { "Responses", new ResponsesHandler() },
             { "Conditions", new ConditionsHandler() },
-            { "LinkTo", new LinkToHandler() }
+
+            { "Prompt", new PromptHandler() },
+            { "Speaker", new SpeakerHandler() },
+            { "WalkAwayTopic", new WalkAwayTopicHandler() },
+            { "AudioOutputOverride", new AudioOutputOverrideHandler() }
         };
 
         public override IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter>[] GetRecordContexts(
@@ -53,10 +67,7 @@ namespace ForwardChanges.RecordHandlers
                     try
                     {
                         Console.WriteLine($"[{propertyName}] Applying value: {handler.FormatValue(value)}, Type: {value?.GetType()}");
-                        if (value != null)
-                        {
-                            handler.SetValue(record, value);
-                        }
+                        handler.SetValue(record, value);
                     }
                     catch (Exception ex)
                     {

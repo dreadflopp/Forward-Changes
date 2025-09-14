@@ -16,11 +16,13 @@ namespace ForwardChanges.RecordHandlers
         public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()
         {
             { "EditorID", new EditorIDHandler() },
+            { "SkyrimMajorRecordFlags", new SkyrimMajorRecordFlagsHandler() },
             { "FillTexture", new FillTextureHandler() },
             { "ParticleShaderTexture", new ParticleShaderTextureHandler() },
             { "HolesTexture", new HolesTextureHandler() },
             { "MembranePaletteTexture", new MembranePaletteTextureHandler() },
-            { "ParticlePaletteTexture", new ParticlePaletteTextureHandler() }
+            { "ParticlePaletteTexture", new ParticlePaletteTextureHandler() },
+            { "EffectShaderData", new EffectShaderDataHandler() }
         };
 
         public override IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter>[] GetRecordContexts(
@@ -55,10 +57,7 @@ namespace ForwardChanges.RecordHandlers
                     try
                     {
                         Console.WriteLine($"[{propertyName}] Applying value: {handler.FormatValue(value)}, Type: {value?.GetType()}");
-                        if (value != null)
-                        {
-                            handler.SetValue(record, value);
-                        }
+                        handler.SetValue(record, value);
                     }
                     catch (Exception ex)
                     {

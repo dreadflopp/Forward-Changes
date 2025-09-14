@@ -13,25 +13,19 @@ namespace ForwardChanges.PropertyHandlers.Worldspace
 
         public override void SetValue(IMajorRecord record, P2Float value)
         {
-            if (record is IWorldspace worldspaceRecord)
+            var worldspaceRecord = TryCastRecord<IWorldspace>(record, PropertyName);
+            if (worldspaceRecord != null)
             {
                 worldspaceRecord.ObjectBoundsMax = value;
-            }
-            else
-            {
-                Console.WriteLine($"Error: Record does not implement IWorldspace for {PropertyName}");
             }
         }
 
         public override P2Float GetValue(IMajorRecordGetter record)
         {
-            if (record is IWorldspaceGetter worldspaceRecord)
+            var worldspaceRecord = TryCastRecord<IWorldspaceGetter>(record, PropertyName);
+            if (worldspaceRecord != null)
             {
                 return worldspaceRecord.ObjectBoundsMax;
-            }
-            else
-            {
-                Console.WriteLine($"Error: Record does not implement IWorldspaceGetter for {PropertyName}");
             }
             return default;
         }

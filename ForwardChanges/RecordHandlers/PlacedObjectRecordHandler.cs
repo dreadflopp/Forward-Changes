@@ -16,6 +16,7 @@ namespace ForwardChanges.RecordHandlers
         public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()
         {
             { "EditorID", new EditorIDHandler() },
+            { "SkyrimMajorRecordFlags", new SkyrimMajorRecordFlagsHandler() },
             { "Base", new BaseHandler() },
             { "Owner", new OwnerHandler() },
             { "Scale", new ScaleHandler() },
@@ -26,7 +27,44 @@ namespace ForwardChanges.RecordHandlers
             { "LinkedRooms", new LinkedRoomsHandler() },
             { "ImageSpace", new ImageSpaceHandler() },
             { "LightingTemplate", new LightingTemplateHandler() },
-            { "Unknown", new UnknownHandler() }
+            { "Unknown", new UnknownHandler() },
+            { "BoundHalfExtents", new BoundHalfExtentsHandler() },
+            { "Primitive", new PrimitiveHandler() },
+            { "OcclusionPlane", new OcclusionPlaneHandler() },
+            { "Portals", new PortalsHandler() },
+            { "RoomPortal", new RoomPortalHandler() },
+            { "Radius", new RadiusHandler() },
+            { "Reflections", new ReflectionsHandler() },
+            { "LitWater", new LitWaterHandler() },
+            { "Emittance", new EmittanceHandler() },
+            { "TeleportMessageBox", new TeleportMessageBoxHandler() },
+            { "MultiboundReference", new MultiboundReferenceHandler() },
+            { "SpawnContainer", new SpawnContainerHandler() },
+            { "LeveledItemBaseObject", new LeveledItemBaseObjectHandler() },
+            { "PersistentLocation", new PersistentLocationHandler() },
+            { "EncounterZone", new EncounterZoneHandler() },
+            { "NavigationDoorLink", new NavigationDoorLinkHandler() },
+            { "LocationRefTypes", new LocationRefTypesHandler() },
+            { "IsMultiBoundPrimitive", new IsMultiBoundPrimitiveHandler() },
+            { "IsIgnoredBySandbox", new IsIgnoredBySandboxHandler() },
+            { "IsOpenByDefault", new IsOpenByDefaultHandler() },
+            { "FactionRank", new FactionRankHandler() },
+            { "ItemCount", new ItemCountHandler() },
+            { "Charge", new ChargeHandler() },
+            { "HeadTrackingWeight", new HeadTrackingWeightHandler() },
+            { "FavorCost", new FavorCostHandler() },
+            { "CollisionLayer", new CollisionLayerHandler() },
+            { "LevelModifier", new LevelModifierHandler() },
+            { "TeleportDestination", new TeleportDestinationHandler() },
+            { "ActivateParents", new ActivateParentsHandler() },
+            { "Lock", new LockHandler() },
+            { "AttachRef", new AttachRefHandler() },
+            { "Action", new ActionHandler() },
+            { "LightData", new LightDataHandler() },
+            { "Alpha", new AlphaHandler() },
+            { "Patrol", new PatrolHandler() },
+            { "MapMarker", new MapMarkerHandler() },
+            { "Placement", new PlacementHandler() }
         };
 
         public override IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter>[] GetRecordContexts(
@@ -61,10 +99,7 @@ namespace ForwardChanges.RecordHandlers
                     try
                     {
                         Console.WriteLine($"[{propertyName}] Applying value: {handler.FormatValue(value)}, Type: {value?.GetType()}");
-                        if (value != null)
-                        {
-                            handler.SetValue(record, value);
-                        }
+                        handler.SetValue(record, value);
                     }
                     catch (Exception ex)
                     {

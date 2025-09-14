@@ -7,48 +7,25 @@ using ForwardChanges.PropertyHandlers.Interfaces;
 
 namespace ForwardChanges.PropertyHandlers.Worldspace
 {
-    public class WaterHandler : AbstractPropertyHandler<IFormLinkNullableGetter<IWaterGetter>>
+    public class WaterHandler : AbstractFormLinkPropertyHandler<IWorldspace, IWorldspaceGetter, IWaterGetter>
     {
         public override string PropertyName => "Water";
 
-        public override void SetValue(IMajorRecord record, IFormLinkNullableGetter<IWaterGetter>? value)
+        protected override IFormLinkNullableGetter<IWaterGetter>? GetFormLinkValue(IWorldspaceGetter record)
         {
-            if (record is IWorldspace worldspaceRecord)
+            return record.Water;
+        }
+
+        protected override void SetFormLinkValue(IWorldspace record, IFormLinkNullableGetter<IWaterGetter>? value)
+        {
+            if (value != null)
             {
-                if (value != null)
-                {
-                    worldspaceRecord.Water.SetTo(value.FormKey);
-                }
-                else
-                {
-                    worldspaceRecord.Water.SetTo(null);
-                }
+                record.Water.SetTo(value.FormKey);
             }
             else
             {
-                Console.WriteLine($"Error: Record does not implement IWorldspace for {PropertyName}");
+                record.Water.SetTo(null);
             }
-        }
-
-        public override IFormLinkNullableGetter<IWaterGetter>? GetValue(IMajorRecordGetter record)
-        {
-            if (record is IWorldspaceGetter worldspaceRecord)
-            {
-                return worldspaceRecord.Water;
-            }
-            else
-            {
-                Console.WriteLine($"Error: Record does not implement IWorldspaceGetter for {PropertyName}");
-            }
-            return null;
-        }
-
-        public override bool AreValuesEqual(IFormLinkNullableGetter<IWaterGetter>? value1, IFormLinkNullableGetter<IWaterGetter>? value2)
-        {
-            if (value1 == null && value2 == null) return true;
-            if (value1 == null || value2 == null) return false;
-            // Compare FormKeys
-            return value1.FormKey == value2.FormKey;
         }
     }
 }

@@ -7,47 +7,25 @@ using ForwardChanges.PropertyHandlers.Interfaces;
 
 namespace ForwardChanges.PropertyHandlers.Book
 {
-    public class PutDownSoundHandler : AbstractPropertyHandler<IFormLinkNullableGetter<ISoundDescriptorGetter>>
+    public class PutDownSoundHandler : AbstractFormLinkPropertyHandler<IBook, IBookGetter, ISoundDescriptorGetter>
     {
         public override string PropertyName => "PutDownSound";
 
-        public override void SetValue(IMajorRecord record, IFormLinkNullableGetter<ISoundDescriptorGetter>? value)
+        protected override IFormLinkNullableGetter<ISoundDescriptorGetter>? GetFormLinkValue(IBookGetter record)
         {
-            if (record is IBook book)
+            return record.PutDownSound;
+        }
+
+        protected override void SetFormLinkValue(IBook record, IFormLinkNullableGetter<ISoundDescriptorGetter>? value)
+        {
+            if (value != null && !value.FormKey.IsNull)
             {
-                if (value != null && !value.FormKey.IsNull)
-                {
-                    book.PutDownSound = new FormLinkNullable<ISoundDescriptorGetter>(value.FormKey);
-                }
-                else
-                {
-                    book.PutDownSound.Clear();
-                }
+                record.PutDownSound = new FormLinkNullable<ISoundDescriptorGetter>(value.FormKey);
             }
             else
             {
-                Console.WriteLine($"Error: Record is not a Book for {PropertyName}");
+                record.PutDownSound.Clear();
             }
-        }
-
-        public override IFormLinkNullableGetter<ISoundDescriptorGetter>? GetValue(IMajorRecordGetter record)
-        {
-            if (record is IBookGetter book)
-            {
-                return book.PutDownSound;
-            }
-            else
-            {
-                Console.WriteLine($"Error: Record is not a Book for {PropertyName}");
-            }
-            return null;
-        }
-
-        public override bool AreValuesEqual(IFormLinkNullableGetter<ISoundDescriptorGetter>? value1, IFormLinkNullableGetter<ISoundDescriptorGetter>? value2)
-        {
-            if (value1 == null && value2 == null) return true;
-            if (value1 == null || value2 == null) return false;
-            return value1.FormKey.Equals(value2.FormKey);
         }
     }
 }

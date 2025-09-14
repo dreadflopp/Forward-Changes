@@ -7,31 +7,18 @@ using ForwardChanges.PropertyHandlers.Interfaces;
 
 namespace ForwardChanges.PropertyHandlers.Faction
 {
-    public class MerchantContainerHandler : AbstractPropertyHandler<IFormLinkNullable<IPlacedObjectGetter>>
+    public class MerchantContainerHandler : AbstractFormLinkPropertyHandler<IFaction, IFactionGetter, IPlacedObjectGetter>
     {
         public override string PropertyName => "MerchantContainer";
 
-        public override IFormLinkNullable<IPlacedObjectGetter>? GetValue(IMajorRecordGetter record)
+        protected override IFormLinkNullableGetter<IPlacedObjectGetter>? GetFormLinkValue(IFactionGetter record)
         {
-            if (record is IFactionGetter factionRecord)
-            {
-                return factionRecord.MerchantContainer as IFormLinkNullable<IPlacedObjectGetter>;
-            }
-
-            Console.WriteLine($"Error: Record does not implement IFactionGetter for {PropertyName}");
-            return null;
+            return record.MerchantContainer as IFormLinkNullableGetter<IPlacedObjectGetter>;
         }
 
-        public override void SetValue(IMajorRecord record, IFormLinkNullable<IPlacedObjectGetter>? value)
+        protected override void SetFormLinkValue(IFaction record, IFormLinkNullableGetter<IPlacedObjectGetter>? value)
         {
-            if (record is IFaction factionRecord)
-            {
-                factionRecord.MerchantContainer = value ?? new FormLinkNullable<IPlacedObjectGetter>();
-            }
-            else
-            {
-                Console.WriteLine($"Error: Record does not implement IFaction for {PropertyName}");
-            }
+            record.MerchantContainer = value != null ? new FormLinkNullable<IPlacedObjectGetter>(value.FormKey) : new FormLinkNullable<IPlacedObjectGetter>();
         }
     }
 }

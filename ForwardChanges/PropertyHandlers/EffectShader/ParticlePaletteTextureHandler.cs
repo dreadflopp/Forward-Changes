@@ -13,32 +13,27 @@ namespace ForwardChanges.PropertyHandlers.EffectShader
 
         public override void SetValue(IMajorRecord record, AssetLinkGetter<SkyrimTextureAssetType>? value)
         {
-            if (record is IEffectShader effectShader)
+            var effectShader = TryCastRecord<IEffectShader>(record, PropertyName);
+            if (effectShader != null)
             {
                 if (value != null && !value.IsNull)
                 {
-                    effectShader.ParticlePaletteTexture = new AssetLink<SkyrimTextureAssetType>(value.ToString());
+                    // Use DataRelativePath to get the full path including "Data\" prefix
+                    effectShader.ParticlePaletteTexture = new AssetLink<SkyrimTextureAssetType>(value.DataRelativePath);
                 }
                 else
                 {
                     effectShader.ParticlePaletteTexture = null;
                 }
             }
-            else
-            {
-                Console.WriteLine($"Error: Record is not an EffectShader for {PropertyName}");
-            }
         }
 
         public override AssetLinkGetter<SkyrimTextureAssetType>? GetValue(IMajorRecordGetter record)
         {
-            if (record is IEffectShaderGetter effectShader)
+            var effectShader = TryCastRecord<IEffectShaderGetter>(record, PropertyName);
+            if (effectShader != null)
             {
                 return effectShader.ParticlePaletteTexture;
-            }
-            else
-            {
-                Console.WriteLine($"Error: Record is not an EffectShader for {PropertyName}");
             }
             return null;
         }
@@ -47,7 +42,17 @@ namespace ForwardChanges.PropertyHandlers.EffectShader
         {
             if (value1 == null && value2 == null) return true;
             if (value1 == null || value2 == null) return false;
-            return string.Equals(value1.ToString(), value2.ToString(), System.StringComparison.OrdinalIgnoreCase);
+            return value1.DataRelativePath == value2.DataRelativePath;
+        }
+
+        public override string FormatValue(object? value)
+        {
+            if (value is not AssetLinkGetter<SkyrimTextureAssetType> assetLink)
+            {
+                return value?.ToString() ?? "null";
+            }
+
+            return assetLink.DataRelativePath.ToString();
         }
     }
 }

@@ -21,7 +21,17 @@ namespace ForwardChanges.RecordHandlers
         {
             { "Name", new NameHandler() },
             { "EditorID", new EditorIDHandler() },
-            { "Items", new ItemHandler() }
+            { "SkyrimMajorRecordFlags", new SkyrimMajorRecordFlagsHandler() },
+            { "ObjectBounds", new ObjectBoundsHandler() },
+            { "Model", new ModelHandler() },
+            { "Weight", new WeightHandler() },
+            { "Items", new ItemHandler() },
+            { "VirtualMachineAdapter", new VirtualMachineAdapterHandler() },
+            { "Destructible", new DestructibleHandler() },
+            { "Flags", new FlagsHandler() },
+            { "OpenSound", new OpenSoundHandler() },
+            { "CloseSound", new CloseSoundHandler() },
+            { "MajorFlags", new MajorFlagsHandler() }
         };
 
         public override IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter>[] GetRecordContexts(
@@ -53,10 +63,7 @@ namespace ForwardChanges.RecordHandlers
                 if (PropertyHandlers.TryGetValue(propertyName, out var handler))
                 {
                     Console.WriteLine($"[{propertyName}] Applying value: {handler.FormatValue(value)}, Type: {value?.GetType()}");
-                    if (value != null)
-                    {
-                        handler.SetValue(record, value);
-                    }
+                    handler.SetValue(record, value);
                 }
             }
         }

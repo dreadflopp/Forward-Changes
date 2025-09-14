@@ -7,47 +7,25 @@ using ForwardChanges.PropertyHandlers.Interfaces;
 
 namespace ForwardChanges.PropertyHandlers.Ingestible
 {
-    public class PickUpSoundHandler : AbstractPropertyHandler<IFormLinkNullableGetter<ISoundDescriptorGetter>>
+    public class PickUpSoundHandler : AbstractFormLinkPropertyHandler<IIngestible, IIngestibleGetter, ISoundDescriptorGetter>
     {
         public override string PropertyName => "PickUpSound";
 
-        public override void SetValue(IMajorRecord record, IFormLinkNullableGetter<ISoundDescriptorGetter>? value)
+        protected override IFormLinkNullableGetter<ISoundDescriptorGetter>? GetFormLinkValue(IIngestibleGetter record)
         {
-            if (record is IIngestible ingestible)
+            return record.PickUpSound;
+        }
+
+        protected override void SetFormLinkValue(IIngestible record, IFormLinkNullableGetter<ISoundDescriptorGetter>? value)
+        {
+            if (value != null && !value.FormKey.IsNull)
             {
-                if (value != null && !value.FormKey.IsNull)
-                {
-                    ingestible.PickUpSound = new FormLinkNullable<ISoundDescriptorGetter>(value.FormKey);
-                }
-                else
-                {
-                    ingestible.PickUpSound.Clear();
-                }
+                record.PickUpSound = new FormLinkNullable<ISoundDescriptorGetter>(value.FormKey);
             }
             else
             {
-                Console.WriteLine($"Error: Record is not an Ingestible for {PropertyName}");
+                record.PickUpSound.Clear();
             }
-        }
-
-        public override IFormLinkNullableGetter<ISoundDescriptorGetter>? GetValue(IMajorRecordGetter record)
-        {
-            if (record is IIngestibleGetter ingestible)
-            {
-                return ingestible.PickUpSound;
-            }
-            else
-            {
-                Console.WriteLine($"Error: Record is not an Ingestible for {PropertyName}");
-            }
-            return null;
-        }
-
-        public override bool AreValuesEqual(IFormLinkNullableGetter<ISoundDescriptorGetter>? value1, IFormLinkNullableGetter<ISoundDescriptorGetter>? value2)
-        {
-            if (value1 == null && value2 == null) return true;
-            if (value1 == null || value2 == null) return false;
-            return value1.FormKey.Equals(value2.FormKey);
         }
     }
 }

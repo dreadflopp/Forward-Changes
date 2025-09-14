@@ -11,7 +11,8 @@ namespace ForwardChanges.PropertyHandlers.SoundDescriptor
 
         public override void SetValue(IMajorRecord record, sbyte value)
         {
-            if (record is ISoundDescriptor soundDescriptor)
+            var soundDescriptor = TryCastRecord<ISoundDescriptor>(record, PropertyName);
+            if (soundDescriptor != null)
             {
                 soundDescriptor.Priority = value;
             }
@@ -19,17 +20,15 @@ namespace ForwardChanges.PropertyHandlers.SoundDescriptor
 
         public override sbyte GetValue(IMajorRecordGetter record)
         {
-            if (record is ISoundDescriptorGetter soundDescriptor)
+            var soundDescriptor = TryCastRecord<ISoundDescriptorGetter>(record, PropertyName);
+            if (soundDescriptor != null)
             {
                 return soundDescriptor.Priority;
             }
             return 0;
         }
 
-        public override bool AreValuesEqual(sbyte value1, sbyte value2)
-        {
-            return value1.Equals(value2);
-        }
+
     }
 }
 

@@ -6,48 +6,25 @@ using Mutagen.Bethesda.Plugins;
 
 namespace ForwardChanges.PropertyHandlers.Npc
 {
-    public class DeathItemHandler : AbstractPropertyHandler<IFormLinkGetter<ILeveledItemGetter>>
+    public class DeathItemHandler : AbstractFormLinkPropertyHandler<INpc, INpcGetter, ILeveledItemGetter>
     {
         public override string PropertyName => "DeathItem";
 
-        public override void SetValue(IMajorRecord record, IFormLinkGetter<ILeveledItemGetter>? value)
+        protected override IFormLinkNullableGetter<ILeveledItemGetter>? GetFormLinkValue(INpcGetter record)
         {
-            if (record is INpc npc)
+            return record.DeathItem as IFormLinkNullableGetter<ILeveledItemGetter>;
+        }
+
+        protected override void SetFormLinkValue(INpc record, IFormLinkNullableGetter<ILeveledItemGetter>? value)
+        {
+            if (value != null && !value.FormKey.IsNull)
             {
-                if (value != null && !value.FormKey.IsNull)
-                {
-                    npc.DeathItem = new FormLinkNullable<ILeveledItemGetter>(value.FormKey);
-                }
-                else
-                {
-                    npc.DeathItem.Clear();
-                }
+                record.DeathItem = new FormLinkNullable<ILeveledItemGetter>(value.FormKey);
             }
             else
             {
-                Console.WriteLine($"Error: Record is not an NPC for {PropertyName}");
+                record.DeathItem.Clear();
             }
-        }
-
-        public override IFormLinkGetter<ILeveledItemGetter>? GetValue(
-            IMajorRecordGetter record)
-        {
-            if (record is INpcGetter npc)
-            {
-                return npc.DeathItem;
-            }
-            else
-            {
-                Console.WriteLine($"Error: Record is not an NPC for {PropertyName}");
-                return null;
-            }
-        }
-
-        public override bool AreValuesEqual(IFormLinkGetter<ILeveledItemGetter>? value1, IFormLinkGetter<ILeveledItemGetter>? value2)
-        {
-            if (value1 == null && value2 == null) return true;
-            if (value1 == null || value2 == null) return false;
-            return value1.FormKey.Equals(value2.FormKey);
         }
     }
 }

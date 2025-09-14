@@ -23,6 +23,7 @@ namespace ForwardChanges
             //typeof(IWeaponGetter),
                 typeof(ICellGetter),
                 typeof(IPlacedObjectGetter),
+                typeof(IPlacedNpcGetter),
                 typeof(IIngestibleGetter),
                 typeof(IIngredientGetter),
                 typeof(IObjectEffectGetter),
@@ -37,7 +38,8 @@ namespace ForwardChanges
                 typeof(ISpellGetter),
                 typeof(ILocationGetter),
                 typeof(IFactionGetter),
-                typeof(IEncounterZoneGetter)
+                typeof(IEncounterZoneGetter),
+                typeof(IActivatorGetter)
             };
 
         /// <summary>
@@ -105,6 +107,9 @@ namespace ForwardChanges
             Console.WriteLine("Starting Forward Changes patcher...");
             Console.WriteLine($"Processing {SupportedRecordTypes.Length} record types");
 
+            string outputModName = state.PatchMod.ModKey.ToString();
+            Console.WriteLine($"Output mod name: {outputModName}");
+
             // Get all contexts from the state and print the count
             Console.WriteLine("\nGetting all contexts from state...");
 
@@ -114,6 +119,7 @@ namespace ForwardChanges
             var cellContexts = state.LoadOrder.PriorityOrder.WinningContextOverrides<ISkyrimMod, ISkyrimModGetter, ICell, ICellGetter>(state.LinkCache).ToArray();
             var weaponContexts = state.LoadOrder.PriorityOrder.WinningContextOverrides<ISkyrimMod, ISkyrimModGetter, IWeapon, IWeaponGetter>(state.LinkCache).ToArray();
             var placedObjectContexts = state.LoadOrder.PriorityOrder.WinningContextOverrides<ISkyrimMod, ISkyrimModGetter, IPlacedObject, IPlacedObjectGetter>(state.LinkCache).ToArray();
+            var placedNpcContexts = state.LoadOrder.PriorityOrder.WinningContextOverrides<ISkyrimMod, ISkyrimModGetter, IPlacedNpc, IPlacedNpcGetter>(state.LinkCache).ToArray();
             var ingestibleContexts = state.LoadOrder.PriorityOrder.WinningContextOverrides<ISkyrimMod, ISkyrimModGetter, IIngestible, IIngestibleGetter>(state.LinkCache).ToArray();
             var ingredientContexts = state.LoadOrder.PriorityOrder.WinningContextOverrides<ISkyrimMod, ISkyrimModGetter, IIngredient, IIngredientGetter>(state.LinkCache).ToArray();
             var objectEffectContexts = state.LoadOrder.PriorityOrder.WinningContextOverrides<ISkyrimMod, ISkyrimModGetter, IObjectEffect, IObjectEffectGetter>(state.LinkCache).ToArray();
@@ -129,6 +135,7 @@ namespace ForwardChanges
             var locationContexts = state.LoadOrder.PriorityOrder.WinningContextOverrides<ISkyrimMod, ISkyrimModGetter, ILocation, ILocationGetter>(state.LinkCache).ToArray();
             var factionContexts = state.LoadOrder.PriorityOrder.WinningContextOverrides<ISkyrimMod, ISkyrimModGetter, IFaction, IFactionGetter>(state.LinkCache).ToArray();
             var encounterZoneContexts = state.LoadOrder.PriorityOrder.WinningContextOverrides<ISkyrimMod, ISkyrimModGetter, IEncounterZone, IEncounterZoneGetter>(state.LinkCache).ToArray();
+            var activatorContexts = state.LoadOrder.PriorityOrder.WinningContextOverrides<ISkyrimMod, ISkyrimModGetter, IActivator, IActivatorGetter>(state.LinkCache).ToArray();
 
             // Filter out contexts that would break early
             Console.WriteLine("Filtering contexts (this may take a while)...");
@@ -156,6 +163,9 @@ namespace ForwardChanges
             Console.WriteLine("Filtering Placed Objects...");
             var filteredPlacedObjectContexts = placedObjectContexts.Where(context => !ShouldBreakEarly(context, state)).ToArray();
             Console.WriteLine($"Placed Object contexts: {placedObjectContexts.Length} -> {filteredPlacedObjectContexts.Length} (filtered: {placedObjectContexts.Length - filteredPlacedObjectContexts.Length})");
+            Console.WriteLine("Filtering Placed NPCs...");
+            var filteredPlacedNpcContexts = placedNpcContexts.Where(context => !ShouldBreakEarly(context, state)).ToArray();
+            Console.WriteLine($"Placed NPC contexts: {placedNpcContexts.Length} -> {filteredPlacedNpcContexts.Length} (filtered: {placedNpcContexts.Length - filteredPlacedNpcContexts.Length})");
             Console.WriteLine("Filtering NPCs...");
             var filteredNpcContexts = npcContexts.Where(context => !ShouldBreakEarly(context, state)).ToArray();
             Console.WriteLine($"NPC contexts: {npcContexts.Length} -> {filteredNpcContexts.Length} (filtered: {npcContexts.Length - filteredNpcContexts.Length})");
@@ -192,6 +202,9 @@ namespace ForwardChanges
             Console.WriteLine("Filtering Encounter Zones...");
             var filteredEncounterZoneContexts = encounterZoneContexts.Where(context => !ShouldBreakEarly(context, state)).ToArray();
             Console.WriteLine($"Encounter Zone contexts: {encounterZoneContexts.Length} -> {filteredEncounterZoneContexts.Length} (filtered: {encounterZoneContexts.Length - filteredEncounterZoneContexts.Length})");
+            Console.WriteLine("Filtering Activators...");
+            var filteredActivatorContexts = activatorContexts.Where(context => !ShouldBreakEarly(context, state)).ToArray();
+            Console.WriteLine($"Activator contexts: {activatorContexts.Length} -> {filteredActivatorContexts.Length} (filtered: {activatorContexts.Length - filteredActivatorContexts.Length})");
 
 
             Console.WriteLine();
@@ -215,7 +228,8 @@ namespace ForwardChanges
                             containerHandler.Process(state, filteredContainerContexts);
                             break;
                         case Type t when t == typeof(IWeaponGetter):
-                            WeaponRecordHandler.ProcessWeaponRecords(state);
+                            var weaponHandler = new WeaponRecordHandler();
+                            weaponHandler.Process(state, filteredWeaponContexts);
                             break;
                         case Type t when t == typeof(ICellGetter):
                             var cellHandler = new CellRecordHandler();
@@ -224,6 +238,10 @@ namespace ForwardChanges
                         case Type t when t == typeof(IPlacedObjectGetter):
                             var placedObjectHandler = new PlacedObjectRecordHandler();
                             placedObjectHandler.Process(state, filteredPlacedObjectContexts);
+                            break;
+                        case Type t when t == typeof(IPlacedNpcGetter):
+                            var placedNpcHandler = new PlacedNpcRecordHandler();
+                            placedNpcHandler.Process(state, filteredPlacedNpcContexts);
                             break;
                         case Type t when t == typeof(IIngestibleGetter):
                             var ingestibleHandler = new IngestibleRecordHandler();
@@ -284,6 +302,10 @@ namespace ForwardChanges
                         case Type t when t == typeof(IEncounterZoneGetter):
                             var encounterZoneHandler = new EncounterZoneRecordHandler();
                             encounterZoneHandler.Process(state, filteredEncounterZoneContexts);
+                            break;
+                        case Type t when t == typeof(IActivatorGetter):
+                            var activatorHandler = new ActivatorRecordHandler();
+                            activatorHandler.Process(state, filteredActivatorContexts);
                             break;
                         default:
                             Console.WriteLine($"Warning: No handler implemented for {recordType.Name}");

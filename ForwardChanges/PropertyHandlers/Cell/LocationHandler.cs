@@ -6,39 +6,25 @@ using ForwardChanges.Contexts;
 
 namespace ForwardChanges.PropertyHandlers.Cell
 {
-    public class LocationHandler : AbstractPropertyHandler<IFormLinkNullableGetter<ILocationGetter>>
+    public class LocationHandler : AbstractFormLinkPropertyHandler<ICell, ICellGetter, ILocationGetter>
     {
         public override string PropertyName => "Location";
 
-        public override void SetValue(IMajorRecord record, IFormLinkNullableGetter<ILocationGetter>? value)
+        protected override IFormLinkNullableGetter<ILocationGetter>? GetFormLinkValue(ICellGetter record)
         {
-            if (record is ICell cell)
-            {
-                if (value != null)
-                {
-                    cell.Location.SetTo(value.FormKey);
-                }
-                else
-                {
-                    cell.Location.SetTo(null);
-                }
-            }
+            return record.Location;
         }
 
-        public override IFormLinkNullableGetter<ILocationGetter>? GetValue(IMajorRecordGetter record)
+        protected override void SetFormLinkValue(ICell record, IFormLinkNullableGetter<ILocationGetter>? value)
         {
-            if (record is ICellGetter cell)
+            if (value != null)
             {
-                return cell.Location;
+                record.Location.SetTo(value.FormKey);
             }
-            return null;
-        }
-
-        public override bool AreValuesEqual(IFormLinkNullableGetter<ILocationGetter>? value1, IFormLinkNullableGetter<ILocationGetter>? value2)
-        {
-            if (value1 == null && value2 == null) return true;
-            if (value1 == null || value2 == null) return false;
-            return value1.FormKey.Equals(value2.FormKey);
+            else
+            {
+                record.Location.SetTo(null);
+            }
         }
     }
 }

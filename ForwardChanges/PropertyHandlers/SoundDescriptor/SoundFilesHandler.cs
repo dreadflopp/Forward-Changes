@@ -22,10 +22,10 @@ namespace ForwardChanges.PropertyHandlers.SoundDescriptor
                 {
                     foreach (var assetLink in value)
                     {
-                        var assetPath = assetLink?.ToString();
-                        if (!string.IsNullOrEmpty(assetPath))
+                        if (assetLink != null)
                         {
-                            var newAssetLink = new AssetLink<SkyrimSoundAssetType>(assetPath);
+                            // Use DataRelativePath to get the full path including "Data\" prefix
+                            var newAssetLink = new AssetLink<SkyrimSoundAssetType>(assetLink.DataRelativePath);
                             soundDescriptor.SoundFiles.Add(newAssetLink);
                         }
                     }
@@ -50,12 +50,12 @@ namespace ForwardChanges.PropertyHandlers.SoundDescriptor
         {
             if (item1 == null && item2 == null) return true;
             if (item1 == null || item2 == null) return false;
-            return string.Equals(item1.ToString(), item2.ToString(), System.StringComparison.OrdinalIgnoreCase);
+            return item1.DataRelativePath == item2.DataRelativePath;
         }
 
         protected override string FormatItem(IAssetLinkGetter<SkyrimSoundAssetType>? item)
         {
-            return item?.ToString() ?? "null";
+            return item?.DataRelativePath.ToString() ?? "null";
         }
     }
 }

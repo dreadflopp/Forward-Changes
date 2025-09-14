@@ -12,35 +12,24 @@ namespace ForwardChanges.PropertyHandlers.Ingredient
 
         public override void SetValue(IMajorRecord record, int? value)
         {
-            if (record is IIngredient ingredientRecord)
+            var ingredientRecord = TryCastRecord<IIngredient>(record, PropertyName);
+            if (ingredientRecord != null)
             {
                 ingredientRecord.IngredientValue = value ?? 0;
-            }
-            else
-            {
-                Console.WriteLine($"Error: Record does not implement IIngredient for {PropertyName}");
             }
         }
 
         public override int? GetValue(IMajorRecordGetter record)
         {
-            if (record is IIngredientGetter ingredientRecord)
+            var ingredientRecord = TryCastRecord<IIngredientGetter>(record, PropertyName);
+            if (ingredientRecord != null)
             {
                 return ingredientRecord.IngredientValue;
-            }
-            else
-            {
-                Console.WriteLine($"Error: Record does not implement IIngredientGetter for {PropertyName}");
             }
             return null;
         }
 
-        public override bool AreValuesEqual(int? value1, int? value2)
-        {
-            if (value1 == null && value2 == null) return true;
-            if (value1 == null || value2 == null) return false;
-            return value1.Value == value2.Value;
-        }
+
     }
 }
 

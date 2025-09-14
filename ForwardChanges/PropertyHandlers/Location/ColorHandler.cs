@@ -13,24 +13,20 @@ namespace ForwardChanges.PropertyHandlers.Location
 
         public override Color? GetValue(IMajorRecordGetter record)
         {
-            if (record is ILocationGetter locationRecord)
+            var locationRecord = TryCastRecord<ILocationGetter>(record, PropertyName);
+            if (locationRecord != null)
             {
                 return locationRecord.Color;
             }
-
-            Console.WriteLine($"Error: Record does not implement ILocationGetter for {PropertyName}");
             return null;
         }
 
         public override void SetValue(IMajorRecord record, Color? value)
         {
-            if (record is ILocation locationRecord)
+            var locationRecord = TryCastRecord<ILocation>(record, PropertyName);
+            if (locationRecord != null)
             {
                 locationRecord.Color = value;
-            }
-            else
-            {
-                Console.WriteLine($"Error: Record does not implement ILocation for {PropertyName}");
             }
         }
     }

@@ -6,39 +6,25 @@ using ForwardChanges.Contexts;
 
 namespace ForwardChanges.PropertyHandlers.SoundDescriptor
 {
-    public class CategoryHandler : AbstractPropertyHandler<IFormLinkNullableGetter<ISoundCategoryGetter>>
+    public class CategoryHandler : AbstractFormLinkPropertyHandler<ISoundDescriptor, ISoundDescriptorGetter, ISoundCategoryGetter>
     {
         public override string PropertyName => "Category";
 
-        public override void SetValue(IMajorRecord record, IFormLinkNullableGetter<ISoundCategoryGetter>? value)
+        protected override IFormLinkNullableGetter<ISoundCategoryGetter>? GetFormLinkValue(ISoundDescriptorGetter record)
         {
-            if (record is ISoundDescriptor soundDescriptor)
-            {
-                if (value != null)
-                {
-                    soundDescriptor.Category.SetTo(value.FormKey);
-                }
-                else
-                {
-                    soundDescriptor.Category.SetTo(null);
-                }
-            }
+            return record.Category;
         }
 
-        public override IFormLinkNullableGetter<ISoundCategoryGetter>? GetValue(IMajorRecordGetter record)
+        protected override void SetFormLinkValue(ISoundDescriptor record, IFormLinkNullableGetter<ISoundCategoryGetter>? value)
         {
-            if (record is ISoundDescriptorGetter soundDescriptor)
+            if (value != null)
             {
-                return soundDescriptor.Category;
+                record.Category.SetTo(value.FormKey);
             }
-            return null;
-        }
-
-        public override bool AreValuesEqual(IFormLinkNullableGetter<ISoundCategoryGetter>? value1, IFormLinkNullableGetter<ISoundCategoryGetter>? value2)
-        {
-            if (value1 == null && value2 == null) return true;
-            if (value1 == null || value2 == null) return false;
-            return value1.FormKey.Equals(value2.FormKey);
+            else
+            {
+                record.Category.SetTo(null);
+            }
         }
     }
 }

@@ -7,31 +7,18 @@ using ForwardChanges.PropertyHandlers.Interfaces;
 
 namespace ForwardChanges.PropertyHandlers.Location
 {
-    public class MusicHandler : AbstractPropertyHandler<IFormLinkNullable<IMusicTypeGetter>>
+    public class MusicHandler : AbstractFormLinkPropertyHandler<ILocation, ILocationGetter, IMusicTypeGetter>
     {
         public override string PropertyName => "Music";
 
-        public override IFormLinkNullable<IMusicTypeGetter>? GetValue(IMajorRecordGetter record)
+        protected override IFormLinkNullableGetter<IMusicTypeGetter>? GetFormLinkValue(ILocationGetter record)
         {
-            if (record is ILocationGetter locationRecord)
-            {
-                return locationRecord.Music as IFormLinkNullable<IMusicTypeGetter>;
-            }
-
-            Console.WriteLine($"Error: Record does not implement ILocationGetter for {PropertyName}");
-            return null;
+            return record.Music as IFormLinkNullableGetter<IMusicTypeGetter>;
         }
 
-        public override void SetValue(IMajorRecord record, IFormLinkNullable<IMusicTypeGetter>? value)
+        protected override void SetFormLinkValue(ILocation record, IFormLinkNullableGetter<IMusicTypeGetter>? value)
         {
-            if (record is ILocation locationRecord)
-            {
-                locationRecord.Music = value ?? new FormLinkNullable<IMusicTypeGetter>();
-            }
-            else
-            {
-                Console.WriteLine($"Error: Record does not implement ILocation for {PropertyName}");
-            }
+            record.Music = value != null ? new FormLinkNullable<IMusicTypeGetter>(value.FormKey) : new FormLinkNullable<IMusicTypeGetter>();
         }
     }
 }

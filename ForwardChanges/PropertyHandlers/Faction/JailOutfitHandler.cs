@@ -7,31 +7,18 @@ using ForwardChanges.PropertyHandlers.Interfaces;
 
 namespace ForwardChanges.PropertyHandlers.Faction
 {
-    public class JailOutfitHandler : AbstractPropertyHandler<IFormLinkNullable<IOutfitGetter>>
+    public class JailOutfitHandler : AbstractFormLinkPropertyHandler<IFaction, IFactionGetter, IOutfitGetter>
     {
         public override string PropertyName => "JailOutfit";
 
-        public override IFormLinkNullable<IOutfitGetter>? GetValue(IMajorRecordGetter record)
+        protected override IFormLinkNullableGetter<IOutfitGetter>? GetFormLinkValue(IFactionGetter record)
         {
-            if (record is IFactionGetter factionRecord)
-            {
-                return factionRecord.JailOutfit as IFormLinkNullable<IOutfitGetter>;
-            }
-
-            Console.WriteLine($"Error: Record does not implement IFactionGetter for {PropertyName}");
-            return null;
+            return record.JailOutfit as IFormLinkNullableGetter<IOutfitGetter>;
         }
 
-        public override void SetValue(IMajorRecord record, IFormLinkNullable<IOutfitGetter>? value)
+        protected override void SetFormLinkValue(IFaction record, IFormLinkNullableGetter<IOutfitGetter>? value)
         {
-            if (record is IFaction factionRecord)
-            {
-                factionRecord.JailOutfit = value ?? new FormLinkNullable<IOutfitGetter>();
-            }
-            else
-            {
-                Console.WriteLine($"Error: Record does not implement IFaction for {PropertyName}");
-            }
+            record.JailOutfit = value != null ? new FormLinkNullable<IOutfitGetter>(value.FormKey) : new FormLinkNullable<IOutfitGetter>();
         }
     }
 }

@@ -4,7 +4,7 @@ using Mutagen.Bethesda.Plugins.Cache;
 using ForwardChanges.PropertyHandlers.Abstracts;
 using ForwardChanges.PropertyHandlers.Interfaces;
 
-namespace ForwardChanges.PropertyHandlers.PlacedObject 
+namespace ForwardChanges.PropertyHandlers.PlacedObject
 {
     public class ScaleHandler : AbstractPropertyHandler<float?>
     {
@@ -12,25 +12,19 @@ namespace ForwardChanges.PropertyHandlers.PlacedObject
 
         public override void SetValue(IMajorRecord record, float? value)
         {
-            if (record is IPlacedObject placedObject)
+            var placedObject = TryCastRecord<IPlacedObject>(record, PropertyName);
+            if (placedObject != null)
             {
                 placedObject.Scale = value;
-            }
-            else
-            {
-                Console.WriteLine($"Error: Record is not a PlacedObject for {PropertyName}");
             }
         }
 
         public override float? GetValue(IMajorRecordGetter record)
         {
-            if (record is IPlacedObjectGetter placedObject)
+            var placedObject = TryCastRecord<IPlacedObjectGetter>(record, PropertyName);
+            if (placedObject != null)
             {
                 return placedObject.Scale;
-            }
-            else
-            {
-                Console.WriteLine($"Error: Record is not a PlacedObject for {PropertyName}");
             }
             return null;
         }

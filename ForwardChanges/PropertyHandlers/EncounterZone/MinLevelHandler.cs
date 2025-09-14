@@ -12,32 +12,23 @@ namespace ForwardChanges.PropertyHandlers.EncounterZone
 
         public override void SetValue(IMajorRecord record, byte value)
         {
-            if (record is IEncounterZone encounterZoneRecord)
+            var encounterZoneRecord = TryCastRecord<IEncounterZone>(record, PropertyName);
+            if (encounterZoneRecord != null)
             {
                 encounterZoneRecord.MinLevel = value;
-            }
-            else
-            {
-                Console.WriteLine($"Error: Record does not implement IEncounterZone for {PropertyName}");
             }
         }
 
         public override byte GetValue(IMajorRecordGetter record)
         {
-            if (record is IEncounterZoneGetter encounterZoneRecord)
+            var encounterZoneRecord = TryCastRecord<IEncounterZoneGetter>(record, PropertyName);
+            if (encounterZoneRecord != null)
             {
                 return encounterZoneRecord.MinLevel;
-            }
-            else
-            {
-                Console.WriteLine($"Error: Record does not implement IEncounterZoneGetter for {PropertyName}");
             }
             return 0;
         }
 
-        public override bool AreValuesEqual(byte value1, byte value2)
-        {
-            return value1 == value2;
-        }
+
     }
 }

@@ -7,47 +7,25 @@ using ForwardChanges.PropertyHandlers.Interfaces;
 
 namespace ForwardChanges.PropertyHandlers.PlacedObject
 {
-    public class BaseHandler : AbstractPropertyHandler<IFormLinkNullableGetter<IPlaceableObjectGetter>>
+    public class BaseHandler : AbstractFormLinkPropertyHandler<IPlacedObject, IPlacedObjectGetter, IPlaceableObjectGetter>
     {
         public override string PropertyName => "Base";
 
-        public override void SetValue(IMajorRecord record, IFormLinkNullableGetter<IPlaceableObjectGetter>? value)
+        protected override IFormLinkNullableGetter<IPlaceableObjectGetter>? GetFormLinkValue(IPlacedObjectGetter record)
         {
-            if (record is IPlacedObject placedObject)
+            return record.Base;
+        }
+
+        protected override void SetFormLinkValue(IPlacedObject record, IFormLinkNullableGetter<IPlaceableObjectGetter>? value)
+        {
+            if (value != null && !value.FormKey.IsNull)
             {
-                if (value != null && !value.FormKey.IsNull)
-                {
-                    placedObject.Base = new FormLinkNullable<IPlaceableObjectGetter>(value.FormKey);
-                }
-                else
-                {
-                    placedObject.Base.Clear();
-                }
+                record.Base = new FormLinkNullable<IPlaceableObjectGetter>(value.FormKey);
             }
             else
             {
-                Console.WriteLine($"Error: Record is not a PlacedObject for {PropertyName}");
+                record.Base.Clear();
             }
-        }
-
-        public override IFormLinkNullableGetter<IPlaceableObjectGetter>? GetValue(IMajorRecordGetter record)
-        {
-            if (record is IPlacedObjectGetter placedObject)
-            {
-                return placedObject.Base;
-            }
-            else
-            {
-                Console.WriteLine($"Error: Record is not a PlacedObject for {PropertyName}");
-            }
-            return null;
-        }
-
-        public override bool AreValuesEqual(IFormLinkNullableGetter<IPlaceableObjectGetter>? value1, IFormLinkNullableGetter<IPlaceableObjectGetter>? value2)
-        {
-            if (value1 == null && value2 == null) return true;
-            if (value1 == null || value2 == null) return false;
-            return value1.FormKey.Equals(value2.FormKey);
         }
     }
 }

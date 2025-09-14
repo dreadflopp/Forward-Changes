@@ -13,7 +13,8 @@ namespace ForwardChanges.PropertyHandlers.ArmorAddon
 
         public override void SetValue(IMajorRecord record, IGenderedItemGetter<bool>? value)
         {
-            if (record is IArmorAddon armorAddonRecord)
+            var armorAddonRecord = TryCastRecord<IArmorAddon>(record, PropertyName);
+            if (armorAddonRecord != null)
             {
                 if (value == null)
                 {
@@ -27,21 +28,14 @@ namespace ForwardChanges.PropertyHandlers.ArmorAddon
                     armorAddonRecord.WeightSliderEnabled = newGenderedItem;
                 }
             }
-            else
-            {
-                Console.WriteLine($"Error: Record does not implement IArmorAddon for {PropertyName}");
-            }
         }
 
         public override IGenderedItemGetter<bool>? GetValue(IMajorRecordGetter record)
         {
-            if (record is IArmorAddonGetter armorAddonRecord)
+            var armorAddonRecord = TryCastRecord<IArmorAddonGetter>(record, PropertyName);
+            if (armorAddonRecord != null)
             {
                 return armorAddonRecord.WeightSliderEnabled;
-            }
-            else
-            {
-                Console.WriteLine($"Error: Record does not implement IArmorAddonGetter for {PropertyName}");
             }
             return null;
         }

@@ -12,33 +12,24 @@ namespace ForwardChanges.PropertyHandlers.Npc
 
         public override void SetValue(IMajorRecord record, short value)
         {
-            if (record is INpc npc)
+            var npc = TryCastRecord<INpc>(record, PropertyName);
+            if (npc != null)
             {
                 npc.Configuration.MagickaOffset = value;
-            }
-            else
-            {
-                Console.WriteLine($"Error: Record is not an NPC for {PropertyName}");
             }
         }
 
         public override short GetValue(IMajorRecordGetter record)
         {
-            if (record is INpcGetter npc)
+            var npc = TryCastRecord<INpcGetter>(record, PropertyName);
+            if (npc != null)
             {
                 return npc.Configuration.MagickaOffset;
-            }
-            else
-            {
-                Console.WriteLine($"Error: Record is not an NPC for {PropertyName}");
             }
             return 0;
         }
 
-        public override bool AreValuesEqual(short value1, short value2)
-        {
-            return value1 == value2;
-        }
+
     }
 }
 

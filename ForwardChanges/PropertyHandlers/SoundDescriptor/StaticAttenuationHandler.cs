@@ -11,7 +11,8 @@ namespace ForwardChanges.PropertyHandlers.SoundDescriptor
 
         public override void SetValue(IMajorRecord record, float value)
         {
-            if (record is ISoundDescriptor soundDescriptor)
+            var soundDescriptor = TryCastRecord<ISoundDescriptor>(record, PropertyName);
+            if (soundDescriptor != null)
             {
                 soundDescriptor.StaticAttenuation = value;
             }
@@ -19,17 +20,15 @@ namespace ForwardChanges.PropertyHandlers.SoundDescriptor
 
         public override float GetValue(IMajorRecordGetter record)
         {
-            if (record is ISoundDescriptorGetter soundDescriptor)
+            var soundDescriptor = TryCastRecord<ISoundDescriptorGetter>(record, PropertyName);
+            if (soundDescriptor != null)
             {
                 return soundDescriptor.StaticAttenuation;
             }
             return 0.0f;
         }
 
-        public override bool AreValuesEqual(float value1, float value2)
-        {
-            return value1.Equals(value2);
-        }
+
     }
 }
 

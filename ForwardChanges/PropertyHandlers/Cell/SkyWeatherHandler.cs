@@ -6,39 +6,25 @@ using ForwardChanges.Contexts;
 
 namespace ForwardChanges.PropertyHandlers.Cell
 {
-    public class SkyWeatherHandler : AbstractPropertyHandler<IFormLinkNullableGetter<IRegionGetter>>
+    public class SkyWeatherHandler : AbstractFormLinkPropertyHandler<ICell, ICellGetter, IRegionGetter>
     {
         public override string PropertyName => "SkyAndWeatherFromRegion";
 
-        public override void SetValue(IMajorRecord record, IFormLinkNullableGetter<IRegionGetter>? value)
+        protected override IFormLinkNullableGetter<IRegionGetter>? GetFormLinkValue(ICellGetter record)
         {
-            if (record is ICell cell)
-            {
-                if (value != null)
-                {
-                    cell.SkyAndWeatherFromRegion.SetTo(value.FormKey);
-                }
-                else
-                {
-                    cell.SkyAndWeatherFromRegion.SetTo(null);
-                }
-            }
+            return record.SkyAndWeatherFromRegion;
         }
 
-        public override IFormLinkNullableGetter<IRegionGetter>? GetValue(IMajorRecordGetter record)
+        protected override void SetFormLinkValue(ICell record, IFormLinkNullableGetter<IRegionGetter>? value)
         {
-            if (record is ICellGetter cell)
+            if (value != null)
             {
-                return cell.SkyAndWeatherFromRegion;
+                record.SkyAndWeatherFromRegion.SetTo(value.FormKey);
             }
-            return null;
-        }
-
-        public override bool AreValuesEqual(IFormLinkNullableGetter<IRegionGetter>? value1, IFormLinkNullableGetter<IRegionGetter>? value2)
-        {
-            if (value1 == null && value2 == null) return true;
-            if (value1 == null || value2 == null) return false;
-            return value1.FormKey.Equals(value2.FormKey);
+            else
+            {
+                record.SkyAndWeatherFromRegion.SetTo(null);
+            }
         }
     }
 }

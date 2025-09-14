@@ -6,13 +6,14 @@ using Noggog;
 using ForwardChanges.Contexts;
 using ForwardChanges.PropertyHandlers.Interfaces;
 using ForwardChanges.Contexts.Interfaces;
+using System.Runtime.InteropServices;
 
 namespace ForwardChanges.PropertyHandlers.Abstracts
 {
     public abstract class AbstractPropertyHandler<T> : IPropertyHandler<T>
     {
         public abstract string PropertyName { get; }
-        public bool RequiresFullLoadOrderProcessing => false;
+        public bool RequiresFullLoadOrderProcessing => true;
 
         public abstract void SetValue(IMajorRecord record, T? value);
         public abstract T? GetValue(IMajorRecordGetter record);
@@ -22,6 +23,27 @@ namespace ForwardChanges.PropertyHandlers.Abstracts
             if (value1 == null && value2 == null) return true;
             if (value1 == null || value2 == null) return false;
             return Equals(value1, value2);
+        }
+
+        // Helper methods to reduce boilerplate
+        protected static TRecord? TryCastRecord<TRecord>(IMajorRecordGetter record, string propertyName) where TRecord : class
+        {
+            if (record is TRecord typedRecord)
+            {
+                return typedRecord;
+            }
+            Console.WriteLine($"Error: Record does not implement {typeof(TRecord).Name} for {propertyName}");
+            return null;
+        }
+
+        protected static TRecord? TryCastRecord<TRecord>(IMajorRecord record, string propertyName) where TRecord : class
+        {
+            if (record is TRecord typedRecord)
+            {
+                return typedRecord;
+            }
+            Console.WriteLine($"Error: Record does not implement {typeof(TRecord).Name} for {propertyName}");
+            return null;
         }
 
         // Non-generic interface implementations
@@ -44,6 +66,16 @@ namespace ForwardChanges.PropertyHandlers.Abstracts
         IPropertyContext IPropertyHandler.CreatePropertyContext()
         {
             return new SimplePropertyContext<T>();
+        }
+
+        /// <summary>
+        /// Format a value for display in logs. Override this method to provide custom formatting.
+        /// </summary>
+        /// <param name="value">The value to format</param>
+        /// <returns>The formatted value</returns>
+        public virtual string FormatValue(object? value)
+        {
+            return value?.ToString() ?? "null";
         }
 
         public virtual void UpdatePropertyContext(
@@ -79,7 +111,7 @@ namespace ForwardChanges.PropertyHandlers.Abstracts
                 T? previousForwardValue = forwardValue;
                 simplePropertyContext.ForwardValueContext.Value = recordValue;
                 simplePropertyContext.ForwardValueContext.OwnerMod = context.ModKey.ToString();
-                LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: Addition: {previousForwardValue} -> {recordValue} Success");
+                LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: Addition: {FormatValue(previousForwardValue)} -> {FormatValue(recordValue)} Success");
                 return;
             }
 
@@ -96,16 +128,16 @@ namespace ForwardChanges.PropertyHandlers.Abstracts
                     T? previousForwardValue = forwardValue;
                     simplePropertyContext.ForwardValueContext.Value = recordValue;
                     simplePropertyContext.ForwardValueContext.OwnerMod = context.ModKey.ToString();
-                    LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: Reversion: {previousForwardValue} -> {recordValue} Success");
+                    LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: Reversion: {FormatValue(previousForwardValue)} -> {FormatValue(recordValue)} Success");
                 }
                 else
                 {
-                    LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: Reversion: {forwardValue} -> {recordValue} Permission denied");
+                    LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: Reversion: {FormatValue(forwardValue)} -> {FormatValue(recordValue)} Permission denied");
                 }
             }
             else
             {
-                LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: No change to value: {forwardValue}");
+                LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: No change to value: {FormatValue(forwardValue)}");
             }
         }
 

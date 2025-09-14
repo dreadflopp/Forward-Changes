@@ -7,31 +7,18 @@ using ForwardChanges.PropertyHandlers.Interfaces;
 
 namespace ForwardChanges.PropertyHandlers.Location
 {
-    public class UnreportedCrimeFactionHandler : AbstractPropertyHandler<IFormLinkNullable<IFactionGetter>>
+    public class UnreportedCrimeFactionHandler : AbstractFormLinkPropertyHandler<ILocation, ILocationGetter, IFactionGetter>
     {
         public override string PropertyName => "UnreportedCrimeFaction";
 
-        public override IFormLinkNullable<IFactionGetter>? GetValue(IMajorRecordGetter record)
+        protected override IFormLinkNullableGetter<IFactionGetter>? GetFormLinkValue(ILocationGetter record)
         {
-            if (record is ILocationGetter locationRecord)
-            {
-                return locationRecord.UnreportedCrimeFaction as IFormLinkNullable<IFactionGetter>;
-            }
-
-            Console.WriteLine($"Error: Record does not implement ILocationGetter for {PropertyName}");
-            return null;
+            return record.UnreportedCrimeFaction as IFormLinkNullableGetter<IFactionGetter>;
         }
 
-        public override void SetValue(IMajorRecord record, IFormLinkNullable<IFactionGetter>? value)
+        protected override void SetFormLinkValue(ILocation record, IFormLinkNullableGetter<IFactionGetter>? value)
         {
-            if (record is ILocation locationRecord)
-            {
-                locationRecord.UnreportedCrimeFaction = value ?? new FormLinkNullable<IFactionGetter>();
-            }
-            else
-            {
-                Console.WriteLine($"Error: Record does not implement ILocation for {PropertyName}");
-            }
+            record.UnreportedCrimeFaction = value != null ? new FormLinkNullable<IFactionGetter>(value.FormKey) : new FormLinkNullable<IFactionGetter>();
         }
     }
 }

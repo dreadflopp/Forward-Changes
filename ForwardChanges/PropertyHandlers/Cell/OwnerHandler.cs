@@ -6,39 +6,25 @@ using ForwardChanges.Contexts;
 
 namespace ForwardChanges.PropertyHandlers.Cell
 {
-    public class OwnerHandler : AbstractPropertyHandler<IFormLinkNullableGetter<IOwnerGetter>>
+    public class OwnerHandler : AbstractFormLinkPropertyHandler<ICell, ICellGetter, IOwnerGetter>
     {
         public override string PropertyName => "Owner";
 
-        public override void SetValue(IMajorRecord record, IFormLinkNullableGetter<IOwnerGetter>? value)
+        protected override IFormLinkNullableGetter<IOwnerGetter>? GetFormLinkValue(ICellGetter record)
         {
-            if (record is ICell cell)
-            {
-                if (value != null)
-                {
-                    cell.Owner.SetTo(value.FormKey);
-                }
-                else
-                {
-                    cell.Owner.SetTo(null);
-                }
-            }
+            return record.Owner;
         }
 
-        public override IFormLinkNullableGetter<IOwnerGetter>? GetValue(IMajorRecordGetter record)
+        protected override void SetFormLinkValue(ICell record, IFormLinkNullableGetter<IOwnerGetter>? value)
         {
-            if (record is ICellGetter cell)
+            if (value != null)
             {
-                return cell.Owner;
+                record.Owner.SetTo(value.FormKey);
             }
-            return null;
-        }
-
-        public override bool AreValuesEqual(IFormLinkNullableGetter<IOwnerGetter>? value1, IFormLinkNullableGetter<IOwnerGetter>? value2)
-        {
-            if (value1 == null && value2 == null) return true;
-            if (value1 == null || value2 == null) return false;
-            return value1.FormKey.Equals(value2.FormKey);
+            else
+            {
+                record.Owner.SetTo(null);
+            }
         }
     }
 }

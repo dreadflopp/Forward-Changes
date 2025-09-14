@@ -16,6 +16,7 @@ namespace ForwardChanges.RecordHandlers
         public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()
         {
             { "EditorID", new EditorIDHandler() },
+            { "SkyrimMajorRecordFlags", new SkyrimMajorRecordFlagsHandler() },
             { "Name", new NameHandler() },
             { "ObjectBounds", new ObjectBoundsHandler() },
             { "EnchantmentCost", new EnchantmentCostHandler() },
@@ -27,7 +28,7 @@ namespace ForwardChanges.RecordHandlers
             { "BaseEnchantment", new BaseEnchantmentHandler() },
             { "WornRestrictions", new WornRestrictionsHandler() },
             { "Effects", new EffectsHandler() },
-            { "Flags", new FlagHandler() }
+            { "Flags", new FlagsHandler() }
         };
 
         public override IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter>[] GetRecordContexts(
@@ -62,15 +63,14 @@ namespace ForwardChanges.RecordHandlers
                     try
                     {
                         Console.WriteLine($"[{propertyName}] Applying value: {handler.FormatValue(value)}, Type: {value?.GetType()}");
-                        if (value != null)
-                        {
-                            handler.SetValue(record, value);
-                        }
+                        handler.SetValue(record, value);
                     }
                     catch (Exception ex)
                     {
                         // Property doesn't exist on this object effect type - just continue
                         Console.WriteLine($"Warning: Property {propertyName} not available on object effect {record.FormKey}: {ex.Message}");
+                        Console.WriteLine($"Exception type: {ex.GetType().Name}");
+                        Console.WriteLine($"Stack trace: {ex.StackTrace}");
                     }
                 }
             }

@@ -6,39 +6,25 @@ using ForwardChanges.Contexts;
 
 namespace ForwardChanges.PropertyHandlers.Cell
 {
-    public class MusicHandler : AbstractPropertyHandler<IFormLinkNullableGetter<IMusicTypeGetter>>
+    public class MusicHandler : AbstractFormLinkPropertyHandler<ICell, ICellGetter, IMusicTypeGetter>
     {
         public override string PropertyName => "Music";
 
-        public override void SetValue(IMajorRecord record, IFormLinkNullableGetter<IMusicTypeGetter>? value)
+        protected override IFormLinkNullableGetter<IMusicTypeGetter>? GetFormLinkValue(ICellGetter record)
         {
-            if (record is ICell cell)
-            {
-                if (value != null)
-                {
-                    cell.Music.SetTo(value.FormKey);
-                }
-                else
-                {
-                    cell.Music.SetTo(null);
-                }
-            }
+            return record.Music;
         }
 
-        public override IFormLinkNullableGetter<IMusicTypeGetter>? GetValue(IMajorRecordGetter record)
+        protected override void SetFormLinkValue(ICell record, IFormLinkNullableGetter<IMusicTypeGetter>? value)
         {
-            if (record is ICellGetter cell)
+            if (value != null)
             {
-                return cell.Music;
+                record.Music.SetTo(value.FormKey);
             }
-            return null;
-        }
-
-        public override bool AreValuesEqual(IFormLinkNullableGetter<IMusicTypeGetter>? value1, IFormLinkNullableGetter<IMusicTypeGetter>? value2)
-        {
-            if (value1 == null && value2 == null) return true;
-            if (value1 == null || value2 == null) return false;
-            return value1.FormKey.Equals(value2.FormKey);
+            else
+            {
+                record.Music.SetTo(null);
+            }
         }
     }
 }

@@ -7,47 +7,25 @@ using ForwardChanges.PropertyHandlers.Interfaces;
 
 namespace ForwardChanges.PropertyHandlers.PlacedObject
 {
-    public class LocationReferenceHandler : AbstractPropertyHandler<IFormLinkNullableGetter<ILocationRecordGetter>>
+    public class LocationReferenceHandler : AbstractFormLinkPropertyHandler<IPlacedObject, IPlacedObjectGetter, ILocationRecordGetter>
     {
         public override string PropertyName => "LocationReference";
 
-        public override void SetValue(IMajorRecord record, IFormLinkNullableGetter<ILocationRecordGetter>? value)
+        protected override IFormLinkNullableGetter<ILocationRecordGetter>? GetFormLinkValue(IPlacedObjectGetter record)
         {
-            if (record is IPlacedObject placedObject)
+            return record.LocationReference;
+        }
+
+        protected override void SetFormLinkValue(IPlacedObject record, IFormLinkNullableGetter<ILocationRecordGetter>? value)
+        {
+            if (value != null && !value.FormKey.IsNull)
             {
-                if (value != null && !value.FormKey.IsNull)
-                {
-                    placedObject.LocationReference = new FormLinkNullable<ILocationRecordGetter>(value.FormKey);
-                }
-                else
-                {
-                    placedObject.LocationReference.Clear();
-                }
+                record.LocationReference = new FormLinkNullable<ILocationRecordGetter>(value.FormKey);
             }
             else
             {
-                Console.WriteLine($"Error: Record is not a PlacedObject for {PropertyName}");
+                record.LocationReference.Clear();
             }
-        }
-
-        public override IFormLinkNullableGetter<ILocationRecordGetter>? GetValue(IMajorRecordGetter record)
-        {
-            if (record is IPlacedObjectGetter placedObject)
-            {
-                return placedObject.LocationReference;
-            }
-            else
-            {
-                Console.WriteLine($"Error: Record is not a PlacedObject for {PropertyName}");
-            }
-            return null;
-        }
-
-        public override bool AreValuesEqual(IFormLinkNullableGetter<ILocationRecordGetter>? value1, IFormLinkNullableGetter<ILocationRecordGetter>? value2)
-        {
-            if (value1 == null && value2 == null) return true;
-            if (value1 == null || value2 == null) return false;
-            return value1.FormKey.Equals(value2.FormKey);
         }
     }
 }

@@ -53,8 +53,9 @@ namespace ForwardChanges.PropertyHandlers.General
         {
             if (value1 == null && value2 == null) return true;
             if (value1 == null || value2 == null) return false;
-            // Use Mutagen's built-in equality
-            return value1.Equals(value2);
+
+            // Compare simple model properties using value-based comparison
+            return value1.File == value2.File;
         }
     }
 }

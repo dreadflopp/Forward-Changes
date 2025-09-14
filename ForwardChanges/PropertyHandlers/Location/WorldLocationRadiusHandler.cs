@@ -12,24 +12,20 @@ namespace ForwardChanges.PropertyHandlers.Location
 
         public override float? GetValue(IMajorRecordGetter record)
         {
-            if (record is ILocationGetter locationRecord)
+            var locationRecord = TryCastRecord<ILocationGetter>(record, PropertyName);
+            if (locationRecord != null)
             {
                 return locationRecord.WorldLocationRadius;
             }
-
-            Console.WriteLine($"Error: Record does not implement ILocationGetter for {PropertyName}");
             return null;
         }
 
         public override void SetValue(IMajorRecord record, float? value)
         {
-            if (record is ILocation locationRecord)
+            var locationRecord = TryCastRecord<ILocation>(record, PropertyName);
+            if (locationRecord != null)
             {
                 locationRecord.WorldLocationRadius = value;
-            }
-            else
-            {
-                Console.WriteLine($"Error: Record does not implement ILocation for {PropertyName}");
             }
         }
     }

@@ -68,8 +68,22 @@ namespace ForwardChanges.PropertyHandlers.ArmorAddon
             if (model1 == null && model2 == null) return true;
             if (model1 == null || model2 == null) return false;
 
-            // Use Mutagen's built-in equality for models
-            return model1.Equals(model2);
+            // Compare basic model properties (from ISimpleModelGetter)
+            if (model1.File != model2.File) return false;
+            if (model1.AlternateTextures?.Count != model2.AlternateTextures?.Count) return false;
+
+            // Compare alternate textures if they exist
+            if (model1.AlternateTextures != null && model2.AlternateTextures != null)
+            {
+                for (int i = 0; i < model1.AlternateTextures.Count; i++)
+                {
+                    var alt1 = model1.AlternateTextures[i];
+                    var alt2 = model2.AlternateTextures[i];
+                    if (alt1?.Name != alt2?.Name || alt1?.NewTexture != alt2?.NewTexture) return false;
+                }
+            }
+
+            return true;
         }
 
         private IModelGetter? DeepCopyModel(IModelGetter? sourceModel)

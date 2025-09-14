@@ -12,25 +12,19 @@ namespace ForwardChanges.PropertyHandlers.ObjectEffect
 
         public override void SetValue(IMajorRecord record, float? value)
         {
-            if (record is IObjectEffect objectEffectRecord)
+            var objectEffectRecord = TryCastRecord<IObjectEffect>(record, PropertyName);
+            if (objectEffectRecord != null)
             {
                 objectEffectRecord.ChargeTime = value ?? 0f;
-            }
-            else
-            {
-                Console.WriteLine($"Error: Record does not implement IObjectEffect for {PropertyName}");
             }
         }
 
         public override float? GetValue(IMajorRecordGetter record)
         {
-            if (record is IObjectEffectGetter objectEffectRecord)
+            var objectEffectRecord = TryCastRecord<IObjectEffectGetter>(record, PropertyName);
+            if (objectEffectRecord != null)
             {
                 return objectEffectRecord.ChargeTime;
-            }
-            else
-            {
-                Console.WriteLine($"Error: Record does not implement IObjectEffectGetter for {PropertyName}");
             }
             return null;
         }

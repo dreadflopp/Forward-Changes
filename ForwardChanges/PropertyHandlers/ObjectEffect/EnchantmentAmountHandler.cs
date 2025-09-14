@@ -12,35 +12,24 @@ namespace ForwardChanges.PropertyHandlers.ObjectEffect
 
         public override void SetValue(IMajorRecord record, int? value)
         {
-            if (record is IObjectEffect objectEffectRecord)
+            var objectEffectRecord = TryCastRecord<IObjectEffect>(record, PropertyName);
+            if (objectEffectRecord != null)
             {
                 objectEffectRecord.EnchantmentAmount = value ?? 0;
-            }
-            else
-            {
-                Console.WriteLine($"Error: Record does not implement IObjectEffect for {PropertyName}");
             }
         }
 
         public override int? GetValue(IMajorRecordGetter record)
         {
-            if (record is IObjectEffectGetter objectEffectRecord)
+            var objectEffectRecord = TryCastRecord<IObjectEffectGetter>(record, PropertyName);
+            if (objectEffectRecord != null)
             {
                 return objectEffectRecord.EnchantmentAmount;
-            }
-            else
-            {
-                Console.WriteLine($"Error: Record does not implement IObjectEffectGetter for {PropertyName}");
             }
             return null;
         }
 
-        public override bool AreValuesEqual(int? value1, int? value2)
-        {
-            if (value1 == null && value2 == null) return true;
-            if (value1 == null || value2 == null) return false;
-            return value1.Value == value2.Value;
-        }
+
     }
 }
 

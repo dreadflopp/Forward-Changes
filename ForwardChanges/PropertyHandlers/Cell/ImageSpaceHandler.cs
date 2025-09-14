@@ -6,39 +6,25 @@ using ForwardChanges.Contexts;
 
 namespace ForwardChanges.PropertyHandlers.Cell
 {
-    public class ImageSpaceHandler : AbstractPropertyHandler<IFormLinkNullableGetter<IImageSpaceGetter>>
+    public class ImageSpaceHandler : AbstractFormLinkPropertyHandler<ICell, ICellGetter, IImageSpaceGetter>
     {
         public override string PropertyName => "ImageSpace";
 
-        public override void SetValue(IMajorRecord record, IFormLinkNullableGetter<IImageSpaceGetter>? value)
+        protected override IFormLinkNullableGetter<IImageSpaceGetter>? GetFormLinkValue(ICellGetter record)
         {
-            if (record is ICell cell)
-            {
-                if (value != null)
-                {
-                    cell.ImageSpace.SetTo(value.FormKey);
-                }
-                else
-                {
-                    cell.ImageSpace.SetTo(null);
-                }
-            }
+            return record.ImageSpace;
         }
 
-        public override IFormLinkNullableGetter<IImageSpaceGetter>? GetValue(IMajorRecordGetter record)
+        protected override void SetFormLinkValue(ICell record, IFormLinkNullableGetter<IImageSpaceGetter>? value)
         {
-            if (record is ICellGetter cell)
+            if (value != null)
             {
-                return cell.ImageSpace;
+                record.ImageSpace.SetTo(value.FormKey);
             }
-            return null;
-        }
-
-        public override bool AreValuesEqual(IFormLinkNullableGetter<IImageSpaceGetter>? value1, IFormLinkNullableGetter<IImageSpaceGetter>? value2)
-        {
-            if (value1 == null && value2 == null) return true;
-            if (value1 == null || value2 == null) return false;
-            return value1.FormKey.Equals(value2.FormKey);
+            else
+            {
+                record.ImageSpace.SetTo(null);
+            }
         }
     }
 }

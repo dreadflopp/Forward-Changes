@@ -7,31 +7,18 @@ using ForwardChanges.PropertyHandlers.Interfaces;
 
 namespace ForwardChanges.PropertyHandlers.Location
 {
-    public class WorldLocationMarkerRefHandler : AbstractPropertyHandler<IFormLinkNullable<IPlacedSimpleGetter>>
+    public class WorldLocationMarkerRefHandler : AbstractFormLinkPropertyHandler<ILocation, ILocationGetter, IPlacedSimpleGetter>
     {
         public override string PropertyName => "WorldLocationMarkerRef";
 
-        public override IFormLinkNullable<IPlacedSimpleGetter>? GetValue(IMajorRecordGetter record)
+        protected override IFormLinkNullableGetter<IPlacedSimpleGetter>? GetFormLinkValue(ILocationGetter record)
         {
-            if (record is ILocationGetter locationRecord)
-            {
-                return locationRecord.WorldLocationMarkerRef as IFormLinkNullable<IPlacedSimpleGetter>;
-            }
-
-            Console.WriteLine($"Error: Record does not implement ILocationGetter for {PropertyName}");
-            return null;
+            return record.WorldLocationMarkerRef as IFormLinkNullableGetter<IPlacedSimpleGetter>;
         }
 
-        public override void SetValue(IMajorRecord record, IFormLinkNullable<IPlacedSimpleGetter>? value)
+        protected override void SetFormLinkValue(ILocation record, IFormLinkNullableGetter<IPlacedSimpleGetter>? value)
         {
-            if (record is ILocation locationRecord)
-            {
-                locationRecord.WorldLocationMarkerRef = value ?? new FormLinkNullable<IPlacedSimpleGetter>();
-            }
-            else
-            {
-                Console.WriteLine($"Error: Record does not implement ILocation for {PropertyName}");
-            }
+            record.WorldLocationMarkerRef = value != null ? new FormLinkNullable<IPlacedSimpleGetter>(value.FormKey) : new FormLinkNullable<IPlacedSimpleGetter>();
         }
     }
 }

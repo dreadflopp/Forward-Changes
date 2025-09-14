@@ -7,34 +7,19 @@ using ForwardChanges.PropertyHandlers.Interfaces;
 
 namespace ForwardChanges.PropertyHandlers.PlacedObject
 {
-    public class LightingTemplateHandler : AbstractPropertyHandler<IFormLinkNullable<ILightingTemplateGetter>>
+    public class LightingTemplateHandler : AbstractFormLinkPropertyHandler<IPlacedObject, IPlacedObjectGetter, ILightingTemplateGetter>
     {
         public override string PropertyName => "LightingTemplate";
 
-                public override IFormLinkNullable<ILightingTemplateGetter>? GetValue(IMajorRecordGetter record)
+        protected override IFormLinkNullableGetter<ILightingTemplateGetter>? GetFormLinkValue(IPlacedObjectGetter record)
         {
-            if (record is IPlacedObjectGetter placedObjectRecord)
-            {
-                return placedObjectRecord.LightingTemplate as IFormLinkNullable<ILightingTemplateGetter>;
-            }
-            
-            Console.WriteLine($"Error: Record does not implement IPlacedObjectGetter for {PropertyName}");
-            return null;
+            return record.LightingTemplate as IFormLinkNullableGetter<ILightingTemplateGetter>;
         }
 
-        public override void SetValue(IMajorRecord record, IFormLinkNullable<ILightingTemplateGetter>? value)
+        protected override void SetFormLinkValue(IPlacedObject record, IFormLinkNullableGetter<ILightingTemplateGetter>? value)
         {
-            if (record is IPlacedObject placedObjectRecord)
-            {
-                placedObjectRecord.LightingTemplate = value ?? new FormLinkNullable<ILightingTemplateGetter>();
-            }
-            else
-            {
-                Console.WriteLine($"Error: Record does not implement IPlacedObject for {PropertyName}");
-            }
+            record.LightingTemplate = value != null ? new FormLinkNullable<ILightingTemplateGetter>(value.FormKey) : new FormLinkNullable<ILightingTemplateGetter>();
         }
-
-
     }
 }
 

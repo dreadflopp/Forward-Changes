@@ -20,15 +20,35 @@ namespace ForwardChanges.RecordHandlers
             _propertyHandlers = new Dictionary<string, IPropertyHandler>
             {
                 { "EditorID", new EditorIDHandler() },
+                { "SkyrimMajorRecordFlags", new SkyrimMajorRecordFlagsHandler() },
+                { "MajorFlags", new MajorFlagsHandler() },
                 { "Name", new NameHandler() },
                 { "MaxHeight", new MaxHeightHandler() },
                 { "Location", new LocationHandler() },
                 { "Water", new WaterHandler() },
                 { "LodWater", new LodWaterHandler() },
+                { "LodWaterHeight", new LodWaterHeightHandler() },
                 { "Music", new MusicHandler() },
                 { "ObjectBoundsMin", new ObjectBoundsMinHandler() },
                 { "ObjectBoundsMax", new ObjectBoundsMaxHandler() },
-                { "MapData", new MapDataHandler() }
+                { "MapData", new MapDataHandler() },
+                { "MapImage", new MapImageHandler() },
+                { "CloudModel", new CloudModelHandler() },
+                { "Flags", new FlagsHandler() },
+                { "WorldMapOffsetScale", new WorldMapOffsetScaleHandler() },
+                { "WorldMapCellOffset", new WorldMapCellOffsetHandler() },
+                { "DistantLodMultiplier", new DistantLodMultiplierHandler() },
+                { "FixedDimensionsCenterCell", new FixedDimensionsCenterCellHandler() },
+                { "InteriorLighting", new InteriorLightingHandler() },
+                { "EncounterZone", new EncounterZoneHandler() },
+                { "Parent", new ParentHandler() },
+                { "Climate", new ClimateHandler() },
+                { "LandDefaults", new LandDefaultsHandler() },
+                { "CanopyShadow", new CanopyShadowHandler() },
+                { "WaterNoiseTexture", new WaterNoiseTextureHandler() },
+                { "HdLodDiffuseTexture", new HdLodDiffuseTextureHandler() },
+                { "HdLodNormalTexture", new HdLodNormalTextureHandler() },
+                { "WaterEnvironmentMap", new WaterEnvironmentMapHandler() }
             };
         }
 
@@ -66,10 +86,7 @@ namespace ForwardChanges.RecordHandlers
                     try
                     {
                         Console.WriteLine($"[{propertyName}] Applying value: {handler.FormatValue(value)}, Type: {value?.GetType()}");
-                        if (value != null)
-                        {
-                            handler.SetValue(record, value);
-                        }
+                        handler.SetValue(record, value);
                     }
                     catch (Exception ex)
                     {

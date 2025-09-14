@@ -12,24 +12,20 @@ namespace ForwardChanges.PropertyHandlers.Faction
 
         public override LocationTargetRadius? GetValue(IMajorRecordGetter record)
         {
-            if (record is IFactionGetter factionRecord)
+            var factionRecord = TryCastRecord<IFactionGetter>(record, PropertyName);
+            if (factionRecord != null)
             {
                 return factionRecord.VendorLocation as LocationTargetRadius;
             }
-
-            Console.WriteLine($"Error: Record does not implement IFactionGetter for {PropertyName}");
             return null;
         }
 
         public override void SetValue(IMajorRecord record, LocationTargetRadius? value)
         {
-            if (record is IFaction factionRecord)
+            var factionRecord = TryCastRecord<IFaction>(record, PropertyName);
+            if (factionRecord != null)
             {
                 factionRecord.VendorLocation = value;
-            }
-            else
-            {
-                Console.WriteLine($"Error: Record does not implement IFaction for {PropertyName}");
             }
         }
     }

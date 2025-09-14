@@ -6,39 +6,25 @@ using ForwardChanges.Contexts;
 
 namespace ForwardChanges.PropertyHandlers.Cell
 {
-    public class AcousticSpaceHandler : AbstractPropertyHandler<IFormLinkNullableGetter<IAcousticSpaceGetter>>
+    public class AcousticSpaceHandler : AbstractFormLinkPropertyHandler<ICell, ICellGetter, IAcousticSpaceGetter>
     {
         public override string PropertyName => "AcousticSpace";
 
-        public override void SetValue(IMajorRecord record, IFormLinkNullableGetter<IAcousticSpaceGetter>? value)
+        protected override IFormLinkNullableGetter<IAcousticSpaceGetter>? GetFormLinkValue(ICellGetter record)
         {
-            if (record is ICell cell)
-            {
-                if (value != null)
-                {
-                    cell.AcousticSpace.SetTo(value.FormKey);
-                }
-                else
-                {
-                    cell.AcousticSpace.SetTo(null);
-                }
-            }
+            return record.AcousticSpace;
         }
 
-        public override IFormLinkNullableGetter<IAcousticSpaceGetter>? GetValue(IMajorRecordGetter record)
+        protected override void SetFormLinkValue(ICell record, IFormLinkNullableGetter<IAcousticSpaceGetter>? value)
         {
-            if (record is ICellGetter cell)
+            if (value != null)
             {
-                return cell.AcousticSpace;
+                record.AcousticSpace.SetTo(value.FormKey);
             }
-            return null;
-        }
-
-        public override bool AreValuesEqual(IFormLinkNullableGetter<IAcousticSpaceGetter>? value1, IFormLinkNullableGetter<IAcousticSpaceGetter>? value2)
-        {
-            if (value1 == null && value2 == null) return true;
-            if (value1 == null || value2 == null) return false;
-            return value1.FormKey.Equals(value2.FormKey);
+            else
+            {
+                record.AcousticSpace.SetTo(null);
+            }
         }
     }
 }

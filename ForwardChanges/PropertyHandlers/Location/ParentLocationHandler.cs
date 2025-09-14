@@ -7,31 +7,18 @@ using ForwardChanges.PropertyHandlers.Interfaces;
 
 namespace ForwardChanges.PropertyHandlers.Location
 {
-    public class ParentLocationHandler : AbstractPropertyHandler<IFormLinkNullable<ILocationGetter>>
+    public class ParentLocationHandler : AbstractFormLinkPropertyHandler<ILocation, ILocationGetter, ILocationGetter>
     {
         public override string PropertyName => "ParentLocation";
 
-        public override IFormLinkNullable<ILocationGetter>? GetValue(IMajorRecordGetter record)
+        protected override IFormLinkNullableGetter<ILocationGetter>? GetFormLinkValue(ILocationGetter record)
         {
-            if (record is ILocationGetter locationRecord)
-            {
-                return locationRecord.ParentLocation as IFormLinkNullable<ILocationGetter>;
-            }
-
-            Console.WriteLine($"Error: Record does not implement ILocationGetter for {PropertyName}");
-            return null;
+            return record.ParentLocation as IFormLinkNullableGetter<ILocationGetter>;
         }
 
-        public override void SetValue(IMajorRecord record, IFormLinkNullable<ILocationGetter>? value)
+        protected override void SetFormLinkValue(ILocation record, IFormLinkNullableGetter<ILocationGetter>? value)
         {
-            if (record is ILocation locationRecord)
-            {
-                locationRecord.ParentLocation = value ?? new FormLinkNullable<ILocationGetter>();
-            }
-            else
-            {
-                Console.WriteLine($"Error: Record does not implement ILocation for {PropertyName}");
-            }
+            record.ParentLocation = value != null ? new FormLinkNullable<ILocationGetter>(value.FormKey) : new FormLinkNullable<ILocationGetter>();
         }
     }
 }

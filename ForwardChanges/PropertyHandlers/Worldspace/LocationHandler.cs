@@ -7,48 +7,25 @@ using ForwardChanges.PropertyHandlers.Interfaces;
 
 namespace ForwardChanges.PropertyHandlers.Worldspace
 {
-    public class LocationHandler : AbstractPropertyHandler<IFormLinkNullableGetter<ILocationGetter>>
+    public class LocationHandler : AbstractFormLinkPropertyHandler<IWorldspace, IWorldspaceGetter, ILocationGetter>
     {
         public override string PropertyName => "Location";
 
-        public override void SetValue(IMajorRecord record, IFormLinkNullableGetter<ILocationGetter>? value)
+        protected override IFormLinkNullableGetter<ILocationGetter>? GetFormLinkValue(IWorldspaceGetter record)
         {
-            if (record is IWorldspace worldspaceRecord)
+            return record.Location;
+        }
+
+        protected override void SetFormLinkValue(IWorldspace record, IFormLinkNullableGetter<ILocationGetter>? value)
+        {
+            if (value != null)
             {
-                if (value != null)
-                {
-                    worldspaceRecord.Location.SetTo(value.FormKey);
-                }
-                else
-                {
-                    worldspaceRecord.Location.SetTo(null);
-                }
+                record.Location.SetTo(value.FormKey);
             }
             else
             {
-                Console.WriteLine($"Error: Record does not implement IWorldspace for {PropertyName}");
+                record.Location.SetTo(null);
             }
-        }
-
-        public override IFormLinkNullableGetter<ILocationGetter>? GetValue(IMajorRecordGetter record)
-        {
-            if (record is IWorldspaceGetter worldspaceRecord)
-            {
-                return worldspaceRecord.Location;
-            }
-            else
-            {
-                Console.WriteLine($"Error: Record does not implement IWorldspaceGetter for {PropertyName}");
-            }
-            return null;
-        }
-
-        public override bool AreValuesEqual(IFormLinkNullableGetter<ILocationGetter>? value1, IFormLinkNullableGetter<ILocationGetter>? value2)
-        {
-            if (value1 == null && value2 == null) return true;
-            if (value1 == null || value2 == null) return false;
-            // Compare FormKeys
-            return value1.FormKey == value2.FormKey;
         }
     }
 }

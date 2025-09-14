@@ -16,8 +16,15 @@ namespace ForwardChanges.RecordHandlers
         public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()
         {
             { "EditorID", new EditorIDHandler() },
+            { "SkyrimMajorRecordFlags", new SkyrimMajorRecordFlagsHandler() },
+            { "Type", new TypeHandler() },
             { "Category", new CategoryHandler() },
+            { "AlternateSoundFor", new AlternateSoundForHandler() },
             { "SoundFiles", new SoundFilesHandler() },
+            { "OutputModel", new OutputModelHandler() },
+            { "String", new StringHandler() },
+            { "Conditions", new ConditionsHandler() },
+            { "LoopAndRumble", new LoopAndRumbleHandler() },
             { "PercentFrequencyShift", new PercentFrequencyShiftHandler() },
             { "PercentFrequencyVariance", new PercentFrequencyVarianceHandler() },
             { "Priority", new PriorityHandler() },
@@ -57,10 +64,7 @@ namespace ForwardChanges.RecordHandlers
                     try
                     {
                         Console.WriteLine($"[{propertyName}] Applying value: {handler.FormatValue(value)}, Type: {value?.GetType()}");
-                        if (value != null)
-                        {
-                            handler.SetValue(record, value);
-                        }
+                        handler.SetValue(record, value);
                     }
                     catch (Exception ex)
                     {

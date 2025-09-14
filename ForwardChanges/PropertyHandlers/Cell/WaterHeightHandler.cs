@@ -11,7 +11,8 @@ namespace ForwardChanges.PropertyHandlers.Cell
 
         public override void SetValue(IMajorRecord record, float? value)
         {
-            if (record is ICell cell)
+            var cell = TryCastRecord<ICell>(record, PropertyName);
+            if (cell != null)
             {
                 cell.WaterHeight = value;
             }
@@ -19,7 +20,8 @@ namespace ForwardChanges.PropertyHandlers.Cell
 
         public override float? GetValue(IMajorRecordGetter record)
         {
-            if (record is ICellGetter cell)
+            var cell = TryCastRecord<ICellGetter>(record, PropertyName);
+            if (cell != null)
             {
                 return cell.WaterHeight;
             }

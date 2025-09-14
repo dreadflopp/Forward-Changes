@@ -1,12 +1,10 @@
 using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Plugins.Records;
-using Mutagen.Bethesda.Plugins.Cache;
 using ForwardChanges.PropertyHandlers.Abstracts;
-using ForwardChanges.PropertyHandlers.Interfaces;
 
 namespace ForwardChanges.PropertyHandlers.EncounterZone
 {
-    public class FlagsHandler : AbstractPropertyHandler<Mutagen.Bethesda.Skyrim.EncounterZone.Flag>
+    public class FlagsHandler : AbstractFlagPropertyHandler<Mutagen.Bethesda.Skyrim.EncounterZone.Flag>
     {
         public override string PropertyName => "Flags";
 
@@ -16,10 +14,6 @@ namespace ForwardChanges.PropertyHandlers.EncounterZone
             {
                 encounterZoneRecord.Flags = value;
             }
-            else
-            {
-                Console.WriteLine($"Error: Record does not implement IEncounterZone for {PropertyName}");
-            }
         }
 
         public override Mutagen.Bethesda.Skyrim.EncounterZone.Flag GetValue(IMajorRecordGetter record)
@@ -28,16 +22,29 @@ namespace ForwardChanges.PropertyHandlers.EncounterZone
             {
                 return encounterZoneRecord.Flags;
             }
-            else
-            {
-                Console.WriteLine($"Error: Record does not implement IEncounterZoneGetter for {PropertyName}");
-            }
             return 0;
         }
 
-        public override bool AreValuesEqual(Mutagen.Bethesda.Skyrim.EncounterZone.Flag value1, Mutagen.Bethesda.Skyrim.EncounterZone.Flag value2)
+        protected override Mutagen.Bethesda.Skyrim.EncounterZone.Flag[] GetAllFlags()
         {
-            return value1 == value2;
+            return Enum.GetValues<Mutagen.Bethesda.Skyrim.EncounterZone.Flag>();
+        }
+
+        protected override bool IsFlagSet(Mutagen.Bethesda.Skyrim.EncounterZone.Flag flags, Mutagen.Bethesda.Skyrim.EncounterZone.Flag flag)
+        {
+            return flags.HasFlag(flag);
+        }
+
+        protected override Mutagen.Bethesda.Skyrim.EncounterZone.Flag SetFlag(Mutagen.Bethesda.Skyrim.EncounterZone.Flag flags, Mutagen.Bethesda.Skyrim.EncounterZone.Flag flag, bool value)
+        {
+            if (value)
+            {
+                return flags | flag;
+            }
+            else
+            {
+                return flags & ~flag;
+            }
         }
     }
 }

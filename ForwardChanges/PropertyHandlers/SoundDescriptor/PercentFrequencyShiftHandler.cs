@@ -12,7 +12,8 @@ namespace ForwardChanges.PropertyHandlers.SoundDescriptor
 
         public override void SetValue(IMajorRecord record, Percent value)
         {
-            if (record is ISoundDescriptor soundDescriptor)
+            var soundDescriptor = TryCastRecord<ISoundDescriptor>(record, PropertyName);
+            if (soundDescriptor != null)
             {
                 soundDescriptor.PercentFrequencyShift = value;
             }
@@ -20,17 +21,15 @@ namespace ForwardChanges.PropertyHandlers.SoundDescriptor
 
         public override Percent GetValue(IMajorRecordGetter record)
         {
-            if (record is ISoundDescriptorGetter soundDescriptor)
+            var soundDescriptor = TryCastRecord<ISoundDescriptorGetter>(record, PropertyName);
+            if (soundDescriptor != null)
             {
                 return soundDescriptor.PercentFrequencyShift;
             }
             return Percent.Zero;
         }
 
-        public override bool AreValuesEqual(Percent value1, Percent value2)
-        {
-            return value1.Value.Equals(value2.Value);
-        }
+
     }
 }
 

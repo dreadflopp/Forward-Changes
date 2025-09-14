@@ -4,6 +4,7 @@ using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Plugins.Cache;
 using ForwardChanges.PropertyHandlers.General;
+using ForwardChanges.PropertyHandlers.DialogTopic;
 using ForwardChanges.RecordHandlers.Abstracts;
 using ForwardChanges.PropertyHandlers.Interfaces;
 using System;
@@ -15,7 +16,15 @@ namespace ForwardChanges.RecordHandlers
         public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()
         {
             { "EditorID", new EditorIDHandler() },
-            { "Name", new NameHandler() }
+            { "SkyrimMajorRecordFlags", new SkyrimMajorRecordFlagsHandler() },
+            { "Name", new NameHandler() },
+            { "Priority", new PriorityHandler() },
+            { "Branch", new BranchHandler() },
+            { "Quest", new QuestHandler() },
+            { "TopicFlags", new TopicFlagsHandler() },
+            { "Category", new CategoryHandler() },
+            { "Subtype", new SubtypeHandler() },
+            { "SubtypeName", new SubtypeNameHandler() }
         };
 
         public override IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter>[] GetRecordContexts(
@@ -50,10 +59,7 @@ namespace ForwardChanges.RecordHandlers
                     try
                     {
                         Console.WriteLine($"[{propertyName}] Applying value: {handler.FormatValue(value)}, Type: {value?.GetType()}");
-                        if (value != null)
-                        {
-                            handler.SetValue(record, value);
-                        }
+                        handler.SetValue(record, value);
                     }
                     catch (Exception ex)
                     {

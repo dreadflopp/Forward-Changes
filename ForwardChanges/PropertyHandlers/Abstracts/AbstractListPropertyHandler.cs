@@ -182,6 +182,7 @@ namespace ForwardChanges.PropertyHandlers.Abstracts
 
         }
 
+
         private void ProcessAdditions(
             IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> context,
             ISkyrimModGetter recordMod,
@@ -202,6 +203,7 @@ namespace ForwardChanges.PropertyHandlers.Abstracts
             var recordItemGroups = recordItems.GroupBy(item => item)
                                              .Select(g => (Item: g.Key, Count: g.Count()))
                                              .ToList();
+
 
             // ============================================================================
             // SECTION 2: PROCESS EACH RECORD ITEM (ADD MISSING OR UN-REMOVE ITEMS)
@@ -276,6 +278,14 @@ namespace ForwardChanges.PropertyHandlers.Abstracts
                     // ============================================================================
                     // SECTION 2B: ITEM DOESN'T EXIST IN FORWARD CONTEXTS - ADD ALL INSTANCES
                     // ============================================================================
+                    // DEBUG: Show current forward contexts state
+                    LogCollector.Add(PropertyName, $"[{PropertyName}] DEBUG {context.ModKey}: Item {FormatItem(recordItem)} not found in forward contexts. Current forward contexts:");
+                    foreach (var ctx in forwardValueContexts)
+                    {
+                        var status = ctx.IsRemoved ? "REMOVED" : "ACTIVE";
+                        LogCollector.Add(PropertyName, $"[{PropertyName}] DEBUG   - {FormatItem(ctx.Value)} (owned by {ctx.OwnerMod}, status: {status})");
+                    }
+
                     // Item doesn't exist in forward contexts, add all required instances
                     for (int i = 0; i < recordCount; i++)
                     {
@@ -461,7 +471,14 @@ namespace ForwardChanges.PropertyHandlers.Abstracts
 
             if (value1 is List<object> objectList1)
             {
-                typedValue1 = objectList1.Select(item => (T)item).ToList();
+                try
+                {
+                    typedValue1 = objectList1.Select(item => (T)item).ToList();
+                }
+                catch
+                {
+                    return false;
+                }
             }
             else
             {
@@ -470,7 +487,14 @@ namespace ForwardChanges.PropertyHandlers.Abstracts
 
             if (value2 is List<object> objectList2)
             {
-                typedValue2 = objectList2.Select(item => (T)item).ToList();
+                try
+                {
+                    typedValue2 = objectList2.Select(item => (T)item).ToList();
+                }
+                catch
+                {
+                    return false;
+                }
             }
             else
             {
@@ -478,8 +502,7 @@ namespace ForwardChanges.PropertyHandlers.Abstracts
             }
 
             // Call the generic version
-            var result = AreValuesEqual(typedValue1, typedValue2);
-            return result;
+            return AreValuesEqual(typedValue1, typedValue2);
         }
 
         // Non-generic interface implementation for context creation
@@ -489,11 +512,11 @@ namespace ForwardChanges.PropertyHandlers.Abstracts
         }
 
         /// <summary>
-        /// Format a value for display in logs. Overrides the default implementation to handle lists properly.
+        /// Format a value for display in logs. Override this method to provide custom formatting for lists.
         /// </summary>
         /// <param name="value">The value to format</param>
         /// <returns>The formatted value</returns>
-        public string FormatValue(object? value)
+        public virtual string FormatValue(object? value)
         {
             if (value is List<T> list)
             {
@@ -502,7 +525,14 @@ namespace ForwardChanges.PropertyHandlers.Abstracts
 
                 return string.Join(", ", list.Select(item => FormatItem(item)));
             }
+            else if (value is List<object> objectList)
+            {
+                // Convert List<object> to List<T> for formatting
+                var typedList = objectList.Select(item => (T)item).ToList();
+                return string.Join(", ", typedList.Select(item => FormatItem(item)));
+            }
             return value?.ToString() ?? "null";
         }
+
     }
 }

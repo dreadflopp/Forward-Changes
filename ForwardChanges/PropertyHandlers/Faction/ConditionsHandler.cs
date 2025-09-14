@@ -11,9 +11,33 @@ namespace ForwardChanges.PropertyHandlers.Faction
             return record.Conditions;
         }
 
-        protected override ICollection<IConditionGetter>? GetConditions(IFaction record)
+        protected override IEnumerable<IConditionGetter>? GetConditions(IFaction record)
         {
-            return record.Conditions as ICollection<IConditionGetter>;
+            return record.Conditions;
+        }
+
+        protected override void UpdateConditionsCollection(IFaction record, List<IConditionGetter> conditions)
+        {
+            // Clear the existing conditions and add the new ones
+            if (record.Conditions != null)
+            {
+                record.Conditions.Clear();
+                foreach (var condition in conditions)
+                {
+                    if (condition == null) continue;
+
+                    if (condition is Condition concreteCondition)
+                    {
+                        record.Conditions.Add(concreteCondition);
+                    }
+                    else
+                    {
+                        // Convert IConditionGetter to Condition
+                        var newCondition = condition.DeepCopy();
+                        record.Conditions.Add(newCondition);
+                    }
+                }
+            }
         }
     }
 }

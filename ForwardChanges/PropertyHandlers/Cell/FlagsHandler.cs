@@ -40,17 +40,7 @@ namespace ForwardChanges.PropertyHandlers.Cell
 
         protected override Mutagen.Bethesda.Skyrim.Cell.Flag[] GetAllFlags()
         {
-            return new Mutagen.Bethesda.Skyrim.Cell.Flag[]
-            {
-                Mutagen.Bethesda.Skyrim.Cell.Flag.IsInteriorCell,
-                Mutagen.Bethesda.Skyrim.Cell.Flag.HasWater,
-                Mutagen.Bethesda.Skyrim.Cell.Flag.CantTravelFromHere,
-                Mutagen.Bethesda.Skyrim.Cell.Flag.NoLodWater,
-                Mutagen.Bethesda.Skyrim.Cell.Flag.PublicArea,
-                Mutagen.Bethesda.Skyrim.Cell.Flag.HandChanged,
-                Mutagen.Bethesda.Skyrim.Cell.Flag.ShowSky,
-                Mutagen.Bethesda.Skyrim.Cell.Flag.UseSkyLighting
-            };
+            return Enum.GetValues<Mutagen.Bethesda.Skyrim.Cell.Flag>();
         }
 
         protected override bool IsFlagSet(Mutagen.Bethesda.Skyrim.Cell.Flag flags, Mutagen.Bethesda.Skyrim.Cell.Flag flag)

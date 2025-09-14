@@ -6,39 +6,25 @@ using ForwardChanges.Contexts;
 
 namespace ForwardChanges.PropertyHandlers.Cell
 {
-    public class WaterHandler : AbstractPropertyHandler<IFormLinkNullableGetter<IWaterGetter>>
+    public class WaterHandler : AbstractFormLinkPropertyHandler<ICell, ICellGetter, IWaterGetter>
     {
         public override string PropertyName => "Water";
 
-        public override void SetValue(IMajorRecord record, IFormLinkNullableGetter<IWaterGetter>? value)
+        protected override IFormLinkNullableGetter<IWaterGetter>? GetFormLinkValue(ICellGetter record)
         {
-            if (record is ICell cell)
-            {
-                if (value != null)
-                {
-                    cell.Water.SetTo(value.FormKey);
-                }
-                else
-                {
-                    cell.Water.SetTo(null);
-                }
-            }
+            return record.Water;
         }
 
-        public override IFormLinkNullableGetter<IWaterGetter>? GetValue(IMajorRecordGetter record)
+        protected override void SetFormLinkValue(ICell record, IFormLinkNullableGetter<IWaterGetter>? value)
         {
-            if (record is ICellGetter cell)
+            if (value != null)
             {
-                return cell.Water;
+                record.Water.SetTo(value.FormKey);
             }
-            return null;
-        }
-
-        public override bool AreValuesEqual(IFormLinkNullableGetter<IWaterGetter>? value1, IFormLinkNullableGetter<IWaterGetter>? value2)
-        {
-            if (value1 == null && value2 == null) return true;
-            if (value1 == null || value2 == null) return false;
-            return value1.FormKey.Equals(value2.FormKey);
+            else
+            {
+                record.Water.SetTo(null);
+            }
         }
     }
 }

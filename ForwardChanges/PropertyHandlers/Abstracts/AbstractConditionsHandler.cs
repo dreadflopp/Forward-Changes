@@ -25,13 +25,15 @@ namespace ForwardChanges.PropertyHandlers.Abstracts
         {
             if (record is TRecord typedRecord)
             {
-                var conditions = GetConditions(typedRecord);
-                if (conditions == null)
+                var conditionsEnumerable = GetConditions(typedRecord);
+
+                if (conditionsEnumerable == null)
                 {
-                    Console.WriteLine($"[{PropertyName}] Warning: Conditions collection is null on record {record.FormKey}");
                     return;
                 }
 
+                // Convert to a list that we can modify
+                var conditions = conditionsEnumerable.ToList();
                 conditions.Clear();
 
                 if (value != null)
@@ -40,7 +42,6 @@ namespace ForwardChanges.PropertyHandlers.Abstracts
                     {
                         if (condition == null)
                         {
-                            Console.WriteLine($"[{PropertyName}] Warning: Skipping null condition in list");
                             continue;
                         }
 
@@ -49,21 +50,22 @@ namespace ForwardChanges.PropertyHandlers.Abstracts
                             var copied = condition.DeepCopy();
                             conditions.Add(copied);
                         }
-                        catch (Exception ex)
+                        catch
                         {
-                            Console.WriteLine($"[{PropertyName}] Error copying condition {FormatItem(condition)}: {ex.Message}");
+                            // Handle error silently or log if needed
                         }
                     }
                 }
-            }
-            else
-            {
-                Console.WriteLine($"[{PropertyName}] Error: Record is not {typeof(TRecord).Name}, actual type: {record.GetType().Name}");
+
+                // Update the record's conditions collection
+                UpdateConditionsCollection(typedRecord, conditions);
             }
         }
 
+        protected abstract void UpdateConditionsCollection(TRecord record, List<IConditionGetter> conditions);
+
         protected abstract IEnumerable<IConditionGetter>? GetConditions(TRecordGetter record);
-        protected abstract ICollection<IConditionGetter>? GetConditions(TRecord record);
+        protected abstract IEnumerable<IConditionGetter>? GetConditions(TRecord record);
 
         protected override string FormatItem(IConditionGetter? item)
         {

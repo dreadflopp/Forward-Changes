@@ -7,31 +7,18 @@ using ForwardChanges.PropertyHandlers.Interfaces;
 
 namespace ForwardChanges.PropertyHandlers.Location
 {
-    public class HorseMarkerRefHandler : AbstractPropertyHandler<IFormLinkNullable<IPlacedObjectGetter>>
+    public class HorseMarkerRefHandler : AbstractFormLinkPropertyHandler<ILocation, ILocationGetter, IPlacedObjectGetter>
     {
         public override string PropertyName => "HorseMarkerRef";
 
-        public override IFormLinkNullable<IPlacedObjectGetter>? GetValue(IMajorRecordGetter record)
+        protected override IFormLinkNullableGetter<IPlacedObjectGetter>? GetFormLinkValue(ILocationGetter record)
         {
-            if (record is ILocationGetter locationRecord)
-            {
-                return locationRecord.HorseMarkerRef as IFormLinkNullable<IPlacedObjectGetter>;
-            }
-
-            Console.WriteLine($"Error: Record does not implement ILocationGetter for {PropertyName}");
-            return null;
+            return record.HorseMarkerRef as IFormLinkNullableGetter<IPlacedObjectGetter>;
         }
 
-        public override void SetValue(IMajorRecord record, IFormLinkNullable<IPlacedObjectGetter>? value)
+        protected override void SetFormLinkValue(ILocation record, IFormLinkNullableGetter<IPlacedObjectGetter>? value)
         {
-            if (record is ILocation locationRecord)
-            {
-                locationRecord.HorseMarkerRef = value ?? new FormLinkNullable<IPlacedObjectGetter>();
-            }
-            else
-            {
-                Console.WriteLine($"Error: Record does not implement ILocation for {PropertyName}");
-            }
+            record.HorseMarkerRef = value != null ? new FormLinkNullable<IPlacedObjectGetter>(value.FormKey) : new FormLinkNullable<IPlacedObjectGetter>();
         }
     }
 }

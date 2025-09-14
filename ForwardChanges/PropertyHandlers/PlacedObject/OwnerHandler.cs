@@ -7,47 +7,25 @@ using ForwardChanges.PropertyHandlers.Interfaces;
 
 namespace ForwardChanges.PropertyHandlers.PlacedObject
 {
-    public class OwnerHandler : AbstractPropertyHandler<IFormLinkNullableGetter<IOwnerGetter>>
+    public class OwnerHandler : AbstractFormLinkPropertyHandler<IPlacedObject, IPlacedObjectGetter, IOwnerGetter>
     {
         public override string PropertyName => "Owner";
 
-        public override void SetValue(IMajorRecord record, IFormLinkNullableGetter<IOwnerGetter>? value)
+        protected override IFormLinkNullableGetter<IOwnerGetter>? GetFormLinkValue(IPlacedObjectGetter record)
         {
-            if (record is IPlacedObject placedObject)
+            return record.Owner;
+        }
+
+        protected override void SetFormLinkValue(IPlacedObject record, IFormLinkNullableGetter<IOwnerGetter>? value)
+        {
+            if (value != null && !value.FormKey.IsNull)
             {
-                if (value != null && !value.FormKey.IsNull)
-                {
-                    placedObject.Owner = new FormLinkNullable<IOwnerGetter>(value.FormKey);
-                }
-                else
-                {
-                    placedObject.Owner.Clear();
-                }
+                record.Owner = new FormLinkNullable<IOwnerGetter>(value.FormKey);
             }
             else
             {
-                Console.WriteLine($"Error: Record is not a PlacedObject for {PropertyName}");
+                record.Owner.Clear();
             }
-        }
-
-        public override IFormLinkNullableGetter<IOwnerGetter>? GetValue(IMajorRecordGetter record)
-        {
-            if (record is IPlacedObjectGetter placedObject)
-            {
-                return placedObject.Owner;
-            }
-            else
-            {
-                Console.WriteLine($"Error: Record is not a PlacedObject for {PropertyName}");
-            }
-            return null;
-        }
-
-        public override bool AreValuesEqual(IFormLinkNullableGetter<IOwnerGetter>? value1, IFormLinkNullableGetter<IOwnerGetter>? value2)
-        {
-            if (value1 == null && value2 == null) return true;
-            if (value1 == null || value2 == null) return false;
-            return value1.FormKey.Equals(value2.FormKey);
         }
     }
 }

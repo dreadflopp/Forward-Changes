@@ -1,12 +1,13 @@
 using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Plugins.Cache;
+using Noggog;
 using ForwardChanges.PropertyHandlers.Abstracts;
 using ForwardChanges.PropertyHandlers.Interfaces;
 
 namespace ForwardChanges.PropertyHandlers.Worldspace
 {
-    public class MaxHeightHandler : AbstractPropertyHandler<IWorldspaceMaxHeightGetter>
+    public class MaxHeightHandler : AbstractPropertyHandler<IWorldspaceMaxHeightGetter?>
     {
         public override string PropertyName => "MaxHeight";
 
@@ -49,8 +50,28 @@ namespace ForwardChanges.PropertyHandlers.Worldspace
         {
             if (value1 == null && value2 == null) return true;
             if (value1 == null || value2 == null) return false;
-            // Use Mutagen's built-in equality
-            return value1.Equals(value2);
+
+            // Compare all properties using value-based comparison
+            return value1.Min.Equals(value2.Min) &&
+                   value1.Max.Equals(value2.Max) &&
+                   AreByteArraysEqual(value1.CellData, value2.CellData);
+        }
+
+        private bool AreByteArraysEqual(ReadOnlyMemorySlice<byte> data1, ReadOnlyMemorySlice<byte> data2)
+        {
+            if (data1.Length != data2.Length) return false;
+            return data1.Span.SequenceEqual(data2.Span);
+        }
+
+        public override string FormatValue(object? value)
+        {
+            if (value is not IWorldspaceMaxHeightGetter maxHeight)
+            {
+                return value?.ToString() ?? "null";
+            }
+
+            var cellDataInfo = maxHeight.CellData.Length == 0 ? "empty" : $"{maxHeight.CellData.Length} bytes";
+            return $"Min: {maxHeight.Min}, Max: {maxHeight.Max}, CellData: {cellDataInfo}";
         }
     }
 }

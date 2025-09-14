@@ -94,7 +94,7 @@ namespace ForwardChanges.RecordHandlers.Abstracts
                         if (!handler.AreValuesEqual(originalValue, winningValue))
                         {
                             propContext.IsResolved = true;
-                            Console.WriteLine($"[{propName}] {winningContext.Record.FormKey} Resolved, nothing to forward. Original: {handler.FormatValue(originalValue)}, Winning: {handler.FormatValue(winningValue)}");
+                            LogCollector.Add(propName, $"[{propName}] {winningContext.Record.FormKey} Resolved, nothing to forward. Original: {handler.FormatValue(originalValue)}, Winning: {handler.FormatValue(winningValue)}");
                         }
                         else
                         {
@@ -112,8 +112,10 @@ namespace ForwardChanges.RecordHandlers.Abstracts
                 {
                     var originalValue = handler.GetValue(originalContext.Record);
                     var winningValue = handler.GetValue(winningContext.Record);
-                    Console.WriteLine($"[{propName}] Original: {handler.FormatValue(originalValue)}, Winning: {handler.FormatValue(winningValue)}");
+                    LogCollector.Add(propName, $"[{propName}] Original: {handler.FormatValue(originalValue)}, Winning: {handler.FormatValue(winningValue)}");
                 }
+                LogCollector.PrintAll();
+                LogCollector.Clear();
 
                 // Pass 1: Process from original to winning (for lists and unresolved properties)
                 // Pass 1 is required for lists and flags
@@ -129,6 +131,12 @@ namespace ForwardChanges.RecordHandlers.Abstracts
                     // iterate from original to winning
                     foreach (var context in recordContexts.Reverse().Skip(1))
                     {
+                        // bugfix, skip if context is output mod
+                        if (context.ModKey.ToString() == state.PatchMod.ModKey.ToString())
+                        {
+                            continue;
+                        }
+
                         // Update the property contexts, skip if resolved
                         foreach (var (propName, handler) in PropertyHandlers)
                         {
@@ -142,9 +150,6 @@ namespace ForwardChanges.RecordHandlers.Abstracts
                         }
                     }
 
-                    LogCollector.PrintAll();
-                    LogCollector.Clear();
-
                     // Process properties after pass 1. Every property should be resolved after pass 1
                     foreach (var (propName, handler) in PropertyHandlers)
                     {
@@ -152,8 +157,10 @@ namespace ForwardChanges.RecordHandlers.Abstracts
 
                         // Mark as resolved if it is processed in pass 1
                         propContext.IsResolved = true;
-                        Console.WriteLine($"[{propName}] {winningContext.ModKey}: Marked as resolved after pass 1");
+                        LogCollector.Add(propName, $"[{propName}] {winningContext.ModKey}: Marked as resolved after pass 1");
                     }
+                    LogCollector.PrintAll();
+                    LogCollector.Clear();
                     Console.WriteLine("First pass complete");
                 }
 
@@ -185,6 +192,12 @@ namespace ForwardChanges.RecordHandlers.Abstracts
                             break;
                         }
 
+                        // bugfix, skip if context is output mod
+                        if (context.ModKey.ToString() == state.PatchMod.ModKey.ToString())
+                        {
+                            continue;
+                        }
+
                         foreach (var (propName, handler) in PropertyHandlers)
                         {
                             // if the property is resolved, skip it
@@ -212,6 +225,12 @@ namespace ForwardChanges.RecordHandlers.Abstracts
                                 // Iterate back towards winning
                                 for (int i = currentIndex - 1; i >= 0; i--)
                                 {
+                                    // bugfix, skip if context is output mod
+                                    if (recordContexts[i].ModKey.ToString() == state.PatchMod.ModKey.ToString())
+                                    {
+                                        continue;
+                                    }
+
                                     handler.UpdatePropertyContext(recordContexts[i], state, propertyContext);
                                 }
 
@@ -220,15 +239,14 @@ namespace ForwardChanges.RecordHandlers.Abstracts
                             }
                         }
                     }
-                    LogCollector.Add("Second pass", "Second pass complete");
+                    LogCollector.PrintAll();
+                    LogCollector.Clear();
+                    Console.WriteLine("Second pass complete");
                 }
                 else
                 {
-                    LogCollector.Add("Second pass", "Skipping second pass: All properties resolved");
+                    Console.WriteLine("Skipping second pass: All properties resolved");
                 }
-                LogCollector.PrintAll();
-                LogCollector.Clear();
-
 
                 // Forward changes to the patcher
                 var propertiesToForward = PropertyContexts
@@ -238,13 +256,23 @@ namespace ForwardChanges.RecordHandlers.Abstracts
                         var handler = PropertyHandlers[kvp.Key];
                         if (propertyContext == null || handler == null) return false;
 
+                        var originalValue = handler.GetValue(originalContext.Record);
                         var winningValue = handler.GetValue(winningContext.Record);
-                        Console.WriteLine($"[{kvp.Key}] Winning value: {handler.FormatValue(winningValue)}");
-
-                        // Get the forward value from the property context
                         var forwardValue = propertyContext.GetForwardValue();
 
-                        return !handler.AreValuesEqual(forwardValue, winningValue);
+                        // DEBUG: Show all values for comparison
+                        LogCollector.Add(kvp.Key, $"[{kvp.Key}] Final Decision:");
+                        LogCollector.Add(kvp.Key, $"[{kvp.Key}]   Original value: {handler.FormatValue(originalValue)}");
+                        LogCollector.Add(kvp.Key, $"[{kvp.Key}]   Winning value: {handler.FormatValue(winningValue)}");
+                        LogCollector.Add(kvp.Key, $"[{kvp.Key}]   Forward value: {handler.FormatValue(forwardValue)}");
+
+                        var shouldForward = !handler.AreValuesEqual(forwardValue, winningValue);
+                        LogCollector.Add(kvp.Key, $"[{kvp.Key}]   Decision: {(shouldForward ? "Forward changes (different)" : "No changes (same)")}");
+
+                        LogCollector.PrintAll();
+                        LogCollector.Clear();
+
+                        return shouldForward;
                     })
                     .ToDictionary(kvp => kvp.Key, kvp =>
                     {

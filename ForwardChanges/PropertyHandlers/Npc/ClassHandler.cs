@@ -7,47 +7,25 @@ using Mutagen.Bethesda.Plugins;
 
 namespace ForwardChanges.PropertyHandlers.Npc
 {
-    public class ClassHandler : AbstractPropertyHandler<IFormLinkGetter<IClassGetter>>
+    public class ClassHandler : AbstractFormLinkPropertyHandler<INpc, INpcGetter, IClassGetter>
     {
         public override string PropertyName => "Class";
 
-        public override void SetValue(IMajorRecord record, IFormLinkGetter<IClassGetter>? value)
+        protected override IFormLinkNullableGetter<IClassGetter>? GetFormLinkValue(INpcGetter record)
         {
-            if (record is INpc npc)
+            return record.Class as IFormLinkNullableGetter<IClassGetter>;
+        }
+
+        protected override void SetFormLinkValue(INpc record, IFormLinkNullableGetter<IClassGetter>? value)
+        {
+            if (value != null && !value.FormKey.IsNull)
             {
-                if (value != null && !value.FormKey.IsNull)
-                {
-                    npc.Class = new FormLinkNullable<IClassGetter>(value.FormKey);
-                }
-                else
-                {
-                    npc.Class.Clear();
-                }
+                record.Class = new FormLinkNullable<IClassGetter>(value.FormKey);
             }
             else
             {
-                Console.WriteLine($"Error: Record is not an NPC for {PropertyName}");
+                record.Class.Clear();
             }
-        }
-
-        public override IFormLinkGetter<IClassGetter>? GetValue(IMajorRecordGetter record)
-        {
-            if (record is INpcGetter npc)
-            {
-                return npc.Class;
-            }
-            else
-            {
-                Console.WriteLine($"Error: Record is not an NPC for {PropertyName}");
-            }
-            return null;
-        }
-
-        public override bool AreValuesEqual(IFormLinkGetter<IClassGetter>? value1, IFormLinkGetter<IClassGetter>? value2)
-        {
-            if (value1 == null && value2 == null) return true;
-            if (value1 == null || value2 == null) return false;
-            return value1.FormKey.Equals(value2.FormKey);
         }
     }
 }

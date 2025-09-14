@@ -12,35 +12,24 @@ namespace ForwardChanges.PropertyHandlers.ObjectEffect
 
         public override void SetValue(IMajorRecord record, Mutagen.Bethesda.Skyrim.ObjectEffect.EnchantTypeEnum? value)
         {
-            if (record is IObjectEffect objectEffectRecord)
+            var objectEffectRecord = TryCastRecord<IObjectEffect>(record, PropertyName);
+            if (objectEffectRecord != null)
             {
                 objectEffectRecord.EnchantType = value ?? Mutagen.Bethesda.Skyrim.ObjectEffect.EnchantTypeEnum.Enchantment;
-            }
-            else
-            {
-                Console.WriteLine($"Error: Record does not implement IObjectEffect for {PropertyName}");
             }
         }
 
         public override Mutagen.Bethesda.Skyrim.ObjectEffect.EnchantTypeEnum? GetValue(IMajorRecordGetter record)
         {
-            if (record is IObjectEffectGetter objectEffectRecord)
+            var objectEffectRecord = TryCastRecord<IObjectEffectGetter>(record, PropertyName);
+            if (objectEffectRecord != null)
             {
                 return objectEffectRecord.EnchantType;
-            }
-            else
-            {
-                Console.WriteLine($"Error: Record does not implement IObjectEffectGetter for {PropertyName}");
             }
             return null;
         }
 
-        public override bool AreValuesEqual(Mutagen.Bethesda.Skyrim.ObjectEffect.EnchantTypeEnum? value1, Mutagen.Bethesda.Skyrim.ObjectEffect.EnchantTypeEnum? value2)
-        {
-            if (value1 == null && value2 == null) return true;
-            if (value1 == null || value2 == null) return false;
-            return value1.Value == value2.Value;
-        }
+
     }
 }
 

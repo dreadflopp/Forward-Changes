@@ -54,5 +54,16 @@ namespace ForwardChanges.PropertyHandlers.Book
             // Compare the string values
             return value1.String == value2.String;
         }
+
+        public override string FormatValue(object? value)
+        {
+            if (value is not ITranslatedStringGetter translatedString)
+            {
+                return value?.ToString() ?? "null";
+            }
+
+            var text = translatedString.String ?? "null";
+            return text.Length > 50 ? $"{text.Substring(0, 50)}..." : text;
+        }
     }
 }

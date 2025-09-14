@@ -7,31 +7,18 @@ using ForwardChanges.PropertyHandlers.Interfaces;
 
 namespace ForwardChanges.PropertyHandlers.Faction
 {
-    public class VendorBuySellHandler : AbstractPropertyHandler<IFormLinkNullable<IFormListGetter>>
+    public class VendorBuySellHandler : AbstractFormLinkPropertyHandler<IFaction, IFactionGetter, IFormListGetter>
     {
         public override string PropertyName => "VendorBuySellList";
 
-        public override IFormLinkNullable<IFormListGetter>? GetValue(IMajorRecordGetter record)
+        protected override IFormLinkNullableGetter<IFormListGetter>? GetFormLinkValue(IFactionGetter record)
         {
-            if (record is IFactionGetter factionRecord)
-            {
-                return factionRecord.VendorBuySellList as IFormLinkNullable<IFormListGetter>;
-            }
-
-            Console.WriteLine($"Error: Record does not implement IFactionGetter for {PropertyName}");
-            return null;
+            return record.VendorBuySellList as IFormLinkNullableGetter<IFormListGetter>;
         }
 
-        public override void SetValue(IMajorRecord record, IFormLinkNullable<IFormListGetter>? value)
+        protected override void SetFormLinkValue(IFaction record, IFormLinkNullableGetter<IFormListGetter>? value)
         {
-            if (record is IFaction factionRecord)
-            {
-                factionRecord.VendorBuySellList = value ?? new FormLinkNullable<IFormListGetter>();
-            }
-            else
-            {
-                Console.WriteLine($"Error: Record does not implement IFaction for {PropertyName}");
-            }
+            record.VendorBuySellList = value != null ? new FormLinkNullable<IFormListGetter>(value.FormKey) : new FormLinkNullable<IFormListGetter>();
         }
     }
 }

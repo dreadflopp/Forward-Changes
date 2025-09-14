@@ -7,34 +7,19 @@ using ForwardChanges.PropertyHandlers.Interfaces;
 
 namespace ForwardChanges.PropertyHandlers.PlacedObject
 {
-    public class ImageSpaceHandler : AbstractPropertyHandler<IFormLinkNullable<IImageSpaceGetter>>
+    public class ImageSpaceHandler : AbstractFormLinkPropertyHandler<IPlacedObject, IPlacedObjectGetter, IImageSpaceGetter>
     {
         public override string PropertyName => "ImageSpace";
 
-        public override IFormLinkNullable<IImageSpaceGetter>? GetValue(IMajorRecordGetter record)
+        protected override IFormLinkNullableGetter<IImageSpaceGetter>? GetFormLinkValue(IPlacedObjectGetter record)
         {
-            if (record is IPlacedObjectGetter placedObjectRecord)
-            {
-                return placedObjectRecord.ImageSpace as IFormLinkNullable<IImageSpaceGetter>;
-            }
-
-            Console.WriteLine($"Error: Record does not implement IPlacedObjectGetter for {PropertyName}");
-            return null;
+            return record.ImageSpace as IFormLinkNullableGetter<IImageSpaceGetter>;
         }
 
-        public override void SetValue(IMajorRecord record, IFormLinkNullable<IImageSpaceGetter>? value)
+        protected override void SetFormLinkValue(IPlacedObject record, IFormLinkNullableGetter<IImageSpaceGetter>? value)
         {
-            if (record is IPlacedObject placedObjectRecord)
-            {
-                placedObjectRecord.ImageSpace = value ?? new FormLinkNullable<IImageSpaceGetter>();
-            }
-            else
-            {
-                Console.WriteLine($"Error: Record does not implement IPlacedObject for {PropertyName}");
-            }
+            record.ImageSpace = value != null ? new FormLinkNullable<IImageSpaceGetter>(value.FormKey) : new FormLinkNullable<IImageSpaceGetter>();
         }
-
-
     }
 }
 

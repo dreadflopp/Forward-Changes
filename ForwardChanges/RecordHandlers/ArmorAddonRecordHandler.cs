@@ -16,10 +16,24 @@ namespace ForwardChanges.RecordHandlers
         public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()
         {
             { "EditorID", new EditorIDHandler() },
+            { "SkyrimMajorRecordFlags", new SkyrimMajorRecordFlagsHandler() },
             { "WeightSliderEnabled", new WeightSliderEnabledHandler() },
             { "WorldModel", new WorldModelHandler() },
             { "FirstPersonModel", new FirstPersonModelHandler() },
-            { "AdditionalRaces", new AdditionalRacesHandler() }
+            { "AdditionalRaces", new AdditionalRacesHandler() },
+            { "BodyTemplateFlags", new BodyTemplateFlagsHandler() },
+            { "BodyTemplateArmorType", new BodyTemplateArmorTypeHandler() },
+            { "BodyTemplateFirstPersonFlags", new BodyTemplateFirstPersonFlagsHandler() },
+            { "Priority", new PriorityHandler() },
+            { "Unknown", new UnknownHandler() },
+            { "DetectionSoundValue", new DetectionSoundValueHandler() },
+            { "Unknown2", new Unknown2Handler() },
+            { "WeaponAdjust", new WeaponAdjustHandler() },
+            { "Race", new RaceHandler() },
+            { "FootstepSound", new FootstepSoundHandler() },
+            { "ArtObject", new ArtObjectHandler() },
+            { "SkinTexture", new SkinTextureHandler() },
+            { "TextureSwapList", new TextureSwapListHandler() }
         };
 
         public override IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter>[] GetRecordContexts(
@@ -54,10 +68,7 @@ namespace ForwardChanges.RecordHandlers
                     try
                     {
                         Console.WriteLine($"[{propertyName}] Applying value: {handler.FormatValue(value)}, Type: {value?.GetType()}");
-                        if (value != null)
-                        {
-                            handler.SetValue(record, value);
-                        }
+                        handler.SetValue(record, value);
                     }
                     catch (Exception ex)
                     {

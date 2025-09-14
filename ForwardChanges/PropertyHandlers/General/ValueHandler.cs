@@ -36,11 +36,6 @@ namespace ForwardChanges.PropertyHandlers.General
             return null;
         }
 
-        public override bool AreValuesEqual(uint? value1, uint? value2)
-        {
-            if (value1 == null && value2 == null) return true;
-            if (value1 == null || value2 == null) return false;
-            return value1.Value == value2.Value;
-        }
+
     }
 }

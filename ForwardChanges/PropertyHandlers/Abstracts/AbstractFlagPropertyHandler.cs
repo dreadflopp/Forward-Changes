@@ -10,10 +10,10 @@ using ForwardChanges.Contexts.Interfaces;
 
 namespace ForwardChanges.PropertyHandlers.Abstracts
 {
-    public abstract class  AbstractFlagPropertyHandler<TFlag> : IPropertyHandler<TFlag> where TFlag : struct, Enum
+    public abstract class AbstractFlagPropertyHandler<TFlag> : IPropertyHandler<TFlag> where TFlag : struct, Enum
     {
         public abstract string PropertyName { get; }
-        public bool RequiresFullLoadOrderProcessing => false;
+        public bool RequiresFullLoadOrderProcessing => true;
 
         public abstract void SetValue(IMajorRecord record, TFlag value);
         public abstract TFlag GetValue(IMajorRecordGetter record);
@@ -58,6 +58,27 @@ namespace ForwardChanges.PropertyHandlers.Abstracts
             }
 
             return true;
+        }
+
+        // Helper methods to reduce boilerplate
+        protected static TRecord? TryCastRecord<TRecord>(IMajorRecordGetter record, string propertyName) where TRecord : class
+        {
+            if (record is TRecord typedRecord)
+            {
+                return typedRecord;
+            }
+            Console.WriteLine($"Error: Record does not implement {typeof(TRecord).Name} for {propertyName}");
+            return null;
+        }
+
+        protected static TRecord? TryCastRecord<TRecord>(IMajorRecord record, string propertyName) where TRecord : class
+        {
+            if (record is TRecord typedRecord)
+            {
+                return typedRecord;
+            }
+            Console.WriteLine($"Error: Record does not implement {typeof(TRecord).Name} for {propertyName}");
+            return null;
         }
 
         public virtual void UpdatePropertyContext(

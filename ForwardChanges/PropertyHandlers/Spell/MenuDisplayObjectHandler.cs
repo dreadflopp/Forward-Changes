@@ -7,47 +7,25 @@ using ForwardChanges.PropertyHandlers.Interfaces;
 
 namespace ForwardChanges.PropertyHandlers.Spell
 {
-    public class MenuDisplayObjectHandler : AbstractPropertyHandler<IFormLinkNullableGetter<IStaticGetter>>
+    public class MenuDisplayObjectHandler : AbstractFormLinkPropertyHandler<ISpell, ISpellGetter, IStaticGetter>
     {
         public override string PropertyName => "MenuDisplayObject";
 
-        public override void SetValue(IMajorRecord record, IFormLinkNullableGetter<IStaticGetter>? value)
+        protected override IFormLinkNullableGetter<IStaticGetter>? GetFormLinkValue(ISpellGetter record)
         {
-            if (record is ISpell spell)
+            return record.MenuDisplayObject;
+        }
+
+        protected override void SetFormLinkValue(ISpell record, IFormLinkNullableGetter<IStaticGetter>? value)
+        {
+            if (value != null && !value.FormKey.IsNull)
             {
-                if (value != null && !value.FormKey.IsNull)
-                {
-                    spell.MenuDisplayObject = new FormLinkNullable<IStaticGetter>(value.FormKey);
-                }
-                else
-                {
-                    spell.MenuDisplayObject.Clear();
-                }
+                record.MenuDisplayObject = new FormLinkNullable<IStaticGetter>(value.FormKey);
             }
             else
             {
-                Console.WriteLine($"Error: Record is not a Spell for {PropertyName}");
+                record.MenuDisplayObject.Clear();
             }
-        }
-
-        public override IFormLinkNullableGetter<IStaticGetter>? GetValue(IMajorRecordGetter record)
-        {
-            if (record is ISpellGetter spell)
-            {
-                return spell.MenuDisplayObject;
-            }
-            else
-            {
-                Console.WriteLine($"Error: Record is not a Spell for {PropertyName}");
-            }
-            return null;
-        }
-
-        public override bool AreValuesEqual(IFormLinkNullableGetter<IStaticGetter>? value1, IFormLinkNullableGetter<IStaticGetter>? value2)
-        {
-            if (value1 == null && value2 == null) return true;
-            if (value1 == null || value2 == null) return false;
-            return value1.FormKey.Equals(value2.FormKey);
         }
     }
 }

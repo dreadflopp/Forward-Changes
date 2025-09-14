@@ -7,47 +7,25 @@ using Mutagen.Bethesda.Plugins;
 
 namespace ForwardChanges.PropertyHandlers.Npc
 {
-    public class CombatOverridePackageListHandler : AbstractPropertyHandler<IFormLinkNullableGetter<IFormListGetter>>
+    public class CombatOverridePackageListHandler : AbstractFormLinkPropertyHandler<INpc, INpcGetter, IFormListGetter>
     {
         public override string PropertyName => "CombatOverridePackageList";
 
-        public override void SetValue(IMajorRecord record, IFormLinkNullableGetter<IFormListGetter>? value)
+        protected override IFormLinkNullableGetter<IFormListGetter>? GetFormLinkValue(INpcGetter record)
         {
-            if (record is INpc npc)
+            return record.CombatOverridePackageList;
+        }
+
+        protected override void SetFormLinkValue(INpc record, IFormLinkNullableGetter<IFormListGetter>? value)
+        {
+            if (value != null && !value.FormKey.IsNull)
             {
-                if (value != null && !value.FormKey.IsNull)
-                {
-                    npc.CombatOverridePackageList = new FormLinkNullable<IFormListGetter>(value.FormKey);
-                }
-                else
-                {
-                    npc.CombatOverridePackageList.Clear();
-                }
+                record.CombatOverridePackageList = new FormLinkNullable<IFormListGetter>(value.FormKey);
             }
             else
             {
-                Console.WriteLine($"Error: Record is not an NPC for {PropertyName}");
+                record.CombatOverridePackageList.Clear();
             }
-        }
-
-        public override IFormLinkNullableGetter<IFormListGetter>? GetValue(IMajorRecordGetter record)
-        {
-            if (record is INpcGetter npc)
-            {
-                return npc.CombatOverridePackageList;
-            }
-            else
-            {
-                Console.WriteLine($"Error: Record is not an NPC for {PropertyName}");
-            }
-            return null;
-        }
-
-        public override bool AreValuesEqual(IFormLinkNullableGetter<IFormListGetter>? value1, IFormLinkNullableGetter<IFormListGetter>? value2)
-        {
-            if (value1 == null && value2 == null) return true;
-            if (value1 == null || value2 == null) return false;
-            return value1.FormKey.Equals(value2.FormKey);
         }
     }
 }
