@@ -42,7 +42,7 @@ namespace ForwardChanges.PropertyHandlers.DialogTopic
 
         protected override bool IsFlagSet(Mutagen.Bethesda.Skyrim.DialogTopic.TopicFlag flags, Mutagen.Bethesda.Skyrim.DialogTopic.TopicFlag flag)
         {
-            return flags.HasFlag(flag);
+            return (flags & flag) == flag;
         }
 
         protected override Mutagen.Bethesda.Skyrim.DialogTopic.TopicFlag SetFlag(Mutagen.Bethesda.Skyrim.DialogTopic.TopicFlag flags, Mutagen.Bethesda.Skyrim.DialogTopic.TopicFlag flag, bool value)

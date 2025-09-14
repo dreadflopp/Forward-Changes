@@ -34,7 +34,7 @@ namespace ForwardChanges.PropertyHandlers.Light
 
         protected override bool IsFlagSet(Mutagen.Bethesda.Skyrim.Light.MajorFlag flags, Mutagen.Bethesda.Skyrim.Light.MajorFlag flag)
         {
-            return flags.HasFlag(flag);
+            return (flags & flag) == flag;
         }
 
         protected override Mutagen.Bethesda.Skyrim.Light.MajorFlag SetFlag(Mutagen.Bethesda.Skyrim.Light.MajorFlag flags, Mutagen.Bethesda.Skyrim.Light.MajorFlag flag, bool value)

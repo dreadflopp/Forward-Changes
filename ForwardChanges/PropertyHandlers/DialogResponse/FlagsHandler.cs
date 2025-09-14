@@ -48,7 +48,7 @@ namespace ForwardChanges.PropertyHandlers.DialogResponse
 
         protected override bool IsFlagSet(DialogResponses.Flag flags, DialogResponses.Flag flag)
         {
-            return flags.HasFlag(flag);
+            return (flags & flag) == flag;
         }
 
         protected override DialogResponses.Flag SetFlag(DialogResponses.Flag flags, DialogResponses.Flag flag, bool value)

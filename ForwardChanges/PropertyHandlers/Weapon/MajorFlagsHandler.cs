@@ -33,7 +33,7 @@ namespace ForwardChanges.PropertyHandlers.Weapon
 
         protected override bool IsFlagSet(Mutagen.Bethesda.Skyrim.Weapon.MajorFlag flags, Mutagen.Bethesda.Skyrim.Weapon.MajorFlag flag)
         {
-            return flags.HasFlag(flag);
+            return (flags & flag) == flag;
         }
 
         protected override Mutagen.Bethesda.Skyrim.Weapon.MajorFlag SetFlag(Mutagen.Bethesda.Skyrim.Weapon.MajorFlag flags, Mutagen.Bethesda.Skyrim.Weapon.MajorFlag flag, bool value)

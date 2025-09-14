@@ -40,7 +40,7 @@ namespace ForwardChanges.PropertyHandlers.Ingestible
 
         protected override bool IsFlagSet(Mutagen.Bethesda.Skyrim.Ingestible.MajorFlag flags, Mutagen.Bethesda.Skyrim.Ingestible.MajorFlag flag)
         {
-            return flags.HasFlag(flag);
+            return (flags & flag) == flag;
         }
 
         protected override Mutagen.Bethesda.Skyrim.Ingestible.MajorFlag SetFlag(Mutagen.Bethesda.Skyrim.Ingestible.MajorFlag flags, Mutagen.Bethesda.Skyrim.Ingestible.MajorFlag flag, bool value)

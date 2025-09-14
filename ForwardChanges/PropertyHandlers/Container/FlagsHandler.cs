@@ -34,7 +34,7 @@ namespace ForwardChanges.PropertyHandlers.Container
 
         protected override bool IsFlagSet(Mutagen.Bethesda.Skyrim.Container.Flag flags, Mutagen.Bethesda.Skyrim.Container.Flag flag)
         {
-            return flags.HasFlag(flag);
+            return (flags & flag) == flag;
         }
 
         protected override Mutagen.Bethesda.Skyrim.Container.Flag SetFlag(Mutagen.Bethesda.Skyrim.Container.Flag flags, Mutagen.Bethesda.Skyrim.Container.Flag flag, bool value)

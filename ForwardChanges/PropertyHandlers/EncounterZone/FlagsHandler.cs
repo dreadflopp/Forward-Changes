@@ -32,7 +32,7 @@ namespace ForwardChanges.PropertyHandlers.EncounterZone
 
         protected override bool IsFlagSet(Mutagen.Bethesda.Skyrim.EncounterZone.Flag flags, Mutagen.Bethesda.Skyrim.EncounterZone.Flag flag)
         {
-            return flags.HasFlag(flag);
+            return (flags & flag) == flag;
         }
 
         protected override Mutagen.Bethesda.Skyrim.EncounterZone.Flag SetFlag(Mutagen.Bethesda.Skyrim.EncounterZone.Flag flags, Mutagen.Bethesda.Skyrim.EncounterZone.Flag flag, bool value)

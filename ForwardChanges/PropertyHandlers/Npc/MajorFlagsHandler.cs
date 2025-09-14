@@ -40,7 +40,7 @@ namespace ForwardChanges.PropertyHandlers.Npc
 
         protected override bool IsFlagSet(Mutagen.Bethesda.Skyrim.Npc.MajorFlag flags, Mutagen.Bethesda.Skyrim.Npc.MajorFlag flag)
         {
-            return flags.HasFlag(flag);
+            return (flags & flag) == flag;
         }
 
         protected override Mutagen.Bethesda.Skyrim.Npc.MajorFlag SetFlag(Mutagen.Bethesda.Skyrim.Npc.MajorFlag flags, Mutagen.Bethesda.Skyrim.Npc.MajorFlag flag, bool value)

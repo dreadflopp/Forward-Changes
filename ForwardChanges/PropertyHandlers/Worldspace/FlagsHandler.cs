@@ -36,7 +36,7 @@ namespace ForwardChanges.PropertyHandlers.Worldspace
 
         protected override bool IsFlagSet(Mutagen.Bethesda.Skyrim.Worldspace.Flag flags, Mutagen.Bethesda.Skyrim.Worldspace.Flag flag)
         {
-            return flags.HasFlag(flag);
+            return (flags & flag) == flag;
         }
 
         protected override Mutagen.Bethesda.Skyrim.Worldspace.Flag SetFlag(Mutagen.Bethesda.Skyrim.Worldspace.Flag flags, Mutagen.Bethesda.Skyrim.Worldspace.Flag flag, bool set)

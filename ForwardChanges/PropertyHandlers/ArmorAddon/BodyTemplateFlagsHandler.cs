@@ -34,7 +34,7 @@ namespace ForwardChanges.PropertyHandlers.ArmorAddon
 
         protected override bool IsFlagSet(BodyTemplate.Flag flags, BodyTemplate.Flag flag)
         {
-            return flags.HasFlag(flag);
+            return (flags & flag) == flag;
         }
 
         protected override BodyTemplate.Flag SetFlag(BodyTemplate.Flag flags, BodyTemplate.Flag flag, bool value)

@@ -36,7 +36,7 @@ namespace ForwardChanges.PropertyHandlers.PlacedObject
 
         protected override bool IsFlagSet(Mutagen.Bethesda.Skyrim.PlacedObject.ActionFlag flags, Mutagen.Bethesda.Skyrim.PlacedObject.ActionFlag flag)
         {
-            return flags.HasFlag(flag);
+            return (flags & flag) == flag;
         }
 
         protected override Mutagen.Bethesda.Skyrim.PlacedObject.ActionFlag SetFlag(Mutagen.Bethesda.Skyrim.PlacedObject.ActionFlag flags, Mutagen.Bethesda.Skyrim.PlacedObject.ActionFlag flag, bool value)

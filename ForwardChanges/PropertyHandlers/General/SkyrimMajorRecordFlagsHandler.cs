@@ -40,7 +40,7 @@ namespace ForwardChanges.PropertyHandlers.General
 
         protected override bool IsFlagSet(Mutagen.Bethesda.Skyrim.SkyrimMajorRecord.SkyrimMajorRecordFlag flags, Mutagen.Bethesda.Skyrim.SkyrimMajorRecord.SkyrimMajorRecordFlag flag)
         {
-            return flags.HasFlag(flag);
+            return (flags & flag) == flag;
         }
 
         protected override Mutagen.Bethesda.Skyrim.SkyrimMajorRecord.SkyrimMajorRecordFlag SetFlag(Mutagen.Bethesda.Skyrim.SkyrimMajorRecord.SkyrimMajorRecordFlag flags, Mutagen.Bethesda.Skyrim.SkyrimMajorRecord.SkyrimMajorRecordFlag flag, bool value)

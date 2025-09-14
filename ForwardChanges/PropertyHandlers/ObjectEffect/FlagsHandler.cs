@@ -42,7 +42,7 @@ namespace ForwardChanges.PropertyHandlers.ObjectEffect
 
         protected override bool IsFlagSet(Mutagen.Bethesda.Skyrim.ObjectEffect.Flag flags, Mutagen.Bethesda.Skyrim.ObjectEffect.Flag flag)
         {
-            return flags.HasFlag(flag);
+            return (flags & flag) == flag;
         }
 
         protected override Mutagen.Bethesda.Skyrim.ObjectEffect.Flag SetFlag(Mutagen.Bethesda.Skyrim.ObjectEffect.Flag flags, Mutagen.Bethesda.Skyrim.ObjectEffect.Flag flag, bool value)

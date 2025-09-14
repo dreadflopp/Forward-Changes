@@ -40,7 +40,7 @@ namespace ForwardChanges.PropertyHandlers.Activator
 
         protected override bool IsFlagSet(Mutagen.Bethesda.Skyrim.Activator.MajorFlag flags, Mutagen.Bethesda.Skyrim.Activator.MajorFlag flag)
         {
-            return flags.HasFlag(flag);
+            return (flags & flag) == flag;
         }
 
         protected override Mutagen.Bethesda.Skyrim.Activator.MajorFlag SetFlag(Mutagen.Bethesda.Skyrim.Activator.MajorFlag flags, Mutagen.Bethesda.Skyrim.Activator.MajorFlag flag, bool value)

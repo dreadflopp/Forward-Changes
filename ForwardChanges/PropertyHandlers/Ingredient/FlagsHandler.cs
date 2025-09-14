@@ -41,7 +41,7 @@ namespace ForwardChanges.PropertyHandlers.Ingredient
 
         protected override bool IsFlagSet(Mutagen.Bethesda.Skyrim.Ingredient.Flag flags, Mutagen.Bethesda.Skyrim.Ingredient.Flag flag)
         {
-            return flags.HasFlag(flag);
+            return (flags & flag) == flag;
         }
 
         protected override Mutagen.Bethesda.Skyrim.Ingredient.Flag SetFlag(Mutagen.Bethesda.Skyrim.Ingredient.Flag flags, Mutagen.Bethesda.Skyrim.Ingredient.Flag flag, bool value)

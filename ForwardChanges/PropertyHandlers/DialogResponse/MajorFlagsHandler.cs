@@ -40,7 +40,7 @@ namespace ForwardChanges.PropertyHandlers.DialogResponse
 
         protected override bool IsFlagSet(Mutagen.Bethesda.Skyrim.DialogResponses.MajorFlag flags, Mutagen.Bethesda.Skyrim.DialogResponses.MajorFlag flag)
         {
-            return flags.HasFlag(flag);
+            return (flags & flag) == flag;
         }
 
         protected override Mutagen.Bethesda.Skyrim.DialogResponses.MajorFlag SetFlag(Mutagen.Bethesda.Skyrim.DialogResponses.MajorFlag flags, Mutagen.Bethesda.Skyrim.DialogResponses.MajorFlag flag, bool value)

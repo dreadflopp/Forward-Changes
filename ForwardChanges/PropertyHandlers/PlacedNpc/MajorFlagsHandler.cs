@@ -33,7 +33,7 @@ namespace ForwardChanges.PropertyHandlers.PlacedNpc
 
         protected override bool IsFlagSet(Mutagen.Bethesda.Skyrim.PlacedNpc.MajorFlag flags, Mutagen.Bethesda.Skyrim.PlacedNpc.MajorFlag flag)
         {
-            return flags.HasFlag(flag);
+            return (flags & flag) == flag;
         }
 
         protected override Mutagen.Bethesda.Skyrim.PlacedNpc.MajorFlag SetFlag(Mutagen.Bethesda.Skyrim.PlacedNpc.MajorFlag flags, Mutagen.Bethesda.Skyrim.PlacedNpc.MajorFlag flag, bool value)

@@ -40,7 +40,7 @@ namespace ForwardChanges.PropertyHandlers.Cell
 
         protected override bool IsFlagSet(Mutagen.Bethesda.Skyrim.Cell.MajorFlag flags, Mutagen.Bethesda.Skyrim.Cell.MajorFlag flag)
         {
-            return flags.HasFlag(flag);
+            return (flags & flag) == flag;
         }
 
         protected override Mutagen.Bethesda.Skyrim.Cell.MajorFlag SetFlag(Mutagen.Bethesda.Skyrim.Cell.MajorFlag flags, Mutagen.Bethesda.Skyrim.Cell.MajorFlag flag, bool value)
