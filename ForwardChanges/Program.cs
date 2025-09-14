@@ -40,7 +40,8 @@ namespace ForwardChanges
                 typeof(IFactionGetter),
                 typeof(IEncounterZoneGetter),
                 typeof(IActivatorGetter),
-                typeof(ILightGetter)
+                typeof(ILightGetter),
+                typeof(IMagicEffectGetter)
             };
 
         /// <summary>
@@ -138,6 +139,7 @@ namespace ForwardChanges
             var encounterZoneContexts = state.LoadOrder.PriorityOrder.WinningContextOverrides<ISkyrimMod, ISkyrimModGetter, IEncounterZone, IEncounterZoneGetter>(state.LinkCache).ToArray();
             var activatorContexts = state.LoadOrder.PriorityOrder.WinningContextOverrides<ISkyrimMod, ISkyrimModGetter, IActivator, IActivatorGetter>(state.LinkCache).ToArray();
             var lightContexts = state.LoadOrder.PriorityOrder.WinningContextOverrides<ISkyrimMod, ISkyrimModGetter, ILight, ILightGetter>(state.LinkCache).ToArray();
+            var magicEffectContexts = state.LoadOrder.PriorityOrder.WinningContextOverrides<ISkyrimMod, ISkyrimModGetter, IMagicEffect, IMagicEffectGetter>(state.LinkCache).ToArray();
 
             // Filter out contexts that would break early
             Console.WriteLine("Filtering contexts (this may take a while)...");
@@ -210,6 +212,9 @@ namespace ForwardChanges
             Console.WriteLine("Filtering Lights...");
             var filteredLightContexts = lightContexts.Where(context => !ShouldBreakEarly(context, state)).ToArray();
             Console.WriteLine($"Light contexts: {lightContexts.Length} -> {filteredLightContexts.Length} (filtered: {lightContexts.Length - filteredLightContexts.Length})");
+            Console.WriteLine("Filtering Magic Effects...");
+            var filteredMagicEffectContexts = magicEffectContexts.Where(context => !ShouldBreakEarly(context, state)).ToArray();
+            Console.WriteLine($"Magic Effect contexts: {magicEffectContexts.Length} -> {filteredMagicEffectContexts.Length} (filtered: {magicEffectContexts.Length - filteredMagicEffectContexts.Length})");
 
 
             Console.WriteLine();
@@ -315,6 +320,10 @@ namespace ForwardChanges
                         case Type t when t == typeof(ILightGetter):
                             var lightHandler = new LightRecordHandler();
                             lightHandler.Process(state, filteredLightContexts);
+                            break;
+                        case Type t when t == typeof(IMagicEffectGetter):
+                            var magicEffectHandler = new MagicEffectRecordHandler();
+                            magicEffectHandler.Process(state, filteredMagicEffectContexts);
                             break;
                         default:
                             Console.WriteLine($"Warning: No handler implemented for {recordType.Name}");
