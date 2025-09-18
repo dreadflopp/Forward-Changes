@@ -21,23 +21,25 @@ namespace ForwardChanges.PropertyHandlers.MagicEffect
 
         protected override void UpdateConditionsCollection(IMagicEffect record, List<IConditionGetter> conditions)
         {
-            // Clear existing conditions
-            record.Conditions.Clear();
-
-            // Add all conditions from the list
-            foreach (var condition in conditions)
+            // Clear the existing conditions and add the new ones
+            if (record.Conditions != null)
             {
-                if (condition == null) continue;
+                record.Conditions.Clear();
+                for (int i = 0; i < conditions.Count; i++)
+                {
+                    var condition = conditions[i];
+                    if (condition == null) continue;
 
-                if (condition is Condition concreteCondition)
-                {
-                    record.Conditions.Add(concreteCondition);
-                }
-                else
-                {
-                    // Convert IConditionGetter to Condition
-                    var newCondition = condition.DeepCopy();
-                    record.Conditions.Add(newCondition);
+                    if (condition is Condition concreteCondition)
+                    {
+                        record.Conditions.Add(concreteCondition);
+                    }
+                    else
+                    {
+                        // Convert IConditionGetter to Condition
+                        var newCondition = condition.DeepCopy();
+                        record.Conditions.Add(newCondition);
+                    }
                 }
             }
         }

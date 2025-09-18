@@ -13,7 +13,6 @@ namespace ForwardChanges.Contexts
         public T Value { get; set; } = item;
         public string OwnerMod { get; set; } = ownerMod;
         public bool IsRemoved { get; set; } = false;
-        public List<string> ItemsBefore { get; set; } = [];
-        public List<string> ItemsAfter { get; set; } = [];
+        public int OrderIndex { get; set; } = 0;  // new: integer order slot; small lists => reindex cheaply
     }
 }

@@ -1,5 +1,6 @@
 using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Plugins.Records;
+using Mutagen.Bethesda.Plugins;
 using ForwardChanges.PropertyHandlers.Abstracts;
 
 namespace ForwardChanges.PropertyHandlers.Abstracts
@@ -9,6 +10,7 @@ namespace ForwardChanges.PropertyHandlers.Abstracts
         where TRecord : class, IMajorRecord
     {
         public override string PropertyName => "Conditions";
+        protected override ListOrdering Ordering => ListOrdering.PreserveModOrder; // Conditions always preserve mod order
 
         public override List<IConditionGetter>? GetValue(IMajorRecordGetter record)
         {
@@ -84,7 +86,10 @@ namespace ForwardChanges.PropertyHandlers.Abstracts
                 var runOnTypeIndex = data.RunOnTypeIndex.ToString();
                 var useAliases = data.UseAliases.ToString();
                 var usePackageData = data.UsePackageData.ToString();
-                var reference = data.Reference.FormKey.ToString();
+                var dataType = data.GetType().Name;
+
+                // Get the reference information using a generic approach that works for all condition data types
+                var (reference, referenceIsNull) = GetConditionReference(data);
 
                 // Check for specific condition data types first
                 if (data is IGetStageDoneConditionDataGetter stageData)
@@ -97,7 +102,7 @@ namespace ForwardChanges.PropertyHandlers.Abstracts
                     if (item is IConditionFloatGetter floatCondition)
                     {
                         var comparisonValue = floatCondition.ComparisonValue.ToString();
-                        return $"{conditionType}(Op:{compareOp}, Flags:{flags}, U2:{unknown2}, Func:{function}, RunOn:{runOnType}, RunOnIdx:{runOnTypeIndex}, Aliases:{useAliases}, PkgData:{usePackageData}, {specificData}, CompVal:{comparisonValue})";
+                        return $"{conditionType}(Op:{compareOp}, Flags:{flags}, U2:{unknown2}, Func:{function}, RunOn:{runOnType}, RunOnIdx:{runOnTypeIndex}, Aliases:{useAliases}, PkgData:{usePackageData}, {specificData}, CompVal:{comparisonValue}, DataType:{dataType})";
                     }
                     else
                     {
@@ -107,16 +112,16 @@ namespace ForwardChanges.PropertyHandlers.Abstracts
                 else if (item is IConditionFloatGetter floatCondition)
                 {
                     var comparisonValue = floatCondition.ComparisonValue.ToString();
-                    return $"{conditionType}(Op:{compareOp}, Flags:{flags}, U2:{unknown2}, Func:{function}, RunOn:{runOnType}, RunOnIdx:{runOnTypeIndex}, Aliases:{useAliases}, PkgData:{usePackageData}, Ref:{reference}, CompVal:{comparisonValue})";
+                    return $"{conditionType}(Op:{compareOp}, Flags:{flags}, U2:{unknown2}, Func:{function}, RunOn:{runOnType}, RunOnIdx:{runOnTypeIndex}, Aliases:{useAliases}, PkgData:{usePackageData}, Ref:{reference}(Null:{referenceIsNull}), CompVal:{comparisonValue}, DataType:{dataType})";
                 }
                 else if (item is IConditionGlobalGetter globalCondition)
                 {
                     var comparisonValue = globalCondition.ComparisonValue.ToString();
-                    return $"{conditionType}(Op:{compareOp}, Flags:{flags}, U2:{unknown2}, Func:{function}, RunOn:{runOnType}, RunOnIdx:{runOnTypeIndex}, Aliases:{useAliases}, PkgData:{usePackageData}, Ref:{reference}, CompVal:{comparisonValue})";
+                    return $"{conditionType}(Op:{compareOp}, Flags:{flags}, U2:{unknown2}, Func:{function}, RunOn:{runOnType}, RunOnIdx:{runOnTypeIndex}, Aliases:{useAliases}, PkgData:{usePackageData}, Ref:{reference}(Null:{referenceIsNull}), CompVal:{comparisonValue}, DataType:{dataType})";
                 }
                 else
                 {
-                    return $"{conditionType}(Op:{compareOp}, Flags:{flags}, U2:{unknown2}, Func:{function}, RunOn:{runOnType}, RunOnIdx:{runOnTypeIndex}, Aliases:{useAliases}, PkgData:{usePackageData}, Ref:{reference})";
+                    return $"{conditionType}(Op:{compareOp}, Flags:{flags}, U2:{unknown2}, Func:{function}, RunOn:{runOnType}, RunOnIdx:{runOnTypeIndex}, Aliases:{useAliases}, PkgData:{usePackageData}, Ref:{reference}(Null:{referenceIsNull}), DataType:{dataType})";
                 }
             }
             catch (Exception ex)
@@ -143,7 +148,7 @@ namespace ForwardChanges.PropertyHandlers.Abstracts
             if (item1.Data.UseAliases != item2.Data.UseAliases) return false;
             if (item1.Data.UsePackageData != item2.Data.UsePackageData) return false;
 
-            // Handle specific condition types
+            // Handle specific condition types that need special comparison logic
             if (item1.Data is IGetStageDoneConditionDataGetter stageData1 && item2.Data is IGetStageDoneConditionDataGetter stageData2)
             {
                 // For GetStageDone conditions, compare quest and stage
@@ -158,11 +163,146 @@ namespace ForwardChanges.PropertyHandlers.Abstracts
             }
             else
             {
-                // For other conditions, compare reference if present
-                if (item1.Data.Reference.FormKey != item2.Data.Reference.FormKey) return false;
+                // For all other condition types, use the generic reference comparison
+                if (!CompareConditionReferences(item1.Data, item2.Data)) return false;
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// Generic method to extract reference information from any condition data type using reflection.
+        /// This handles all 100+ condition data types dynamically without hardcoding each one.
+        /// </summary>
+        private (string reference, bool isNull) GetConditionReference(IConditionDataGetter data)
+        {
+            try
+            {
+                // First, try the generic Reference property from the base ConditionData class
+                var genericReference = data.Reference;
+                if (genericReference != null && !genericReference.FormKey.IsNull)
+                {
+                    return (genericReference.FormKey.ToString(), false);
+                }
+
+                // If the generic Reference is null, try to find reference properties using reflection
+                var dataType = data.GetType();
+                var properties = dataType.GetProperties();
+
+                // Look for properties that might contain reference information
+                // Common patterns: Keyword, Race, Quest, Location, etc.
+                foreach (var prop in properties)
+                {
+                    var propName = prop.Name.ToLowerInvariant();
+
+                    // Skip base class properties and common non-reference properties
+                    if (propName == "reference" || propName == "runontype" || propName == "runontypeindex" ||
+                        propName == "usealiases" || propName == "usepackagedata" || propName == "function" ||
+                        propName.Contains("unused") || propName.Contains("string") || propName.Contains("int"))
+                        continue;
+
+                    try
+                    {
+                        var propValue = prop.GetValue(data);
+                        if (propValue == null) continue;
+
+                        // Try to extract FormKey from the property value
+                        var formKey = ExtractFormKeyFromProperty(propValue);
+                        if (formKey.HasValue && !formKey.Value.IsNull)
+                        {
+                            return (formKey.Value.ToString(), false);
+                        }
+                    }
+                    catch
+                    {
+                        // Continue to next property if this one fails
+                        continue;
+                    }
+                }
+
+                // If no reference found, return null
+                return ("Null", true);
+            }
+            catch
+            {
+                return ("Null", true);
+            }
+        }
+
+        /// <summary>
+        /// Extracts FormKey from a property value, handling various FormLink types.
+        /// </summary>
+        private FormKey? ExtractFormKeyFromProperty(object propValue)
+        {
+            try
+            {
+                // Handle IFormLinkOrIndex types (like Keyword, Race, etc.)
+                if (propValue.GetType().GetInterface("IFormLinkOrIndexGetter`1") != null)
+                {
+                    // Try to get the Link property and then FormKey
+                    var linkProperty = propValue.GetType().GetProperty("Link");
+                    if (linkProperty != null)
+                    {
+                        var link = linkProperty.GetValue(propValue);
+                        if (link != null)
+                        {
+                            var formKeyProperty = link.GetType().GetProperty("FormKey");
+                            if (formKeyProperty != null)
+                            {
+                                var formKeyValue = formKeyProperty.GetValue(link);
+                                if (formKeyValue is FormKey formKey)
+                                {
+                                    return formKey;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Handle direct FormLink types
+                var directFormKeyProperty = propValue.GetType().GetProperty("FormKey");
+                if (directFormKeyProperty != null)
+                {
+                    var formKeyValue = directFormKeyProperty.GetValue(propValue);
+                    if (formKeyValue is FormKey formKey)
+                    {
+                        return formKey;
+                    }
+                }
+
+                return null;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Generic method to compare reference information between two condition data objects.
+        /// </summary>
+        private bool CompareConditionReferences(IConditionDataGetter data1, IConditionDataGetter data2)
+        {
+            try
+            {
+                // First, try the generic Reference property
+                if (data1.Reference.FormKey != data2.Reference.FormKey)
+                    return false;
+
+                // If generic references are equal and not null, we're done
+                if (!data1.Reference.FormKey.IsNull)
+                    return true;
+
+                // If generic references are both null, try to find and compare specific reference properties
+                var (ref1, isNull1) = GetConditionReference(data1);
+                var (ref2, isNull2) = GetConditionReference(data2);
+
+                return ref1 == ref2 && isNull1 == isNull2;
+            }
+            catch
+            {
+                return false;
+            }
         }
     }
 }

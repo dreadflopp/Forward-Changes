@@ -149,10 +149,7 @@ namespace ForwardChanges.PropertyHandlers.Npc
                     {
                         // Create new item with updated rank
                         var newItem = new ListPropertyValueContext<IPerkPlacementGetter>(matchingRecordItem!, context.ModKey.ToString());
-                        // Preserve ordering information
-                        newItem.ItemsBefore.AddRange(forwardItem.ItemsBefore);
-                        newItem.ItemsAfter.AddRange(forwardItem.ItemsAfter);
-
+                        
                         // Collect for later modification
                         itemsToModify.Add((forwardItem, newItem));
                         LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: Updating rank for perk {FormatItem(matchingRecordItem)} (new owner: {newItem.OwnerMod}) Success");

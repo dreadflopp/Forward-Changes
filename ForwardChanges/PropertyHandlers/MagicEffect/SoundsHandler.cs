@@ -12,6 +12,7 @@ namespace ForwardChanges.PropertyHandlers.MagicEffect
     public class SoundsHandler : AbstractListPropertyHandler<IMagicEffectSoundGetter>
     {
         public override string PropertyName => "Sounds";
+        protected override ListOrdering Ordering => ListOrdering.PreserveModOrder;
 
         public override List<IMagicEffectSoundGetter>? GetValue(IMajorRecordGetter record)
         {
