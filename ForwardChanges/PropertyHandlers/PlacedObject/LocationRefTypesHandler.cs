@@ -4,6 +4,7 @@ using System.Linq;
 using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Plugins;
+using Noggog;
 using ForwardChanges.PropertyHandlers.Abstracts;
 using ForwardChanges.PropertyHandlers.Interfaces;
 
@@ -17,17 +18,28 @@ namespace ForwardChanges.PropertyHandlers.PlacedObject
         {
             if (record is IPlacedObject placedObjectRecord)
             {
-                placedObjectRecord.LocationRefTypes?.Clear();
-                if (value != null)
+                if (value == null)
                 {
-                    foreach (var refTypeLink in value)
+                    placedObjectRecord.LocationRefTypes = null;
+                    return;
+                }
+
+                // Create a new list and copy all location reference types
+                var newLocationRefTypes = new ExtendedList<IFormLinkGetter<ILocationReferenceTypeGetter>>();
+                foreach (var refTypeLink in value)
+                {
+                    if (refTypeLink == null) continue;
+                    if (!refTypeLink.FormKey.IsNull)
                     {
-                        if (!refTypeLink.FormKey.IsNull)
-                        {
-                            placedObjectRecord.LocationRefTypes?.Add(new FormLink<ILocationReferenceTypeGetter>(refTypeLink.FormKey));
-                        }
+                        newLocationRefTypes.Add(new FormLink<ILocationReferenceTypeGetter>(refTypeLink.FormKey));
                     }
                 }
+
+                placedObjectRecord.LocationRefTypes = newLocationRefTypes;
+            }
+            else
+            {
+                Console.WriteLine($"Error: Record is not a PlacedObject for {PropertyName}");
             }
         }
 

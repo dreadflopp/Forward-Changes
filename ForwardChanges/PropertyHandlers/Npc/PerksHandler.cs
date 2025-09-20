@@ -6,6 +6,7 @@ using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Plugins.Cache;
 using Mutagen.Bethesda.Plugins;
 using Mutagen.Bethesda.Synthesis;
+using Noggog;
 using ForwardChanges.Contexts;
 using ForwardChanges.PropertyHandlers.Abstracts;
 using ForwardChanges.PropertyHandlers.Interfaces;
@@ -93,18 +94,23 @@ namespace ForwardChanges.PropertyHandlers.Npc
             if (record is INpc npc)
             {
                 npc.Perks?.Clear();
-                if (value != null)
+                if (value != null && npc.Perks != null)
                 {
                     foreach (var item in value)
                     {
+                        if (item == null) continue;
                         var perkPlacement = new PerkPlacement
                         {
                             Perk = new FormLink<IPerkGetter>(item.Perk.FormKey),
                             Rank = item.Rank
                         };
-                        npc.Perks?.Add(perkPlacement);
+                        npc.Perks.Add(perkPlacement);
                     }
                 }
+            }
+            else
+            {
+                Console.WriteLine($"Error: Record is not an NPC for {PropertyName}");
             }
         }
 
@@ -149,7 +155,7 @@ namespace ForwardChanges.PropertyHandlers.Npc
                     {
                         // Create new item with updated rank
                         var newItem = new ListPropertyValueContext<IPerkPlacementGetter>(matchingRecordItem!, context.ModKey.ToString());
-                        
+
                         // Collect for later modification
                         itemsToModify.Add((forwardItem, newItem));
                         LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: Updating rank for perk {FormatItem(matchingRecordItem)} (new owner: {newItem.OwnerMod}) Success");

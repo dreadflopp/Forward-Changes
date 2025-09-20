@@ -4,6 +4,7 @@ using System.Linq;
 using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Plugins;
+using Noggog;
 using ForwardChanges.PropertyHandlers.Abstracts;
 using ForwardChanges.PropertyHandlers.Interfaces;
 
@@ -18,19 +19,24 @@ namespace ForwardChanges.PropertyHandlers.PlacedObject
             if (record is IPlacedObject placedObjectRecord)
             {
                 placedObjectRecord.Reflections?.Clear();
-                if (value != null)
+                if (value != null && placedObjectRecord.Reflections != null)
                 {
                     foreach (var reflection in value)
                     {
+                        if (reflection == null) continue;
                         var newReflection = new WaterReflection
                         {
                             Versioning = reflection.Versioning,
                             Water = new FormLink<IPlacedObjectGetter>(reflection.Water.FormKey),
                             Type = reflection.Type
                         };
-                        placedObjectRecord.Reflections?.Add(newReflection);
+                        placedObjectRecord.Reflections.Add(newReflection);
                     }
                 }
+            }
+            else
+            {
+                Console.WriteLine($"Error: Record is not a PlacedObject for {PropertyName}");
             }
         }
 

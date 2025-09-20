@@ -4,6 +4,7 @@ using System.Linq;
 using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Plugins;
+using Noggog;
 using ForwardChanges.PropertyHandlers.Abstracts;
 using ForwardChanges.PropertyHandlers.Interfaces;
 
@@ -18,18 +19,23 @@ namespace ForwardChanges.PropertyHandlers.PlacedObject
             if (record is IPlacedObject placedObjectRecord)
             {
                 placedObjectRecord.Portals?.Clear();
-                if (value != null)
+                if (value != null && placedObjectRecord.Portals != null)
                 {
                     foreach (var portal in value)
                     {
+                        if (portal == null) continue;
                         var newPortal = new Portal
                         {
                             Origin = new FormLink<IPlacedObjectGetter>(portal.Origin.FormKey),
                             Destination = new FormLink<IPlacedObjectGetter>(portal.Destination.FormKey)
                         };
-                        placedObjectRecord.Portals?.Add(newPortal);
+                        placedObjectRecord.Portals.Add(newPortal);
                     }
                 }
+            }
+            else
+            {
+                Console.WriteLine($"Error: Record is not a PlacedObject for {PropertyName}");
             }
         }
 

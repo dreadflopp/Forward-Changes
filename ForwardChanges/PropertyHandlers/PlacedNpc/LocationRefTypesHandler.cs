@@ -4,6 +4,7 @@ using System.Linq;
 using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Plugins;
+using Noggog;
 using ForwardChanges.PropertyHandlers.Abstracts;
 using ForwardChanges.PropertyHandlers.Interfaces;
 
@@ -17,22 +18,28 @@ namespace ForwardChanges.PropertyHandlers.PlacedNpc
         {
             if (record is IPlacedNpc placedNpcRecord)
             {
-                if (value != null)
+                if (value == null)
                 {
-                    // Clear existing collection
-                    placedNpcRecord.LocationRefTypes?.Clear();
+                    placedNpcRecord.LocationRefTypes = null;
+                    return;
+                }
 
-                    // Add new items
-                    foreach (var locationRefType in value)
+                // Create a new list and copy all location reference types
+                var newLocationRefTypes = new ExtendedList<IFormLinkGetter<ILocationReferenceTypeGetter>>();
+                foreach (var locationRefType in value)
+                {
+                    if (locationRefType == null) continue;
+                    if (!locationRefType.FormKey.IsNull)
                     {
-                        var newLocationRefType = new FormLink<ILocationReferenceTypeGetter>(locationRefType.FormKey);
-                        placedNpcRecord.LocationRefTypes?.Add(newLocationRefType);
+                        newLocationRefTypes.Add(new FormLink<ILocationReferenceTypeGetter>(locationRefType.FormKey));
                     }
                 }
-                else
-                {
-                    placedNpcRecord.LocationRefTypes?.Clear();
-                }
+
+                placedNpcRecord.LocationRefTypes = newLocationRefTypes;
+            }
+            else
+            {
+                Console.WriteLine($"Error: Record is not a PlacedNpc for {PropertyName}");
             }
         }
 
