@@ -16,6 +16,7 @@ namespace ForwardChanges.PropertyHandlers.Npc
     public class PackageHandler : AbstractListPropertyHandler<IFormLinkGetter<IPackageGetter>>
     {
         public override string PropertyName => "Packages";
+        protected override ListOrdering Ordering => ListOrdering.PreserveModOrder;
 
         public PackageHandler()
         {
