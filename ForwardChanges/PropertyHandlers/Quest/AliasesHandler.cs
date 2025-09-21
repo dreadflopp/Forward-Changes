@@ -88,12 +88,12 @@ namespace ForwardChanges.PropertyHandlers.Quest
             if (item1.DisplayName.FormKey != item2.DisplayName.FormKey) return false;
             if (item1.VoiceTypes.FormKey != item2.VoiceTypes.FormKey) return false;
 
-            // Compare complex objects using reflection for deep equality
-            if (!AreComplexObjectsEqual(item1.Location, item2.Location)) return false;
-            if (!AreComplexObjectsEqual(item1.External, item2.External)) return false;
-            if (!AreComplexObjectsEqual(item1.CreateReferenceToObject, item2.CreateReferenceToObject)) return false;
-            if (!AreComplexObjectsEqual(item1.FindMatchingRefNearAlias, item2.FindMatchingRefNearAlias)) return false;
-            if (!AreComplexObjectsEqual(item1.FindMatchingRefFromEvent, item2.FindMatchingRefFromEvent)) return false;
+            // Compare complex objects using proper property-based comparison
+            if (!AreLocationAliasReferencesEqual(item1.Location, item2.Location)) return false;
+            if (!AreExternalAliasReferencesEqual(item1.External, item2.External)) return false;
+            if (!AreCreateReferenceToObjectsEqual(item1.CreateReferenceToObject, item2.CreateReferenceToObject)) return false;
+            if (!AreFindMatchingRefNearAliasesEqual(item1.FindMatchingRefNearAlias, item2.FindMatchingRefNearAlias)) return false;
+            if (!AreFindMatchingRefFromEventsEqual(item1.FindMatchingRefFromEvent, item2.FindMatchingRefFromEvent)) return false;
 
             // Compare conditions
             if (!AreConditionsEqual(item1.Conditions, item2.Conditions)) return false;
@@ -110,94 +110,271 @@ namespace ForwardChanges.PropertyHandlers.Quest
             return true;
         }
 
-        private bool AreComplexObjectsEqual(object? obj1, object? obj2)
+        private bool AreCreateReferenceToObjectsEqual(ICreateReferenceToObjectGetter? obj1, ICreateReferenceToObjectGetter? obj2)
         {
-            // Handle null cases
             if (obj1 == null && obj2 == null) return true;
             if (obj1 == null || obj2 == null) return false;
 
-            // If they're the same reference, they're equal
-            if (ReferenceEquals(obj1, obj2)) return true;
-
-            // If they're different types, they're not equal
-            if (obj1.GetType() != obj2.GetType()) return false;
-
-            // Use reflection to compare all public properties
-            var type = obj1.GetType();
-            var properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance);
-
-            foreach (var property in properties)
-            {
-                try
-                {
-                    var value1 = property.GetValue(obj1);
-                    var value2 = property.GetValue(obj2);
-
-                    if (!AreValuesEqual(value1, value2)) return false;
-                }
-                catch
-                {
-                    // If we can't access a property, assume they're different
-                    return false;
-                }
-            }
-
-            return true;
+            return obj1.Object.FormKey == obj2.Object.FormKey &&
+                   obj1.AliasID == obj2.AliasID &&
+                   obj1.Create == obj2.Create &&
+                   obj1.Level == obj2.Level;
         }
 
-        private bool AreValuesEqual(object? value1, object? value2)
+        private bool AreLocationAliasReferencesEqual(ILocationAliasReferenceGetter? obj1, ILocationAliasReferenceGetter? obj2)
         {
-            // Handle null cases
-            if (value1 == null && value2 == null) return true;
-            if (value1 == null || value2 == null) return false;
+            if (obj1 == null && obj2 == null) return true;
+            if (obj1 == null || obj2 == null) return false;
 
-            // If they're the same reference, they're equal
-            if (ReferenceEquals(value1, value2)) return true;
+            // TODO: Need interface to see properties
+            return obj1.Equals(obj2);
+        }
 
-            // Handle form links specially
-            if (value1 is IFormLinkGetter formLink1 && value2 is IFormLinkGetter formLink2)
-            {
-                return formLink1.FormKey == formLink2.FormKey;
-            }
+        private bool AreExternalAliasReferencesEqual(IExternalAliasReferenceGetter? obj1, IExternalAliasReferenceGetter? obj2)
+        {
+            if (obj1 == null && obj2 == null) return true;
+            if (obj1 == null || obj2 == null) return false;
 
-            // Handle collections
-            if (value1 is System.Collections.IEnumerable enumerable1 && value2 is System.Collections.IEnumerable enumerable2)
-            {
-                var list1 = enumerable1.Cast<object>().ToList();
-                var list2 = enumerable2.Cast<object>().ToList();
+            // TODO: Need interface to see properties
+            return obj1.Equals(obj2);
+        }
 
-                if (list1.Count != list2.Count) return false;
+        private bool AreFindMatchingRefNearAliasesEqual(IFindMatchingRefNearAliasGetter? obj1, IFindMatchingRefNearAliasGetter? obj2)
+        {
+            if (obj1 == null && obj2 == null) return true;
+            if (obj1 == null || obj2 == null) return false;
 
-                for (int i = 0; i < list1.Count; i++)
-                {
-                    if (!AreValuesEqual(list1[i], list2[i])) return false;
-                }
-                return true;
-            }
+            // TODO: Need interface to see properties
+            return obj1.Equals(obj2);
+        }
 
-            // For other types, use Equals
-            return value1.Equals(value2);
+        private bool AreFindMatchingRefFromEventsEqual(IFindMatchingRefFromEventGetter? obj1, IFindMatchingRefFromEventGetter? obj2)
+        {
+            if (obj1 == null && obj2 == null) return true;
+            if (obj1 == null || obj2 == null) return false;
+
+            // TODO: Need interface to see properties
+            return obj1.Equals(obj2);
         }
 
         private bool AreConditionsEqual(IReadOnlyList<IConditionGetter> conditions1, IReadOnlyList<IConditionGetter> conditions2)
         {
             if (conditions1.Count != conditions2.Count) return false;
 
-            for (int i = 0; i < conditions1.Count; i++)
+            // Sort conditions by a consistent key for comparison - with ultra-safe FormKey handling
+            var sorted1 = conditions1.OrderBy(c =>
             {
-                if (!AreConditionsEqual(conditions1[i], conditions2[i])) return false;
+                try
+                {
+                    var formKey = c.Data.Reference.FormKey.IsNull ? FormKey.Null : c.Data.Reference.FormKey;
+                    return $"{c.Data.Function}_{c.CompareOperator}_{formKey}";
+                }
+                catch
+                {
+                    return $"{c.Data.Function}_{c.CompareOperator}_{FormKey.Null}";
+                }
+            }).ToList();
+            var sorted2 = conditions2.OrderBy(c =>
+            {
+                try
+                {
+                    var formKey = c.Data.Reference.FormKey.IsNull ? FormKey.Null : c.Data.Reference.FormKey;
+                    return $"{c.Data.Function}_{c.CompareOperator}_{formKey}";
+                }
+                catch
+                {
+                    return $"{c.Data.Function}_{c.CompareOperator}_{FormKey.Null}";
+                }
+            }).ToList();
+
+            for (int i = 0; i < sorted1.Count; i++)
+            {
+                if (!AreConditionsEqual(sorted1[i], sorted2[i])) return false;
             }
             return true;
         }
 
         private bool AreConditionsEqual(IConditionGetter condition1, IConditionGetter condition2)
         {
-            // Basic condition comparison - this could be more comprehensive
+            // Compare all condition properties directly
+            if (condition1.CompareOperator != condition2.CompareOperator) return false;
             if (condition1.Flags != condition2.Flags) return false;
-            if (condition1.Data?.GetType() != condition2.Data?.GetType()) return false;
+            if (condition1.Unknown1.Span.SequenceEqual(condition2.Unknown1.Span) == false) return false;
+            if (condition1.Unknown2 != condition2.Unknown2) return false;
 
-            // For now, use a simple approach - in practice you might want more detailed comparison
-            return condition1.Equals(condition2);
+            // Compare condition data properties
+            var data1 = condition1.Data;
+            var data2 = condition2.Data;
+
+            if (data1.Function != data2.Function) return false;
+            if (data1.RunOnType != data2.RunOnType) return false;
+            if (data1.RunOnTypeIndex != data2.RunOnTypeIndex) return false;
+            if (data1.UseAliases != data2.UseAliases) return false;
+            if (data1.UsePackageData != data2.UsePackageData) return false;
+
+            // Compare the Reference property
+            if (data1.Reference.FormKey != data2.Reference.FormKey) return false;
+
+            // For specific condition types that need special comparison logic
+            if (data1 is IGetStageDoneConditionDataGetter stageData1 && data2 is IGetStageDoneConditionDataGetter stageData2)
+            {
+                // For GetStageDone conditions, compare quest and stage
+                if (stageData1.Quest.Link.FormKey != stageData2.Quest.Link.FormKey) return false;
+                if (stageData1.Stage != stageData2.Stage) return false;
+            }
+            else
+            {
+                // For all other condition types, use reflection to compare specific properties
+                if (!CompareConditionDataProperties(data1, data2)) return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Compare condition data properties using reflection-based comparison like AbstractConditionsHandler
+        /// </summary>
+        private bool CompareConditionDataProperties(IConditionDataGetter data1, IConditionDataGetter data2)
+        {
+            // Use the same reflection-based approach as AbstractConditionsHandler
+            return CompareConditionReferences(data1, data2);
+        }
+
+        /// <summary>
+        /// Generic method to compare reference information between two condition data objects using reflection.
+        /// This is copied from AbstractConditionsHandler to ensure consistency.
+        /// </summary>
+        private bool CompareConditionReferences(IConditionDataGetter data1, IConditionDataGetter data2)
+        {
+            try
+            {
+                // First, try the generic Reference property
+                if (data1.Reference.FormKey != data2.Reference.FormKey)
+                    return false;
+
+                // If generic references are equal and not null, we're done
+                if (!data1.Reference.FormKey.IsNull)
+                    return true;
+
+                // If generic references are both null, try to find and compare specific reference properties
+                var (ref1, isNull1) = GetConditionReference(data1);
+                var (ref2, isNull2) = GetConditionReference(data2);
+
+                return ref1 == ref2 && isNull1 == isNull2;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Generic method to extract reference information from any condition data type using reflection.
+        /// This is copied from AbstractConditionsHandler to ensure consistency.
+        /// </summary>
+        private (string reference, bool isNull) GetConditionReference(IConditionDataGetter data)
+        {
+            try
+            {
+                // First, try the generic Reference property from the base ConditionData class
+                var genericReference = data.Reference;
+                if (genericReference != null && !genericReference.FormKey.IsNull)
+                {
+                    return (genericReference.FormKey.ToString(), false);
+                }
+
+                // If the generic Reference is null, try to find reference properties using reflection
+                var dataType = data.GetType();
+                var properties = dataType.GetProperties();
+
+                // Look for properties that might contain reference information
+                // Common patterns: Keyword, Race, Quest, Location, etc.
+                foreach (var prop in properties)
+                {
+                    var propName = prop.Name.ToLowerInvariant();
+
+                    // Skip base class properties and common non-reference properties
+                    if (propName == "reference" || propName == "runontype" || propName == "runontypeindex" ||
+                        propName == "usealiases" || propName == "usepackagedata" || propName == "function" ||
+                        propName.Contains("unused") || propName.Contains("string") || propName.Contains("int"))
+                        continue;
+
+                    try
+                    {
+                        var propValue = prop.GetValue(data);
+                        if (propValue == null) continue;
+
+                        // Try to extract FormKey from the property value
+                        var formKey = ExtractFormKeyFromProperty(propValue);
+                        if (formKey.HasValue && !formKey.Value.IsNull)
+                        {
+                            return (formKey.Value.ToString(), false);
+                        }
+                    }
+                    catch
+                    {
+                        // Continue to next property if this one fails
+                        continue;
+                    }
+                }
+
+                // If no reference found, return null
+                return ("Null", true);
+            }
+            catch
+            {
+                return ("Null", true);
+            }
+        }
+
+        /// <summary>
+        /// Extracts FormKey from a property value, handling various FormLink types.
+        /// This is copied from AbstractConditionsHandler to ensure consistency.
+        /// </summary>
+        private FormKey? ExtractFormKeyFromProperty(object propValue)
+        {
+            try
+            {
+                // Handle IFormLinkOrIndex types (like Keyword, Race, etc.)
+                if (propValue.GetType().GetInterface("IFormLinkOrIndexGetter`1") != null)
+                {
+                    // Try to get the Link property and then FormKey
+                    var linkProperty = propValue.GetType().GetProperty("Link");
+                    if (linkProperty != null)
+                    {
+                        var link = linkProperty.GetValue(propValue);
+                        if (link != null)
+                        {
+                            var formKeyProperty = link.GetType().GetProperty("FormKey");
+                            if (formKeyProperty != null)
+                            {
+                                var formKeyValue = formKeyProperty.GetValue(link);
+                                if (formKeyValue is FormKey formKey)
+                                {
+                                    return formKey;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Handle direct FormLink types
+                var directFormKeyProperty = propValue.GetType().GetProperty("FormKey");
+                if (directFormKeyProperty != null)
+                {
+                    var formKeyValue = directFormKeyProperty.GetValue(propValue);
+                    if (formKeyValue is FormKey formKey)
+                    {
+                        return formKey;
+                    }
+                }
+
+                return null;
+            }
+            catch
+            {
+                return null;
+            }
         }
 
         private bool AreFormLinkListsEqual<T>(IReadOnlyList<IFormLinkGetter<T>>? list1, IReadOnlyList<IFormLinkGetter<T>>? list2) where T : class, IMajorRecordGetter
@@ -206,9 +383,13 @@ namespace ForwardChanges.PropertyHandlers.Quest
             if (list1 == null || list2 == null) return false;
             if (list1.Count != list2.Count) return false;
 
-            for (int i = 0; i < list1.Count; i++)
+            // Sort form links by string representation for consistent comparison
+            var sorted1 = list1.OrderBy(f => f.FormKey.IsNull ? "NULL" : f.FormKey.ToString()).ToList();
+            var sorted2 = list2.OrderBy(f => f.FormKey.IsNull ? "NULL" : f.FormKey.ToString()).ToList();
+
+            for (int i = 0; i < sorted1.Count; i++)
             {
-                if (list1[i].FormKey != list2[i].FormKey) return false;
+                if (sorted1[i].FormKey != sorted2[i].FormKey) return false;
             }
             return true;
         }
@@ -219,10 +400,14 @@ namespace ForwardChanges.PropertyHandlers.Quest
             if (items1 == null || items2 == null) return false;
             if (items1.Count != items2.Count) return false;
 
-            for (int i = 0; i < items1.Count; i++)
+            // Sort container entries by FormKey and Count for consistent comparison
+            var sorted1 = items1.OrderBy(i => $"{i.Item.Item.FormKey}_{i.Item.Count}").ToList();
+            var sorted2 = items2.OrderBy(i => $"{i.Item.Item.FormKey}_{i.Item.Count}").ToList();
+
+            for (int i = 0; i < sorted1.Count; i++)
             {
-                var item1 = items1[i];
-                var item2 = items2[i];
+                var item1 = sorted1[i];
+                var item2 = sorted2[i];
                 if (item1.Item.Item.FormKey != item2.Item.Item.FormKey || item1.Item.Count != item2.Item.Count) return false;
             }
             return true;

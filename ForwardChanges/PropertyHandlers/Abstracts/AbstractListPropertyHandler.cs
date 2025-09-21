@@ -16,7 +16,7 @@ namespace ForwardChanges.PropertyHandlers.Abstracts
         PreserveModOrder // Preserve exact order from mod that added items (Conditions, Effects)
     }
 
-    public abstract class AbstractListPropertyHandler<T> : IPropertyHandler<List<T>>
+    public abstract class AbstractListPropertyHandler<T> : IPropertyHandler<List<T>> where T : class
     {
         public abstract string PropertyName { get; }
         public bool RequiresFullLoadOrderProcessing => true;
@@ -83,7 +83,14 @@ namespace ForwardChanges.PropertyHandlers.Abstracts
             listPropertyContext.ForwardValueContexts = forwardValueContexts;
 
             // Debug: Show final result (simplified)
+            //LogCollector.Add(PropertyName, $"DEBUG UpdatePropertyContext: Final result has {forwardValueContexts.Count} items");
+
+            // Debug: Show detailed result by printing all forward value contexts
             LogCollector.Add(PropertyName, $"DEBUG UpdatePropertyContext: Final result has {forwardValueContexts.Count} items");
+            foreach (var item in forwardValueContexts)
+            {
+                LogCollector.Add(PropertyName, $"DEBUG   - {FormatItem(item.Value)} (owned by {item.OwnerMod}, status: {(item.IsRemoved ? "REMOVED" : "ACTIVE")})");
+            }
         }
 
         private void ProcessRemovals(
@@ -223,13 +230,13 @@ namespace ForwardChanges.PropertyHandlers.Abstracts
             }
 
             // Debug: Log the forward item groups
-            LogCollector.Add(PropertyName, $"DEBUG ProcessAdditions: Found {forwardItemGroups.Count} forward item groups:");
-            foreach (var group in forwardItemGroups)
-            {
-                var activeCount = group.Items.Count(item => !item.IsRemoved);
-                var removedCount = group.Items.Count(item => item.IsRemoved);
-                LogCollector.Add(PropertyName, $"DEBUG   - {FormatItem(group.Item)}: {activeCount} active, {removedCount} removed");
-            }
+            // LogCollector.Add(PropertyName, $"DEBUG ProcessAdditions: Found {forwardItemGroups.Count} forward item groups:");
+            // foreach (var group in forwardItemGroups)
+            // {
+            //     var activeCount = group.Items.Count(item => !item.IsRemoved);
+            //     var removedCount = group.Items.Count(item => item.IsRemoved);
+            //     LogCollector.Add(PropertyName, $"DEBUG   - {FormatItem(group.Item)}: {activeCount} active, {removedCount} removed");
+            // }
 
             // Group record items by their values for efficient lookup
             var recordItemGroups = recordItems.GroupBy(item => item)
@@ -252,15 +259,15 @@ namespace ForwardChanges.PropertyHandlers.Abstracts
                 var forwardGroup = forwardItemGroups.FirstOrDefault(g => IsItemEqual(g.Item, recordItem));
 
                 // Debug: Log what we're looking for and what we found
-                LogCollector.Add(PropertyName, $"DEBUG ProcessAdditions: Looking for {FormatItem(recordItem)} in forward groups");
-                if (forwardGroup.Item != null)
-                {
-                    LogCollector.Add(PropertyName, $"DEBUG   Found in forward group: {FormatItem(forwardGroup.Item)}");
-                }
-                else
-                {
-                    LogCollector.Add(PropertyName, $"DEBUG   NOT FOUND in forward groups - will add as new item");
-                }
+                // LogCollector.Add(PropertyName, $"DEBUG ProcessAdditions: Looking for {FormatItem(recordItem)} in forward groups");
+                // if (forwardGroup.Item != null)
+                // {
+                //     LogCollector.Add(PropertyName, $"DEBUG   Found in forward group: {FormatItem(forwardGroup.Item)}");
+                // }
+                // else
+                // {
+                //     LogCollector.Add(PropertyName, $"DEBUG   NOT FOUND in forward groups - will add as new item");
+                // }
 
                 if (forwardGroup.Item != null)
                 {
@@ -287,6 +294,7 @@ namespace ForwardChanges.PropertyHandlers.Abstracts
                             var oldOwner = itemToUnremove.OwnerMod;
                             itemToUnremove.IsRemoved = false;
                             itemToUnremove.OwnerMod = context.ModKey.ToString();
+                            itemToUnremove.OrderOwnerMod = context.ModKey.ToString(); // Set order ownership for un-removed items
                             activeForwardCount++;
                             LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: Adding back previously removed item {FormatItem(recordItem)} (was owned by {oldOwner}, new owner: {itemToUnremove.OwnerMod}) Success");
                         }
@@ -310,6 +318,7 @@ namespace ForwardChanges.PropertyHandlers.Abstracts
                                 // ============================================================================
                                 // No removed item exists, so add as new item
                                 var newItem = new ListPropertyValueContext<T>(recordItem, context.ModKey.ToString());
+                                newItem.OrderOwnerMod = null; // New items - will be set during sorting
 
                                 // Add new item to forward contexts
 
@@ -327,17 +336,18 @@ namespace ForwardChanges.PropertyHandlers.Abstracts
                     // SECTION 2B: ITEM DOESN'T EXIST IN FORWARD CONTEXTS - ADD ALL INSTANCES
                     // ============================================================================
                     // DEBUG: Show current forward contexts state
-                    LogCollector.Add(PropertyName, $"[{PropertyName}] DEBUG {context.ModKey}: Item {FormatItem(recordItem)} not found in forward contexts. Current forward contexts:");
-                    foreach (var ctx in forwardValueContexts)
-                    {
-                        var status = ctx.IsRemoved ? "REMOVED" : "ACTIVE";
-                        LogCollector.Add(PropertyName, $"[{PropertyName}] DEBUG   - {FormatItem(ctx.Value)} (owned by {ctx.OwnerMod}, status: {status})");
-                    }
+                    // LogCollector.Add(PropertyName, $"[{PropertyName}] DEBUG {context.ModKey}: Item {FormatItem(recordItem)} not found in forward contexts. Current forward contexts:");
+                    // foreach (var ctx in forwardValueContexts)
+                    // {
+                    //     var status = ctx.IsRemoved ? "REMOVED" : "ACTIVE";
+                    //     LogCollector.Add(PropertyName, $"[{PropertyName}] DEBUG   - {FormatItem(ctx.Value)} (owned by {ctx.OwnerMod}, status: {status})");
+                    // }
 
                     // Item doesn't exist in forward contexts, add all required instances
                     for (int i = 0; i < recordCount; i++)
                     {
                         var newItem = new ListPropertyValueContext<T>(recordItem, context.ModKey.ToString());
+                        newItem.OrderOwnerMod = null; // New items - will be set during sorting
 
                         // Add new item to forward contexts
 
@@ -349,414 +359,395 @@ namespace ForwardChanges.PropertyHandlers.Abstracts
 
         }
 
-
-
         /// <summary>
-        /// Process the sorting algorithm for list properties that require ordering.
-        /// This algorithm focuses solely on ordering items according to the mod's intentions,
-        /// after additions and removals have already been processed by ProcessAdditions and ProcessRemovals.
+        /// NEIGHBOR-BASED PARTIAL REORDERING ALGORITHM - DETAILED DOCUMENTATION
         /// 
-        /// ALGORITHM OVERVIEW:
-        /// This algorithm handles ordering of items using instance-aware matching to properly handle
-        /// duplicate items. It respects mod master relationships for ownership changes and implements
-        /// pure reorder detection using multiset (counts) equality for cases where a mod wants to 
-        /// reorder existing items.
+        /// This is a partial reordering algorithm that allows mods to reorder only specific items
+        /// while preserving the original neighbor relationships of items they don't have permission to move.
+        /// It uses permission-aware placement and neighbor-based positioning to maintain item relationships.
         /// 
-        /// ALGORITHM STEPS:
-        /// 1. Get current active items (after ProcessAdditions/ProcessRemovals)
-        /// 1.5. CRITICAL FIX A: Snapshot prior active items before any re-adds/creates for accurate position tracking
-        /// 2. Instance-aware matching: Map declared values to existing instances using greedy left-to-right matching into slots
-        /// 2.5. Handle unmatched declared occurrences: Re-add removed instances or create new instances (robustness)
-        /// 2.6. CRITICAL FIX B: Track created/re-added instances this pass for proper permission handling
-        /// 3. Check for pure reorder using multiset equality (same counts, different order) - grants ownership to mod
-        /// 4. Process ownership changes for instances that moved positions using filtered subsequence comparison (with permission checks)
-        /// 5. Build final order respecting mod's placement intentions, skipping locked instances
-        /// 6. Reindex OrderIndex for all active items
+        /// DETAILED ALGORITHM STEPS:
         /// 
-        /// KEY RULES:
-        /// - Instance-aware: Each occurrence is treated as a distinct instance, even if values are equal
-        /// - Greedy matching: Left-to-right matching of declared values to existing instances into slots
-        /// - Robust handling: Unmatched declared values are handled as re-adds or new additions
-        /// - CRITICAL FIX A: Prior positions computed from snapshot before re-adds/creates to avoid false position changes
-        /// - CRITICAL FIX B: Explicit tracking of created/re-added instances this pass for proper permission handling
-        /// - Pure reorder: If multiset of declared active values equals current active values in different order, mod takes ownership
-        /// - Filtered comparison: Position changes are detected by comparing filtered subsequences (matched instances only)
-        /// - Permission-based ownership: Moves require mod to have item's current owner in masters OR item was created/re-added this pass
-        /// - Locked instances: Items the mod cannot move are preserved in their original positions
-        /// - Deterministic ordering: Final patch uses OrderIndex for consistent output
+        /// STEP 1: GET CURRENT STATE
+        /// - Extract all active (non-removed) items from forwardValueContexts
+        /// - Log current order for debugging and verification
         /// 
-        /// TEST CASES VERIFIED:
+        /// STEP 2: BUILD PERMISSION-AWARE FINAL ORDER
+        /// - For each item the mod declares:
+        ///   * Find matching instance in current active items
+        ///   * Check if mod has permission to reorder this item (HasPermissionsToModify)
+        ///   * If permission granted: Add to finalOrder list
+        ///   * If permission denied: Leave in remainingInstances list
+        /// - Log which items were included/excluded and why
         /// 
-        /// Case 1 - Duplicates sequence:
-        /// - Mod1: [A,B,C] → A1(Mod1), B1(Mod1), C1(Mod1)
-        /// - Mod2: [A,A,B,C] → A1(Mod1), A2(Mod2), B1(Mod1), C1(Mod1) (A2 added)
-        /// - Mod3: [A,B,C] → A1(Mod1), B1(Mod1), C1(Mod1) (A2 removed)
-        /// - Final: A(Mod2), B(Mod1), C(Mod1) (surviving A owned by Mod2)
+        /// STEP 3: PLACE REMAINING ITEMS BASED ON ORIGINAL "BEFORE" RELATIONSHIPS
+        /// - For each item in remainingInstances (excluding new items with OrderOwnerMod == null):
+        ///   * Find all items that were originally before this item
+        ///   * Place the item after the last "before" item that's already in finalOrder
+        ///   * This preserves the original relative positions of items the mod can't reorder
+        /// - Keep new items (OrderOwnerMod == null) in remainingInstances for Step 5
         /// 
-        /// Case 2 - Pure reorder swap:
-        /// - Mod1: [A,B] → A(Mod1), B(Mod1)
-        /// - Mod2: [B,A] → Pure reorder detected → B(Mod2), A(Mod2)
-        /// - Final: B(Mod2), A(Mod2) (both owned by Mod2)
+        /// STEP 4: ASSIGN ORDER OWNERSHIP
+        /// - For each item in finalOrder, check if it moved by comparing neighbor relationships
+        /// - An item has moved if BOTH its "before" AND "after" neighbors have changed
+        /// - Only check items that existed before this mod (OrderOwnerMod != null)
+        /// - For each item that moved: Take OrderOwnerMod ownership
+        /// - Log ownership changes for debugging
         /// 
-        /// Case 3 - Add C (no stealing):
-        /// - Mod1: [A,B] → A(Mod1), B(Mod1)
-        /// - Mod2: [C,A,B] → C(Mod2), A(Mod1), B(Mod1) (C added, A/B order unchanged)
-        /// - Final: C(Mod2), A(Mod1), B(Mod1) (C owned by Mod2, A/B remain Mod1)
+        /// STEP 5: PLACE NEW ITEMS BASED ON MOD'S DECLARED ORDER
+        /// - Sort remainingInstances (new items) according to the mod's declared order
+        /// - For each new item, find what should be before it according to mod's wishes
+        /// - Place the item after the last "before" item that's already in finalOrder
+        /// - Set OrderOwnerMod for new items (they have OrderOwnerMod == null)
         /// 
-        /// Case 4 - Complex removal scenario:
-        /// - After Mod3: A(Mod1), B(Mod1), C(Mod3), D(Mod3)
-        /// - Mod4: [A,B] → No change (cannot remove C/D)
-        /// - Mod5: [A,B,E,C] → A(Mod1), B(Mod1), E(Mod5), C(Mod3) (D removed, E added)
-        /// - Final: A(Mod1), B(Mod1), E(Mod5), C(Mod3) (D removed)
+        /// STEP 6: UPDATE FORWARD CONTEXTS
+        /// - Replace active items in forwardValueContexts with final order
+        /// - Preserve removed items at the end
+        /// - Log final order for verification
         /// 
-        /// Case 5 - Pure reorder after removal:
-        /// - After Mod4: A(Mod1), C(Mod3) (B removed)
-        /// - Mod5: [C,A] → Pure reorder → C(Mod5), A(Mod5)
-        /// - Final: C(Mod5), A(Mod5) (both owned by Mod5, B remains removed)
+        /// KEY FEATURES:
+        /// - Mod-Intent Respect: Places desired items in the mod's declared sequence
+        /// - Partial Reordering: Can reorder some items while preserving others
+        /// - Permission Granularity: Respects permissions per-item, not all-or-nothing
+        /// - Before-Relationship Preservation: Remaining items maintain original "before" relationships
+        /// - Instance-Aware: Uses actual instances, not just values, for accurate tracking
+        /// - Smart Positioning: Finds optimal positions based on original "before" context
+        /// - Ownership Tracking: Only takes ownership of items that actually moved
         /// 
-        /// Case 6 - A removed, C added:
-        /// - Mod1: [A,B] → A(Mod1), B(Mod1)
-        /// - Mod2: [B,C] → B(Mod1), C(Mod2) (A removed, C added)
-        /// - Mod3: [A,B] → No change (cannot re-add A)
-        /// - Final: B(Mod1), C(Mod2) (A removed)
+        /// TEST CASES:
         /// 
-        /// Case 7 - Pure reorder with duplicates:
-        /// - Mod1: [A,A,B] → A1(Mod1), A2(Mod1), B(Mod1)
-        /// - Mod2: [A,B,A] → Pure reorder → A(Mod2), B(Mod2), A(Mod2)
-        /// - Final: A(Mod2), B(Mod2), A(Mod2) (all owned by Mod2)
+        /// Case 1 - Full reorder with permission:
+        /// - Current: A, B
+        /// - Mod wants: B, A (has permission for both)
+        /// - Desired order: B, A
+        /// - Remaining: (none)
+        /// - Final: B, A (both items moved, both get order ownership)
+        /// 
+        /// Case 2 - Partial reorder with mixed permissions:
+        /// - Current: A, B, C
+        /// - Mod wants: B, A (has permission for A,B but not C)
+        /// - Desired order: B, A
+        /// - Remaining: C
+        /// - Final: B, A, C (C maintains original neighbor relationships)
+        /// 
+        /// Case 3 - No permission scenario:
+        /// - Current: A, B
+        /// - Mod wants: B, A (no permission for either)
+        /// - Desired order: (none)
+        /// - Remaining: A, B
+        /// - Final: A, B (original order preserved)
+        /// 
+        /// Case 4 - Complex partial reorder:
+        /// - Current: A, B, C, D, E
+        /// - Mod wants: C, A, E (has permission for A,C,E but not B,D)
+        /// - Desired order: C, A, E
+        /// - Remaining: B, D
+        /// - Final: C, A, B, D, E (B,D maintain original neighbor relationships)
+        /// 
+        /// Case 5 - Duplicates with reordering:
+        /// - Current: A, A, B
+        /// - Mod wants: A, B, A (has permission for all)
+        /// - Desired order: A, B, A
+        /// - Remaining: (none)
+        /// - Final: A, B, A (reordered according to mod's sequence)
+        /// 
+        /// Case 6 - Pure reorder with relative position changes:
+        /// - Current: A, B, C, D
+        /// - Mod wants: D, A, B, C (has permission for all)
+        /// - Desired order: D, A, B, C
+        /// - Remaining: (none)
+        /// - Final: D, A, B, C (only D changed relative position, gets order ownership)
+        /// 
+        /// Case 7 - Partial permission reorder:
+        /// - Current: A, B, C, D
+        /// - Mod wants: D, A, B, C (has permission for A,B,C but not D)
+        /// - Desired order: A, B, C
+        /// - Remaining: D
+        /// - Final: A, B, C, D (D stays at end, maintains original position)
         /// </summary>
-        /// <param name="context">The mod context</param>
-        /// <param name="recordMod">The mod being processed</param>
-        /// <param name="recordItems">The current items in the record</param>
-        /// <param name="forwardValueContexts">The forward value contexts</param>
         private void ProcessSortingAlgorithm(
             IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> context,
             ISkyrimModGetter recordMod,
             List<T> recordItems,
             List<ListPropertyValueContext<T>> forwardValueContexts)
         {
-            LogCollector.Add(PropertyName, $"=== SORTING ALGORITHM DEBUG: {context.ModKey} ===");
+            LogCollector.Add(PropertyName, $"=== NEIGHBOR-BASED SORTING ALGORITHM: {context.ModKey} ===");
             LogCollector.Add(PropertyName, $"Mod wants: {string.Join(", ", recordItems.Select((item, i) => $"[{i}]{FormatItem(item)}"))}");
-            LogCollector.Add(PropertyName, $"Current forward (after additions/removals): {string.Join(", ", forwardValueContexts.Select((item, i) => $"[{i}]{FormatItem(item.Value)}"))}");
 
             var modName = context.ModKey.ToString();
-            var modMasters = recordMod.MasterReferences.Select(m => m.Master.ToString()).ToHashSet();
 
-            // Step 1: Get current active items (after ProcessAdditions/ProcessRemovals)
+            // ============================================================================
+            // STEP 1: GET CURRENT STATE
+            // ============================================================================
             var currentActiveItems = forwardValueContexts.Where(item => !item.IsRemoved).ToList();
-            var currentActiveValues = currentActiveItems.Select(item => item.Value).ToList();
+            LogCollector.Add(PropertyName, $"STEP 1 - Current active items: {string.Join(", ", currentActiveItems.Select((item, i) => $"[{i}]{FormatItem(item.Value)}"))}");
 
-            LogCollector.Add(PropertyName, $"Current active items: {currentActiveItems.Count}");
+            // ============================================================================
+            // STEP 2: BUILD PERMISSION-AWARE FINAL ORDER
+            // ============================================================================
+            var finalOrder = new List<ListPropertyValueContext<T>>();
+            var remainingInstances = new List<ListPropertyValueContext<T>>(currentActiveItems);
 
-            // CRITICAL FIX A: Snapshot the active items as they existed BEFORE we do any readds/creates
-            // We'll use this snapshot to compute "prior positions" that reflect the load-order state before this mod
-            var priorActiveSnapshot = currentActiveItems.ToList();
-            var createdOrReaddedThisPass = new HashSet<ListPropertyValueContext<T>>();
-
-            // Step 2: Instance-aware matching with declared slots (preserve positions)
-            var unmatchedActiveInstances = new List<ListPropertyValueContext<T>>(currentActiveItems);
-            var declaredSlots = new List<ListPropertyValueContext<T>?>(recordItems.Count);
-
-            // Initialize slots with nulls
-            for (int i = 0; i < recordItems.Count; i++) declaredSlots.Add(null);
-
-            LogCollector.Add(PropertyName, $"Starting slot-based matching - current active: {currentActiveItems.Count}, declared slots: {recordItems.Count}");
-
-            // Greedy left-to-right matching into slots
-            for (int i = 0; i < recordItems.Count; i++)
+            foreach (var declaredValue in recordItems)
             {
-                var declaredValue = recordItems[i];
-                var match = unmatchedActiveInstances.FirstOrDefault(inst => IsItemEqual(inst.Value, declaredValue));
-
+                var match = remainingInstances.FirstOrDefault(inst => IsItemEqual(inst.Value, declaredValue));
                 if (match != null)
                 {
-                    declaredSlots[i] = match;
-                    unmatchedActiveInstances.Remove(match); // consume that instance
-                    LogCollector.Add(PropertyName, $"  Matched slot[{i}]: {FormatItem(declaredValue)} -> instance (owner: {match.OwnerMod})");
-                }
-                else
-                {
-                    // Check if there's a removed instance with the same value that this mod cannot re-add
-                    var removedInstance = forwardValueContexts.FirstOrDefault(inst =>
-                        inst.IsRemoved && IsItemEqual(inst.Value, declaredValue) && !modMasters.Contains(inst.OwnerMod));
-
-                    if (removedInstance != null)
+                    // Only add to final order if we have permission to reorder this item
+                    if (HasPermissionsToModify(recordMod, match.OrderOwnerMod))
                     {
-                        // This mod cannot re-add this removed item - mark slot as blocked
-                        LogCollector.Add(PropertyName, $"  Slot[{i}] blocked: {FormatItem(declaredValue)} (cannot re-add, owned by {removedInstance.OwnerMod})");
-                        declaredSlots[i] = removedInstance; // Use removed instance as placeholder to indicate blocked slot
+                        finalOrder.Add(match);
+                        remainingInstances.Remove(match);
+                        LogCollector.Add(PropertyName, $"STEP 2 - Added to final order: {FormatItem(match.Value)} (has permission)");
                     }
                     else
                     {
-                        // leave slot null for now (will create/re-add later)
-                        LogCollector.Add(PropertyName, $"  Slot[{i}] unmatched: {FormatItem(declaredValue)} (placeholder for add/re-add)");
+                        LogCollector.Add(PropertyName, $"STEP 2 - Skipped from final order: {FormatItem(match.Value)} (no permission, owner: {match.OrderOwnerMod})");
                     }
                 }
             }
 
-            // Build matchedInstancesInModOrder preserving declared positions (nulls and blocked slots omitted)
-            var matchedInstancesInModOrder = declaredSlots.Where(s => s != null && !s.IsRemoved).Select(s => s!).ToList();
+            LogCollector.Add(PropertyName, $"STEP 2 - Final order: {string.Join(", ", finalOrder.Select((item, i) => $"[{i}]{FormatItem(item.Value)}"))}");
+            LogCollector.Add(PropertyName, $"STEP 2 - Remaining instances: {string.Join(", ", remainingInstances.Select((item, i) => $"[{i}]{FormatItem(item.Value)}"))}");
 
-            // Gather unmatchedDeclaredValues (with their slot indices) for later re-add/create (exclude blocked slots)
-            var unmatchedDeclaredIndices = declaredSlots
-                .Select((slot, idx) => (slot, idx))
-                .Where(x => x.slot == null)
-                .Select(x => x.idx)
-                .ToList();
+            // ============================================================================
+            // STEP 3: PLACE REMAINING ITEMS BASED ON ORIGINAL "BEFORE" RELATIONSHIPS
+            // ============================================================================
+            // Separate existing items from new items
+            var existingRemainingItems = remainingInstances.Where(item => item.OrderOwnerMod != null).ToList();
+            var newRemainingItems = remainingInstances.Where(item => item.OrderOwnerMod == null).ToList();
 
-            LogCollector.Add(PropertyName, $"Slot matching complete - matched: {matchedInstancesInModOrder.Count}, unmatched slots: {unmatchedDeclaredIndices.Count}, remaining active: {unmatchedActiveInstances.Count}");
-
-            // Step 2.5: Fill null slots by re-adding eligible removed instances or creating new ones
-            if (unmatchedDeclaredIndices.Count > 0)
+            foreach (var remainingItem in existingRemainingItems)
             {
-                LogCollector.Add(PropertyName, $"Handling {unmatchedDeclaredIndices.Count} unmatched declared slots (re-add/create)");
-
-                foreach (var slotIndex in unmatchedDeclaredIndices)
-                {
-                    var declaredValue = recordItems[slotIndex];
-
-                    // Prefer to re-add: find a removed instance with same value where this mod has permission to re-add
-                    var candidateRemoved = forwardValueContexts.FirstOrDefault(inst =>
-                        inst.IsRemoved && IsItemEqual(inst.Value, declaredValue) && modMasters.Contains(inst.OwnerMod));
-
-                    if (candidateRemoved != null)
-                    {
-                        candidateRemoved.IsRemoved = false;
-                        candidateRemoved.OwnerMod = modName;
-                        declaredSlots[slotIndex] = candidateRemoved;
-                        unmatchedActiveInstances.Remove(candidateRemoved); // just in case
-                        createdOrReaddedThisPass.Add(candidateRemoved); // CRITICAL FIX B
-
-                        LogCollector.Add(PropertyName, $"  Re-added at slot[{slotIndex}] {FormatItem(declaredValue)} (now owner: {candidateRemoved.OwnerMod})");
-                        continue;
-                    }
-
-                    // Otherwise create a new instance and put it in the slot
-                    var newInst = new ListPropertyValueContext<T>(declaredValue, modName) { IsRemoved = false };
-                    forwardValueContexts.Add(newInst); // keep global set updated
-                    declaredSlots[slotIndex] = newInst;
-                    createdOrReaddedThisPass.Add(newInst); // CRITICAL FIX B
-
-                    LogCollector.Add(PropertyName, $"  Created new instance at slot[{slotIndex}] {FormatItem(declaredValue)} (owner: {modName})");
-                }
-
-                // Rebuild the matchedInstancesInModOrder now that declaredSlots are filled
-                matchedInstancesInModOrder = declaredSlots.Where(s => s != null).Select(s => s!).ToList();
-
-                // Refresh currentActiveItems because we changed forwardValueContexts (and created/readded)
-                currentActiveItems = forwardValueContexts.Where(item => !item.IsRemoved).ToList();
+                int position = FindPositionBasedOnBeforeRelationships(remainingItem, currentActiveItems, finalOrder);
+                finalOrder.Insert(position, remainingItem);
+                LogCollector.Add(PropertyName, $"STEP 3 - Placed existing remaining item: {FormatItem(remainingItem.Value)} at position {position}");
             }
 
-            // Step 3: Check for pure reorder using multiset (counts) equality
-            // Refresh currentActiveValues to match currentActiveItems (in case we re-added/created)
-            currentActiveValues = currentActiveItems.Select(item => item.Value).ToList();
+            LogCollector.Add(PropertyName, $"STEP 3 - Final order after existing items placement: {string.Join(", ", finalOrder.Select((item, i) => $"[{i}]{FormatItem(item.Value)}"))}");
+            LogCollector.Add(PropertyName, $"STEP 3 - New items to place in Step 5: {string.Join(", ", newRemainingItems.Select(item => FormatItem(item.Value)))}");
 
-            var itemComparer = new ItemEqualityComparer<T>(IsItemEqual);
-            var currentValueCounts = CountValuesList(currentActiveValues, itemComparer);
-            var matchedValueCounts = CountValuesList(matchedInstancesInModOrder.Select(i => i.Value).ToList(), itemComparer);
-
-            bool sameMultiset = CountsEqualDict(currentValueCounts, matchedValueCounts, itemComparer);
-            bool isOrderDifferent = !matchedInstancesInModOrder.Select(i => i.Value).SequenceEqual(currentActiveValues, itemComparer);
-            bool isPureReorder = sameMultiset && isOrderDifferent;
-
-            LogCollector.Add(PropertyName, $"Is pure reorder: {isPureReorder}");
-
-            if (isPureReorder)
+            // ============================================================================
+            // STEP 4: ASSIGN ORDER OWNERSHIP
+            // ============================================================================
+            // Check which items actually moved by comparing neighbor relationships
+            // Only check items that existed before this mod (OrderOwnerMod != null)
+            foreach (var finalItem in finalOrder)
             {
-                // Pure reorder: mod takes ownership of all items and uses its order
-                LogCollector.Add(PropertyName, "Processing pure reorder");
+                // Find this item's neighbors in original order
+                var originalBefore = GetItemBefore(finalItem, currentActiveItems);
+                var originalAfter = GetItemAfter(finalItem, currentActiveItems);
 
-                foreach (var instance in matchedInstancesInModOrder)
+                // Find this item's neighbors in final order
+                var finalBefore = GetItemBefore(finalItem, finalOrder);
+                var finalAfter = GetItemAfter(finalItem, finalOrder);
+
+                // Check if BOTH neighbors changed (indicating this item moved)
+                bool beforeChanged = !AreItemsEqual(originalBefore, finalBefore);
+                bool afterChanged = !AreItemsEqual(originalAfter, finalAfter);
+
+                if (beforeChanged && afterChanged)
                 {
-                    instance.OwnerMod = modName;
-                }
-
-                // Build final order based on mod's order (matched instances)
-                var pureReorderFinalOrder = new List<ListPropertyValueContext<T>>();
-                pureReorderFinalOrder.AddRange(matchedInstancesInModOrder);
-
-                // Add any remaining active instances that weren't matched (shouldn't happen in pure reorder, but safety check)
-                // Rebuild from snapshot for exactness - these are items that existed before this mod but weren't in the mod's list
-                var remainingFromSnapshot = priorActiveSnapshot.Where(inst => !matchedInstancesInModOrder.Contains(inst)).ToList();
-                pureReorderFinalOrder.AddRange(remainingFromSnapshot);
-
-                // Replace active items with final order
-                var removedItems = forwardValueContexts.Where(item => item.IsRemoved).ToList();
-                forwardValueContexts.Clear();
-                forwardValueContexts.AddRange(pureReorderFinalOrder);
-                forwardValueContexts.AddRange(removedItems);
-
-                // Reindex
-                ReindexOrderIndices(forwardValueContexts);
-                LogCollector.Add(PropertyName, $"Pure reorder result: {string.Join(", ", pureReorderFinalOrder.Select((item, i) => $"[{i}]{FormatItem(item.Value)}"))}");
-                LogCollector.Add(PropertyName, "=== END SORTING ALGORITHM DEBUG ===");
-                return;
-            }
-
-            // Step 4: Non-pure case - process ownership changes for items that moved positions
-            LogCollector.Add(PropertyName, "Processing non-pure case - checking for ownership changes");
-
-            // Track items that cannot be moved by this mod (locked items)
-            var lockedItems = new HashSet<ListPropertyValueContext<T>>();
-
-            // CRITICAL FIX A: Build the prior filtered order from the snapshot (state before creating/re-adding)
-            var priorFilteredOrder = priorActiveSnapshot.Where(inst => matchedInstancesInModOrder.Contains(inst)).ToList();
-            var priorFilteredIndex = new Dictionary<ListPropertyValueContext<T>, int>();
-            for (int i = 0; i < priorFilteredOrder.Count; i++)
-            {
-                priorFilteredIndex[priorFilteredOrder[i]] = i;
-            }
-
-            // Check each matched instance for position changes using the filtered indices
-            for (int i = 0; i < matchedInstancesInModOrder.Count; i++)
-            {
-                var instance = matchedInstancesInModOrder[i];
-                int modPos = i;
-
-                // If this instance wasn't present in priorFilteredOrder for any reason, treat as currentPos = -1
-                int priorPos = priorFilteredIndex.TryGetValue(instance, out var p) ? p : -1;
-
-                if (priorPos != modPos)
-                {
-                    LogCollector.Add(PropertyName, $"  Position change detected (filtered): {FormatItem(instance.Value)} (was at {priorPos}, mod wants at {modPos})");
-
-                    // CRITICAL FIX B: Use explicit marker for instances created/re-added this pass
-                    bool isNewOrReaddedThisPass = createdOrReaddedThisPass.Contains(instance);
-
-                    if (isNewOrReaddedThisPass || modMasters.Contains(instance.OwnerMod))
-                    {
-                        instance.OwnerMod = modName; // ownership is already set for new/readded, harmless to reassign
-                        LogCollector.Add(PropertyName, $"    → Moved and took ownership (owner: {instance.OwnerMod})");
-                    }
-                    else
-                    {
-                        // Mod lacks permission - lock this item to prevent placement
-                        lockedItems.Add(instance);
-                        LogCollector.Add(PropertyName, $"    → Cannot move (locked) - no permission for owner {instance.OwnerMod}");
-                    }
+                    // This item moved - take order ownership
+                    finalItem.OrderOwnerMod = modName;
+                    LogCollector.Add(PropertyName, $"STEP 4 - Order ownership: {FormatItem(finalItem.Value)} moved (neighbors changed) → {modName}");
+                    LogCollector.Add(PropertyName, $"    Original: before={FormatItem(originalBefore?.Value)}, after={FormatItem(originalAfter?.Value)}");
+                    LogCollector.Add(PropertyName, $"    Final: before={FormatItem(finalBefore?.Value)}, after={FormatItem(finalAfter?.Value)}");
                 }
                 else
                 {
-                    LogCollector.Add(PropertyName, $"  No position change: {FormatItem(instance.Value)} (stays at filtered index {priorPos})");
+                    LogCollector.Add(PropertyName, $"STEP 4 - No move: {FormatItem(finalItem.Value)} (neighbors unchanged)");
                 }
             }
 
-            // Step 5: Build final order with interleaved baseline placement (preserves relative order)
-            var finalOrder = new List<ListPropertyValueContext<T>>();
-            var processedItems = new HashSet<ListPropertyValueContext<T>>();
-
-            LogCollector.Add(PropertyName, $"Building final order (interleaving baseline) - locked items: {lockedItems.Count}");
-
-            // baseline = the prior active items as they were BEFORE this mod (we took priorActiveSnapshot earlier)
-            // Keep only instances that are still active now (defensive)
-            var baseline = priorActiveSnapshot.Where(inst => !inst.IsRemoved && currentActiveItems.Contains(inst)).ToList();
-
-            // Build a baseline index map: instance -> index in baseline
-            var baselineIndex = new Dictionary<ListPropertyValueContext<T>, int>();
-            for (int i = 0; i < baseline.Count; i++)
+            // ============================================================================
+            // STEP 5: PLACE NEW ITEMS BASED ON MOD'S DECLARED ORDER
+            // ============================================================================
+            // Sort new items according to the mod's declared order
+            var sortedNewItems = new List<ListPropertyValueContext<T>>();
+            foreach (var declaredValue in recordItems)
             {
-                baselineIndex[baseline[i]] = i;
+                var newItem = newRemainingItems.FirstOrDefault(item => IsItemEqual(item.Value, declaredValue));
+                if (newItem != null)
+                {
+                    sortedNewItems.Add(newItem);
+                }
             }
 
-            int baselineCursor = 0;
+            LogCollector.Add(PropertyName, $"STEP 5 - New items in mod's declared order: {string.Join(", ", sortedNewItems.Select(item => FormatItem(item.Value)))}");
 
-            // For declared instances that existed in baseline we can get a baseline index; for new/readded ones use -1
-            int GetBaselineIndex(ListPropertyValueContext<T> inst)
+            // Place each new item based on what should be before it according to mod's wishes
+            foreach (var newItem in sortedNewItems)
             {
-                return baselineIndex.TryGetValue(inst, out var idx) ? idx : -1;
+                int position = FindPositionForNewItem(newItem, recordItems, finalOrder);
+                finalOrder.Insert(position, newItem);
+                newItem.OrderOwnerMod = modName; // Set order ownership for new items
+                LogCollector.Add(PropertyName, $"STEP 5 - Placed new item: {FormatItem(newItem.Value)} at position {position} → {modName}");
             }
 
-            // Walk declared/matched instances in declared order; before placing each declared instance,
-            // append baseline items whose baseline index is < the declared instance's baseline index.
-            foreach (var instance in matchedInstancesInModOrder)
-            {
-                int priorIdx = GetBaselineIndex(instance);
-
-                // Append baseline items that appear before this declared instance in the prior baseline
-                // If priorIdx == -1 (new instance), we append nothing here so the new item stays before remaining baseline items.
-                while (baselineCursor < baseline.Count && (priorIdx >= 0 ? baselineCursor < priorIdx : false))
-                {
-                    var b = baseline[baselineCursor];
-                    if (!processedItems.Contains(b))
-                    {
-                        finalOrder.Add(b);
-                        processedItems.Add(b);
-                        LogCollector.Add(PropertyName, $"  Placed baseline before declared: {FormatItem(b.Value)} (owner: {b.OwnerMod})");
-                    }
-                    baselineCursor++;
-                }
-
-                // Place the declared instance if allowed and not already placed
-                if (!lockedItems.Contains(instance) && !processedItems.Contains(instance))
-                {
-                    finalOrder.Add(instance);
-                    processedItems.Add(instance);
-                    LogCollector.Add(PropertyName, $"  Placed declared instance: {FormatItem(instance.Value)} (owner: {instance.OwnerMod})");
-                }
-                else if (lockedItems.Contains(instance))
-                {
-                    LogCollector.Add(PropertyName, $"  Skipped locked declared instance (kept in baseline): {FormatItem(instance.Value)} (owner: {instance.OwnerMod})");
-                }
-            }
-
-            // Handle blocked slots (removed instances that cannot be re-added) - skip them entirely
-            for (int i = 0; i < declaredSlots.Count; i++)
-            {
-                var slot = declaredSlots[i];
-                if (slot != null && slot.IsRemoved)
-                {
-                    LogCollector.Add(PropertyName, $"  Skipped blocked slot[{i}]: {FormatItem(slot.Value)} (cannot re-add, owned by {slot.OwnerMod})");
-                }
-            }
-
-            // After placing declared items, append any remaining baseline items not yet placed
-            while (baselineCursor < baseline.Count)
-            {
-                var b = baseline[baselineCursor];
-                if (!processedItems.Contains(b))
-                {
-                    finalOrder.Add(b);
-                    processedItems.Add(b);
-                    LogCollector.Add(PropertyName, $"  Appending leftover baseline: {FormatItem(b.Value)} (owner: {b.OwnerMod})");
-                }
-                baselineCursor++;
-            }
-
-            // Defensive: append any active items not yet placed
-            var remainingItems = currentActiveItems.Where(item => !processedItems.Contains(item)).ToList();
-            if (remainingItems.Count > 0)
-            {
-                LogCollector.Add(PropertyName, $"Appending other remaining items: {remainingItems.Count}");
-                foreach (var item in remainingItems)
-                {
-                    finalOrder.Add(item);
-                    processedItems.Add(item);
-                    LogCollector.Add(PropertyName, $"  Appending remaining item: {FormatItem(item.Value)} (owner: {item.OwnerMod})");
-                }
-            }
-
-            // Replace active items with final order
-            var allRemovedItems = forwardValueContexts.Where(item => item.IsRemoved).ToList();
+            // ============================================================================
+            // STEP 6: UPDATE FORWARD CONTEXTS
+            // ============================================================================
+            var removedItems = forwardValueContexts.Where(x => x.IsRemoved).ToList();
             forwardValueContexts.Clear();
             forwardValueContexts.AddRange(finalOrder);
-            forwardValueContexts.AddRange(allRemovedItems);
+            forwardValueContexts.AddRange(removedItems);
 
-            // Reindex
-            ReindexOrderIndices(forwardValueContexts);
+            LogCollector.Add(PropertyName, $"STEP 6 - Final order: {string.Join(", ", finalOrder.Select((item, i) => $"[{i}]{FormatItem(item.Value)}"))}");
 
-            LogCollector.Add(PropertyName, $"Final result: {string.Join(", ", finalOrder.Select((item, i) => $"[{i}]{FormatItem(item.Value)}"))}");
-            LogCollector.Add(PropertyName, "=== END SORTING ALGORITHM DEBUG ===");
         }
 
-        private void ReindexOrderIndices(List<ListPropertyValueContext<T>> forwardValueContexts)
+        /// <summary>
+        /// Finds the position for a remaining item based on its original "before" relationships.
+        /// This method ensures that items maintain their original relative positions to items that were before them.
+        /// Uses actual item relationships, not indexes, for robust positioning.
+        /// </summary>
+        /// <param name="itemToPlace">The remaining item we want to place</param>
+        /// <param name="originalOrder">The original order of all items</param>
+        /// <param name="currentFinalOrder">The current state of the final order being built</param>
+        /// <returns>The position (index) to insert the item</returns>
+        private int FindPositionBasedOnBeforeRelationships(
+            ListPropertyValueContext<T> itemToPlace,
+            List<ListPropertyValueContext<T>> originalOrder,
+            List<ListPropertyValueContext<T>> currentFinalOrder)
         {
-            var activeItems = forwardValueContexts.Where(item => !item.IsRemoved).ToList();
-            for (int i = 0; i < activeItems.Count; i++)
+            // Find all items that were originally before this item (by comparing values, not indexes)
+            var originalBeforeItems = new List<ListPropertyValueContext<T>>();
+            bool foundItemToPlace = false;
+
+            foreach (var originalItem in originalOrder)
             {
-                activeItems[i].OrderIndex = i;
+                if (IsItemEqual(originalItem.Value, itemToPlace.Value))
+                {
+                    foundItemToPlace = true;
+                    break; // Stop when we find the item we're placing
+                }
+                originalBeforeItems.Add(originalItem);
             }
+
+            if (!foundItemToPlace)
+            {
+                // Item not found in original order (new item added by this mod), place at the end
+                LogCollector.Add(PropertyName, $"    FindPosition: {FormatItem(itemToPlace.Value)} not found in original order (new item), placing at end");
+                return currentFinalOrder.Count;
+            }
+
+            LogCollector.Add(PropertyName, $"    FindPosition: {FormatItem(itemToPlace.Value)} - found {originalBeforeItems.Count} items that were originally before it");
+            LogCollector.Add(PropertyName, $"      Original before items: {string.Join(", ", originalBeforeItems.Select(item => FormatItem(item.Value)))}");
+
+            // Find the position after the last "before" item that's already in finalOrder
+            int position = 0;
+            foreach (var beforeItem in originalBeforeItems)
+            {
+                int beforeIndex = currentFinalOrder.FindIndex(item => IsItemEqual(item.Value, beforeItem.Value));
+                if (beforeIndex != -1)
+                {
+                    // This "before" item is already placed, position should be after it
+                    position = Math.Max(position, beforeIndex + 1);
+                    LogCollector.Add(PropertyName, $"        Found 'before' item {FormatItem(beforeItem.Value)} at position {beforeIndex}, updating position to {position}");
+                }
+            }
+
+            // Ensure we don't exceed the current list length
+            position = Math.Min(position, currentFinalOrder.Count);
+
+            LogCollector.Add(PropertyName, $"    FindPosition: Final position for {FormatItem(itemToPlace.Value)}: {position}");
+            return position;
         }
 
+        /// <summary>
+        /// Finds the position for a new item based on the mod's declared order.
+        /// This method ensures that new items are placed according to the mod's intentions.
+        /// </summary>
+        /// <param name="newItem">The new item we want to place</param>
+        /// <param name="recordItems">The mod's declared items in order</param>
+        /// <param name="currentFinalOrder">The current state of the final order being built</param>
+        /// <returns>The position (index) to insert the item</returns>
+        private int FindPositionForNewItem(
+            ListPropertyValueContext<T> newItem,
+            List<T> recordItems,
+            List<ListPropertyValueContext<T>> currentFinalOrder)
+        {
+            // Find the position of this new item in the mod's declared order
+            int declaredIndex = recordItems.FindIndex(item => IsItemEqual(item, newItem.Value));
+            if (declaredIndex == -1)
+            {
+                // Item not found in declared order (shouldn't happen), place at the end
+                LogCollector.Add(PropertyName, $"    FindPositionForNewItem: {FormatItem(newItem.Value)} not found in declared order, placing at end");
+                return currentFinalOrder.Count;
+            }
+
+            LogCollector.Add(PropertyName, $"    FindPositionForNewItem: {FormatItem(newItem.Value)} is at declared index {declaredIndex}");
+
+            // Find all items that should be before this new item according to mod's declared order
+            var declaredBeforeItems = new List<T>();
+            for (int i = 0; i < declaredIndex; i++)
+            {
+                declaredBeforeItems.Add(recordItems[i]);
+            }
+
+            LogCollector.Add(PropertyName, $"      Declared before items: {string.Join(", ", declaredBeforeItems.Select(item => FormatItem(item)))}");
+
+            // Find the position after the last "before" item that's already in finalOrder
+            int position = 0;
+            foreach (var beforeItem in declaredBeforeItems)
+            {
+                int beforeIndex = currentFinalOrder.FindIndex(item => IsItemEqual(item.Value, beforeItem));
+                if (beforeIndex != -1)
+                {
+                    // This "before" item is already placed, position should be after it
+                    position = Math.Max(position, beforeIndex + 1);
+                    LogCollector.Add(PropertyName, $"        Found 'before' item {FormatItem(beforeItem)} at position {beforeIndex}, updating position to {position}");
+                }
+            }
+
+            // Ensure we don't exceed the current list length
+            position = Math.Min(position, currentFinalOrder.Count);
+
+            LogCollector.Add(PropertyName, $"    FindPositionForNewItem: Final position for {FormatItem(newItem.Value)}: {position}");
+            return position;
+        }
+
+        /// <summary>
+        /// Gets the item that comes before the specified item in the given list.
+        /// Returns null if the item is first or not found.
+        /// </summary>
+        private ListPropertyValueContext<T>? GetItemBefore(
+            ListPropertyValueContext<T> item,
+            List<ListPropertyValueContext<T>> list)
+        {
+            int index = list.FindIndex(i => IsItemEqual(i.Value, item.Value));
+            if (index <= 0) return null;
+            return list[index - 1];
+        }
+
+        /// <summary>
+        /// Gets the item that comes after the specified item in the given list.
+        /// Returns null if the item is last or not found.
+        /// </summary>
+        private ListPropertyValueContext<T>? GetItemAfter(
+            ListPropertyValueContext<T> item,
+            List<ListPropertyValueContext<T>> list)
+        {
+            int index = list.FindIndex(i => IsItemEqual(i.Value, item.Value));
+            if (index < 0 || index >= list.Count - 1) return null;
+            return list[index + 1];
+        }
+
+        /// <summary>
+        /// Compares two items for equality, handling null values.
+        /// </summary>
+        private bool AreItemsEqual(ListPropertyValueContext<T>? item1, ListPropertyValueContext<T>? item2)
+        {
+            if (item1 == null && item2 == null) return true;
+            if (item1 == null || item2 == null) return false;
+            return IsItemEqual(item1.Value, item2.Value);
+        }
+
+        /// <summary>
+        /// Custom equality comparer that wraps the IsItemEqual method for use with collections.
+        /// This allows us to use custom equality logic in LINQ operations and dictionary lookups.
+        /// </summary>
         private class ItemEqualityComparer<TItem> : IEqualityComparer<TItem>
         {
             private readonly Func<TItem, TItem, bool> _comparer;
@@ -777,44 +768,6 @@ namespace ForwardChanges.PropertyHandlers.Abstracts
             {
                 return obj?.GetHashCode() ?? 0;
             }
-        }
-
-        private Dictionary<object, int> CountValuesList(List<T> values, ItemEqualityComparer<T> comparer)
-        {
-            var counts = new Dictionary<object, int>();
-            foreach (var v in values)
-            {
-                if (v == null) continue;
-
-                // Find existing key using custom equality
-                var existingKey = counts.Keys.FirstOrDefault(key => comparer.Equals((T)key, v));
-                if (existingKey != null)
-                {
-                    counts[existingKey]++;
-                }
-                else
-                {
-                    counts[v!] = 1;
-                }
-            }
-            return counts;
-        }
-
-        private bool CountsEqualDict(Dictionary<object, int> a, Dictionary<object, int> b, ItemEqualityComparer<T> comparer)
-        {
-            if (a.Count != b.Count) return false;
-            foreach (var kvp in a)
-            {
-                // Find matching key in b using custom equality
-                var matchingKey = b.Keys.FirstOrDefault(key =>
-                    kvp.Key is T key1 && key is T key2 && comparer.Equals(key1, key2));
-
-                if (matchingKey == null || b[matchingKey] != kvp.Value)
-                {
-                    return false;
-                }
-            }
-            return true;
         }
 
         /// <summary>
@@ -867,8 +820,12 @@ namespace ForwardChanges.PropertyHandlers.Abstracts
         /// <param name="mod">The mod to check</param>
         /// <param name="ownerMod">The mod that owns the item</param>
         /// <returns></returns>
-        protected bool HasPermissionsToModify(ISkyrimModGetter mod, string ownerMod)
+        protected bool HasPermissionsToModify(ISkyrimModGetter mod, string? ownerMod)
         {
+            if (ownerMod == null)
+            {
+                return false;
+            }
             return mod?.MasterReferences.Any(m => m.Master.ToString() == ownerMod) == true || mod?.ModKey.ToString() == ownerMod;
         }
 

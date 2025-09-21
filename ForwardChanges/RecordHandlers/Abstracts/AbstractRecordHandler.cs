@@ -260,7 +260,7 @@ namespace ForwardChanges.RecordHandlers.Abstracts
                         var winningValue = handler.GetValue(winningContext.Record);
                         var forwardValue = propertyContext.GetForwardValue();
 
-                        // DEBUG: Show all values for comparison
+                        // Show all values for comparison
                         LogCollector.Add(kvp.Key, $"[{kvp.Key}] Final Decision:");
                         LogCollector.Add(kvp.Key, $"[{kvp.Key}]   Original value: {handler.FormatValue(originalValue)}");
                         LogCollector.Add(kvp.Key, $"[{kvp.Key}]   Winning value: {handler.FormatValue(winningValue)}");

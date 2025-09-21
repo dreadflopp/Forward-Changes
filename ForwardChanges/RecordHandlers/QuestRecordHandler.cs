@@ -17,11 +17,8 @@ public class QuestRecordHandler : AbstractRecordHandler
 {
     public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()
     {
-        // General properties
         { "EditorID", new EditorIDHandler() },
         { "Name", new NameHandler() },
-        
-        // Quest-specific properties (VirtualMachineAdapter components)
         { "QuestScripts", new QuestScriptsHandler() },
         { "QuestScriptFragments", new QuestScriptFragmentHandler() },
         { "QuestFragmentAliases", new QuestFragmentAliasHandler() },
@@ -35,8 +32,6 @@ public class QuestRecordHandler : AbstractRecordHandler
         { "Filter", new FilterHandler() },
         { "NextAliasID", new NextAliasIDHandler() },
         { "Description", new DescriptionHandler() },
-        
-        // List properties
         { "DialogConditions", new DialogConditionsHandler() },
         { "EventConditions", new EventConditionsHandler() },
         { "Stages", new StagesHandler() },
