@@ -47,7 +47,7 @@ namespace ForwardChanges.RecordHandlers
                 { "Race", new RaceHandler() },
                 { "Destructible", new DestructibleHandler() },
                 { "Height", new HeightHandler() },
-                { "Weight", new WeightHandler() },
+                { "Weight", new ForwardChanges.PropertyHandlers.Npc.WeightHandler() },
                 { "ObjectBounds", new ObjectBoundsHandler() },
                 { "Voice", new VoiceHandler() },
                 { "Template", new TemplateHandler() },
