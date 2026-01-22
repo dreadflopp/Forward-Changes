@@ -1,12 +1,22 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Plugins.Records;
+using Mutagen.Bethesda.Synthesis;
+using Mutagen.Bethesda.Plugins.Cache;
 using ForwardChanges.PropertyHandlers.Abstracts;
+using ForwardChanges.Contexts;
 
 namespace ForwardChanges.PropertyHandlers.Quest
 {
     public class QuestScriptsHandler : AbstractListPropertyHandler<IScriptEntryGetter>
     {
         public override string PropertyName => "QuestScripts";
+
+        // Static dictionary to persist property ownership trackers across mod processing
+        // Key: Record FormKey + Script Name, Value: Property ownership tracker
+        private static readonly Dictionary<string, ScriptPropertyOwnershipTracker> _persistentTrackers = new();
 
         public override List<IScriptEntryGetter>? GetValue(IMajorRecordGetter record)
         {
@@ -32,9 +42,97 @@ namespace ForwardChanges.PropertyHandlers.Quest
                         var newScript = new ScriptEntry();
                         newScript.DeepCopyIn(script);
                         questRecord.VirtualMachineAdapter.Scripts.Add(newScript);
+
+                        // DEBUG: Log what was set
+                        LogCollector.Add(PropertyName, $"[{PropertyName}] DEBUG: SetValue - Script '{script.Name}' with {script.Properties?.Count ?? 0} properties, copied to {newScript.Properties?.Count ?? 0} properties");
+                        if (script.Properties != null && newScript.Properties != null)
+                        {
+                            var sourceNames = script.Properties.Where(p => p != null).Select(p => p.Name).ToList();
+                            var destNames = newScript.Properties.Where(p => p != null).Select(p => p.Name).ToList();
+                            var missing = sourceNames.Except(destNames).ToList();
+                            if (missing.Any())
+                            {
+                                LogCollector.Add(PropertyName, $"[{PropertyName}] DEBUG: SetValue - WARNING: Missing properties after DeepCopyIn: {string.Join(", ", missing)}");
+                            }
+                        }
                     }
                 }
             }
+        }
+
+        public override bool AreValuesEqual(List<IScriptEntryGetter>? value1, List<IScriptEntryGetter>? value2)
+        {
+            if (value1 == null && value2 == null) return true;
+            if (value1 == null || value2 == null) return false;
+            if (value1.Count != value2.Count) return false;
+
+            // Group scripts by name for efficient matching
+            var scripts1ByName = value1
+                .Where(s => s != null)
+                .GroupBy(s => s.Name)
+                .ToDictionary(g => g.Key, g => g.First());
+
+            var scripts2ByName = value2
+                .Where(s => s != null)
+                .GroupBy(s => s.Name)
+                .ToDictionary(g => g.Key, g => g.First());
+
+            // Check that all scripts in value1 have matching scripts in value2 with same properties
+            foreach (var script1 in scripts1ByName.Values)
+            {
+                if (!scripts2ByName.TryGetValue(script1.Name, out var script2))
+                {
+                    return false; // Script name not found in value2
+                }
+
+                // Compare scripts by name, flags, and properties
+                if (!AreScriptsEqual(script1, script2))
+                {
+                    return false; // Scripts differ
+                }
+            }
+
+            return true;
+        }
+
+        private bool AreScriptsEqual(IScriptEntryGetter script1, IScriptEntryGetter script2)
+        {
+            // Compare name
+            if (script1.Name != script2.Name) return false;
+
+            // Compare flags
+            if (script1.Flags != script2.Flags) return false;
+
+            // Compare properties (order-independent)
+            var props1 = script1.Properties?.ToList() ?? new List<IScriptPropertyGetter>();
+            var props2 = script2.Properties?.ToList() ?? new List<IScriptPropertyGetter>();
+
+            if (props1.Count != props2.Count) return false;
+
+            // For each property in script1, find a matching property in script2
+            var props2Matched = new HashSet<int>();
+            foreach (var prop1 in props1)
+            {
+                if (prop1 == null) continue;
+
+                bool found = false;
+                for (int i = 0; i < props2.Count; i++)
+                {
+                    if (props2Matched.Contains(i)) continue;
+                    if (props2[i] == null) continue;
+
+                    if (AreScriptPropertiesEqual(prop1, props2[i]))
+                    {
+                        props2Matched.Add(i);
+                        found = true;
+                        break;
+                    }
+                }
+
+                if (!found) return false;
+            }
+
+            return true;
         }
 
         protected override bool IsItemEqual(IScriptEntryGetter? item1, IScriptEntryGetter? item2)
@@ -42,58 +140,431 @@ namespace ForwardChanges.PropertyHandlers.Quest
             if (item1 == null && item2 == null) return true;
             if (item1 == null || item2 == null) return false;
 
-            // Use our own value-based comparison
-            return AreScriptEntriesEqual(item1, item2);
+            // Match scripts by name only - properties are handled separately in ProcessHandlerSpecificLogic
+            return item1.Name == item2.Name;
         }
 
-        private bool AreScriptEntriesEqual(IScriptEntryGetter item1, IScriptEntryGetter item2)
+        protected override void ProcessHandlerSpecificLogic(
+            IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> context,
+            IPatcherState<ISkyrimMod, ISkyrimModGetter> state,
+            ListPropertyContext<IScriptEntryGetter> listPropertyContext,
+            List<IScriptEntryGetter> recordItems,
+            List<ListPropertyValueContext<IScriptEntryGetter>> currentForwardItems)
         {
-            // Compare script name
-            if (item1.Name != item2.Name)
-                return false;
+            var recordMod = state.LoadOrder[context.ModKey].Mod;
+            if (recordMod == null) return;
 
-            // Compare script flags
-            if (item1.Flags != item2.Flags)
-                return false;
+            // Get original scripts to determine which properties were originally present
+            var originalScripts = listPropertyContext.OriginalValueContexts?
+                .Where(c => c != null && c.Value != null)
+                .Select(c => c.Value)
+                .ToList() ?? new List<IScriptEntryGetter>();
+            var originalScriptsByName = originalScripts
+                .Where(s => s != null)
+                .GroupBy(s => s.Name)
+                .ToDictionary(g => g.Key, g => g.First());
 
-            // Compare properties - handle null cases
-            if (item1.Properties == null && item2.Properties == null) return true;
-            if (item1.Properties == null || item2.Properties == null)
-                return false;
+            // Group scripts by name for efficient matching
+            var forwardScriptsByName = currentForwardItems
+                .Where(i => !i.IsRemoved)
+                .GroupBy(i => i.Value.Name)
+                .ToDictionary(g => g.Key, g => g.First());
 
-            if (item1.Properties.Count != item2.Properties.Count)
-                return false;
+            // Get the record FormKey to create unique keys for trackers
+            var recordFormKey = context.Record.FormKey.ToString();
 
-            // Compare properties - they may not be in the same order
-            // For each property in item1, find a matching property in item2
-            var item2Properties = item2.Properties.ToList();
+            // Get original mod name (all original items have the same OwnerMod)
+            var originalMod = listPropertyContext.OriginalValueContexts?
+                .FirstOrDefault()?.OwnerMod ?? "Unknown";
 
-            foreach (var prop1 in item1.Properties)
+            LogCollector.Add(PropertyName, $"[{PropertyName}] DEBUG: Original mod is '{originalMod}', Record: {recordFormKey}");
+
+            // Get or create persistent trackers for each script
+            // Key: script name, Value: ownership tracker
+            var propertyTrackers = new Dictionary<string, ScriptPropertyOwnershipTracker>();
+
+            // Initialize trackers from original scripts (only if not already initialized)
+            foreach (var originalScript in originalScripts)
             {
-                if (prop1 == null) continue;
+                if (originalScript == null) continue;
+                var trackerKey = $"{recordFormKey}|{originalScript.Name}";
 
-                // Find a matching property in item2
-                bool foundMatch = false;
-                for (int i = 0; i < item2Properties.Count; i++)
+                if (!_persistentTrackers.TryGetValue(trackerKey, out var tracker))
                 {
-                    var prop2 = item2Properties[i];
-                    if (prop2 == null) continue;
+                    tracker = new ScriptPropertyOwnershipTracker();
+                    tracker.InitializeFromOriginal(originalScript, originalMod);
+                    _persistentTrackers[trackerKey] = tracker;
+                    LogCollector.Add(PropertyName, $"[{PropertyName}] DEBUG: Created persistent tracker for script '{originalScript.Name}' with {originalScript.Properties?.Count ?? 0} original properties");
+                }
+                else
+                {
+                    LogCollector.Add(PropertyName, $"[{PropertyName}] DEBUG: Reusing persistent tracker for script '{originalScript.Name}'");
+                }
 
-                    if (AreScriptPropertiesEqual(prop1, prop2))
+                propertyTrackers[originalScript.Name] = tracker;
+            }
+
+            // Process each script in the record
+            foreach (var recordScript in recordItems)
+            {
+                if (recordScript == null) continue;
+
+                // Find matching forward script by name
+                if (!forwardScriptsByName.TryGetValue(recordScript.Name, out var forwardContext))
+                {
+                    // Script doesn't exist in forward - will be handled by ProcessAdditions
+                    continue;
+                }
+
+                // Check if we have permission to modify this script
+                if (!HasPermissionsToModify(recordMod, forwardContext.OwnerMod))
+                {
+                    LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: Cannot modify script '{recordScript.Name}' - no permission (owned by {forwardContext.OwnerMod})");
+                    continue;
+                }
+
+                // Get original script for this script name (if it exists)
+                originalScriptsByName.TryGetValue(recordScript.Name, out var originalScript);
+
+                // Get or create property ownership tracker for this script (persistent across mod processing)
+                var trackerKey = $"{recordFormKey}|{recordScript.Name}";
+
+                if (!_persistentTrackers.TryGetValue(trackerKey, out var tracker))
+                {
+                    tracker = new ScriptPropertyOwnershipTracker();
+                    if (originalScript != null)
                     {
-                        // Found a match, remove it from the list to avoid duplicate matches
-                        item2Properties.RemoveAt(i);
-                        foundMatch = true;
-                        break;
+                        tracker.InitializeFromOriginal(originalScript, originalMod);
+                        LogCollector.Add(PropertyName, $"[{PropertyName}] DEBUG: Created persistent tracker for script '{recordScript.Name}' with {originalScript.Properties?.Count ?? 0} original properties");
+                    }
+                    else
+                    {
+                        LogCollector.Add(PropertyName, $"[{PropertyName}] DEBUG: Created persistent tracker for script '{recordScript.Name}' (no original script found)");
+                    }
+                    _persistentTrackers[trackerKey] = tracker;
+                }
+                else
+                {
+                    LogCollector.Add(PropertyName, $"[{PropertyName}] DEBUG: Reusing persistent tracker for script '{recordScript.Name}'");
+                }
+
+                // IMPORTANT: Also initialize from forward script to track properties added by previous mods
+                // This is critical - properties added by previous mods need to be in the tracker
+                // But only add properties that aren't already tracked (to preserve ownership)
+                tracker.InitializeFromForward(forwardContext.Value, originalScript, forwardContext.OwnerMod);
+
+                // DEBUG: Log current forward script properties and their ownership
+                LogCollector.Add(PropertyName, $"[{PropertyName}] DEBUG: Processing script '{recordScript.Name}' for mod '{context.ModKey}'");
+                LogCollector.Add(PropertyName, $"[{PropertyName}] DEBUG: Forward script has {forwardContext.Value.Properties?.Count ?? 0} properties (owned by '{forwardContext.OwnerMod}')");
+                foreach (var forwardProp in forwardContext.Value.Properties ?? Enumerable.Empty<IScriptPropertyGetter>())
+                {
+                    if (forwardProp == null) continue;
+                    var ownership = tracker.GetOwnership(forwardProp);
+                    if (ownership != null)
+                    {
+                        LogCollector.Add(PropertyName, $"[{PropertyName}] DEBUG:   Property '{forwardProp.Name}': owned by '{ownership.OwnerMod}', removed={ownership.IsRemoved}");
+                    }
+                    else
+                    {
+                        LogCollector.Add(PropertyName, $"[{PropertyName}] DEBUG:   Property '{forwardProp.Name}': NOT TRACKED (this is a problem!)");
                     }
                 }
 
-                if (!foundMatch)
-                    return false;
+                // Merge properties: create a new script with merged properties
+                var mergedScript = MergeScriptProperties(
+                    forwardContext.Value,
+                    recordScript,
+                    originalScript,
+                    context.ModKey.ToString(),
+                    recordMod,
+                    forwardContext.OwnerMod,
+                    tracker);
+
+                if (mergedScript != null)
+                {
+                    forwardContext.Value = mergedScript;
+                    LogCollector.Add(PropertyName, $"[{PropertyName}] DEBUG: After merging, script '{recordScript.Name}' has {mergedScript.Properties?.Count ?? 0} properties");
+                }
             }
 
-            // All properties in item1 had matches, and item2Properties should be empty now
-            return item2Properties.Count == 0;
+            // DEBUG: Log final forward contexts after all processing
+            LogCollector.Add(PropertyName, $"[{PropertyName}] DEBUG: Final forward contexts after processing mod '{context.ModKey}':");
+            foreach (var forwardItem in currentForwardItems.Where(i => !i.IsRemoved))
+            {
+                if (forwardItem.Value != null)
+                {
+                    LogCollector.Add(PropertyName, $"[{PropertyName}] DEBUG:   Script '{forwardItem.Value.Name}': {forwardItem.Value.Properties?.Count ?? 0} properties");
+                }
+            }
+        }
+
+        private IScriptEntryGetter? MergeScriptProperties(
+            IScriptEntryGetter forwardScript,
+            IScriptEntryGetter recordScript,
+            IScriptEntryGetter? originalScript,
+            string newOwnerMod,
+            ISkyrimModGetter recordMod,
+            string scriptOwnerMod,
+            ScriptPropertyOwnershipTracker propertyTracker)
+        {
+            // Create a new ScriptEntry based on the forward script
+            var mergedScript = new ScriptEntry();
+            mergedScript.DeepCopyIn(forwardScript);
+
+            // Update flags if they differ
+            if (forwardScript.Flags != recordScript.Flags)
+            {
+                mergedScript.Flags = recordScript.Flags;
+            }
+
+            var forwardProperties = forwardScript.Properties?.ToList() ?? new List<IScriptPropertyGetter>();
+            var recordProperties = recordScript.Properties?.ToList() ?? new List<IScriptPropertyGetter>();
+            var originalProperties = originalScript?.Properties?.ToList() ?? new List<IScriptPropertyGetter>();
+
+            // Find properties to add (exist in record but not in forward)
+            foreach (var recordProp in recordProperties)
+            {
+                if (recordProp == null) continue;
+
+                // Check if this property exists in forward script (by value comparison)
+                bool existsInForward = forwardProperties.Any(fp =>
+                    fp != null && AreScriptPropertiesEqual(fp, recordProp));
+
+                if (!existsInForward)
+                {
+                    // Check if property was previously removed
+                    var ownership = propertyTracker.GetOwnership(recordProp);
+                    bool wasRemoved = ownership?.IsRemoved == true;
+
+                    LogCollector.Add(PropertyName, $"[{PropertyName}] DEBUG: Property '{recordProp.Name}' not in forward script");
+                    if (ownership != null)
+                    {
+                        LogCollector.Add(PropertyName, $"[{PropertyName}] DEBUG:   Ownership found: owned by '{ownership.OwnerMod}', removed={ownership.IsRemoved}");
+                    }
+                    else
+                    {
+                        LogCollector.Add(PropertyName, $"[{PropertyName}] DEBUG:   No ownership info - treating as new property");
+                    }
+
+                    if (wasRemoved)
+                    {
+                        // Property was removed - check if we have permission to add it back
+                        LogCollector.Add(PropertyName, $"[{PropertyName}] DEBUG:   Property was removed by '{ownership!.OwnerMod}', checking permission...");
+                        bool hasPermission = HasPermissionsToModify(recordMod, ownership.OwnerMod);
+                        LogCollector.Add(PropertyName, $"[{PropertyName}] DEBUG:   Permission check: {hasPermission} (recordMod masters: {string.Join(", ", recordMod.MasterReferences.Select(m => m.Master.FileName))})");
+
+                        if (hasPermission)
+                        {
+                            // Add the property back
+                            var newProp = CreateScriptPropertyCopy(recordProp);
+                            if (newProp != null)
+                            {
+                                mergedScript.Properties.Add(newProp);
+                                propertyTracker.MarkPropertyAddedBack(recordProp, newOwnerMod);
+                                LogCollector.Add(PropertyName, $"[{PropertyName}] Adding back property '{recordProp.Name}' to script '{recordScript.Name}' (was removed by {ownership.OwnerMod})");
+                            }
+                        }
+                        else
+                        {
+                            LogCollector.Add(PropertyName, $"[{PropertyName}] Cannot add back property '{recordProp.Name}' to script '{recordScript.Name}' - no permission (was removed by {ownership.OwnerMod})");
+                        }
+                    }
+                    else
+                    {
+                        // New property - add it and take ownership
+                        var newProp = CreateScriptPropertyCopy(recordProp);
+                        if (newProp != null)
+                        {
+                            mergedScript.Properties.Add(newProp);
+                            propertyTracker.MarkPropertyAdded(recordProp, newOwnerMod);
+                            LogCollector.Add(PropertyName, $"[{PropertyName}] Adding property '{recordProp.Name}' to script '{recordScript.Name}' (taking ownership as '{newOwnerMod}')");
+                        }
+                    }
+                }
+            }
+
+            // Find properties to remove (exist in forward but not in record)
+            var propertiesToRemove = new List<IScriptPropertyGetter>();
+            foreach (var forwardProp in forwardProperties)
+            {
+                if (forwardProp == null) continue;
+
+                // Check if this property exists in record script (by value comparison)
+                bool existsInRecord = recordProperties.Any(rp =>
+                    rp != null && AreScriptPropertiesEqual(rp, forwardProp));
+
+                if (!existsInRecord)
+                {
+                    // Get ownership info for this property
+                    var ownership = propertyTracker.GetOwnership(forwardProp);
+
+                    LogCollector.Add(PropertyName, $"[{PropertyName}] DEBUG: Property '{forwardProp.Name}' not in record script, checking removal permission...");
+
+                    if (ownership != null)
+                    {
+                        LogCollector.Add(PropertyName, $"[{PropertyName}] DEBUG:   Ownership found: owned by '{ownership.OwnerMod}', removed={ownership.IsRemoved}");
+
+                        // Property is tracked - check if we have permission to remove it
+                        bool hasPermission = HasPermissionsToModify(recordMod, ownership.OwnerMod);
+                        LogCollector.Add(PropertyName, $"[{PropertyName}] DEBUG:   Permission check: {hasPermission} (recordMod='{recordMod.ModKey}', ownerMod='{ownership.OwnerMod}', masters: {string.Join(", ", recordMod.MasterReferences.Select(m => m.Master.FileName))})");
+
+                        if (hasPermission)
+                        {
+                            // We have permission - mark for removal
+                            propertiesToRemove.Add(forwardProp);
+                            LogCollector.Add(PropertyName, $"[{PropertyName}] DEBUG:   Permission granted - marking for removal");
+                        }
+                        else
+                        {
+                            // No permission to remove
+                            LogCollector.Add(PropertyName, $"[{PropertyName}] Cannot remove property '{forwardProp.Name}' from script '{recordScript.Name}' - no permission (owned by {ownership.OwnerMod})");
+                        }
+                    }
+                    else
+                    {
+                        LogCollector.Add(PropertyName, $"[{PropertyName}] DEBUG:   Property NOT TRACKED in ownership tracker");
+
+                        // Property not tracked - this shouldn't happen if initialization worked correctly
+                        // But be safe: if it exists in original, we can remove it (permission already checked at script level)
+                        bool existsInOriginal = originalProperties.Any(op =>
+                            op != null && AreScriptPropertiesEqual(op, forwardProp));
+
+                        if (existsInOriginal)
+                        {
+                            LogCollector.Add(PropertyName, $"[{PropertyName}] DEBUG:   Property exists in original - adding to tracker and removing");
+                            // Property was in original but not tracked - add to tracker and remove
+                            propertyTracker.MarkPropertyRemoved(forwardProp, newOwnerMod);
+                            propertiesToRemove.Add(forwardProp);
+                        }
+                        else
+                        {
+                            LogCollector.Add(PropertyName, $"[{PropertyName}] DEBUG:   Property NOT in original - this is a property added by a previous mod!");
+                            LogCollector.Add(PropertyName, $"[{PropertyName}] Cannot remove property '{forwardProp.Name}' from script '{recordScript.Name}' - property not tracked and not in original");
+                        }
+                    }
+                }
+            }
+
+            // Remove properties that don't exist in record
+            foreach (var propToRemove in propertiesToRemove)
+            {
+                // Find and remove the matching property from mergedScript
+                var propToRemoveFromMerged = mergedScript.Properties.FirstOrDefault(p =>
+                    p != null && AreScriptPropertiesEqual(p, propToRemove));
+
+                if (propToRemoveFromMerged != null)
+                {
+                    var oldOwnership = propertyTracker.GetOwnership(propToRemove);
+                    mergedScript.Properties.Remove(propToRemoveFromMerged);
+                    propertyTracker.MarkPropertyRemoved(propToRemove, newOwnerMod);
+                    LogCollector.Add(PropertyName, $"[{PropertyName}] Removing property '{propToRemove.Name}' from script '{recordScript.Name}' (was owned by '{oldOwnership?.OwnerMod ?? "unknown"}', new owner: '{newOwnerMod}')");
+                }
+            }
+
+            // Update properties that exist in both but have different values
+            // Note: Properties are identified by all their values, so if a property with the same name
+            // has different values, it's a different property. We need to find by name first, then check values.
+            foreach (var recordProp in recordProperties)
+            {
+                if (recordProp == null) continue;
+
+                // Find matching property in forward by name
+                var forwardProp = forwardProperties.FirstOrDefault(fp =>
+                    fp != null && fp.Name == recordProp.Name);
+
+                if (forwardProp != null && !AreScriptPropertiesEqual(forwardProp, recordProp))
+                {
+                    // Property with same name exists but values differ - replace it
+                    // Find the property in mergedScript by matching the forward property (by value)
+                    var propToUpdate = mergedScript.Properties.FirstOrDefault(p =>
+                        p != null && AreScriptPropertiesEqual(p, forwardProp));
+
+                    if (propToUpdate != null)
+                    {
+                        // Remove old property and add new one
+                        mergedScript.Properties.Remove(propToUpdate);
+                        var newProp = CreateScriptPropertyCopy(recordProp);
+                        if (newProp != null)
+                        {
+                            mergedScript.Properties.Add(newProp);
+                            LogCollector.Add(PropertyName, $"[{PropertyName}] Updating property '{recordProp.Name}' in script '{recordScript.Name}'");
+                        }
+                    }
+                }
+            }
+
+            // DEBUG: Log final merged script state
+            LogCollector.Add(PropertyName, $"[{PropertyName}] DEBUG: MergeScriptProperties completed for '{recordScript.Name}': {mergedScript.Properties?.Count ?? 0} properties");
+            if (mergedScript.Properties != null)
+            {
+                var propNames = mergedScript.Properties.Where(p => p != null).Select(p => p.Name).ToList();
+                LogCollector.Add(PropertyName, $"[{PropertyName}] DEBUG:     Properties: {string.Join(", ", propNames)}");
+            }
+
+            return mergedScript;
+        }
+
+        private ScriptProperty? CreateScriptPropertyCopy(IScriptPropertyGetter source)
+        {
+            if (source == null) return null;
+
+            // Create a new property based on type and copy all data
+            switch (source)
+            {
+                case IScriptBoolPropertyGetter boolProp:
+                    var newBoolProp = new ScriptBoolProperty();
+                    newBoolProp.DeepCopyIn(boolProp);
+                    return newBoolProp;
+
+                case IScriptIntPropertyGetter intProp:
+                    var newIntProp = new ScriptIntProperty();
+                    newIntProp.DeepCopyIn(intProp);
+                    return newIntProp;
+
+                case IScriptFloatPropertyGetter floatProp:
+                    var newFloatProp = new ScriptFloatProperty();
+                    newFloatProp.DeepCopyIn(floatProp);
+                    return newFloatProp;
+
+                case IScriptStringPropertyGetter stringProp:
+                    var newStringProp = new ScriptStringProperty();
+                    newStringProp.DeepCopyIn(stringProp);
+                    return newStringProp;
+
+                case IScriptObjectPropertyGetter objProp:
+                    var newObjProp = new ScriptObjectProperty();
+                    newObjProp.DeepCopyIn(objProp);
+                    return newObjProp;
+
+                case IScriptBoolListPropertyGetter boolListProp:
+                    var newBoolListProp = new ScriptBoolListProperty();
+                    newBoolListProp.DeepCopyIn(boolListProp);
+                    return newBoolListProp;
+
+                case IScriptIntListPropertyGetter intListProp:
+                    var newIntListProp = new ScriptIntListProperty();
+                    newIntListProp.DeepCopyIn(intListProp);
+                    return newIntListProp;
+
+                case IScriptFloatListPropertyGetter floatListProp:
+                    var newFloatListProp = new ScriptFloatListProperty();
+                    newFloatListProp.DeepCopyIn(floatListProp);
+                    return newFloatListProp;
+
+                case IScriptStringListPropertyGetter stringListProp:
+                    var newStringListProp = new ScriptStringListProperty();
+                    newStringListProp.DeepCopyIn(stringListProp);
+                    return newStringListProp;
+
+                case IScriptObjectListPropertyGetter objListProp:
+                    var newObjListProp = new ScriptObjectListProperty();
+                    newObjListProp.DeepCopyIn(objListProp);
+                    return newObjListProp;
+
+                default:
+                    LogCollector.Add(PropertyName, $"WARNING: Unknown script property type '{source.GetType().Name}' - cannot copy");
+                    return null;
+            }
         }
 
         private bool AreScriptPropertiesEqual(IScriptPropertyGetter prop1, IScriptPropertyGetter prop2)
