@@ -20,7 +20,7 @@ namespace ForwardChanges.PropertyHandlers.Npc
             }
             else
             {
-                Console.WriteLine($"Error: Record does not implement INpcGetter for {PropertyName}");
+                LogCollector.Add(PropertyName, $"Error: Record does not implement INpcGetter for {PropertyName}");
             }
             return null;
         }
@@ -47,7 +47,7 @@ namespace ForwardChanges.PropertyHandlers.Npc
             }
             else
             {
-                Console.WriteLine($"Error: Record does not implement INpc for {PropertyName}");
+                LogCollector.Add(PropertyName, $"Error: Record does not implement INpc for {PropertyName}");
             }
         }
 
@@ -58,22 +58,42 @@ namespace ForwardChanges.PropertyHandlers.Npc
 
             if (value1.Count != value2.Count) return false;
 
-            // Compare each head part by FormKey
-            for (int i = 0; i < value1.Count; i++)
+            // Order doesn't matter for HeadParts - compare as sets of FormKeys
+            var formKeys1 = value1
+                .Where(hp => hp != null && !hp.FormKey.IsNull)
+                .Select(hp => hp.FormKey)
+                .OrderBy(fk => fk.ToString())
+                .ToList();
+
+            var formKeys2 = value2
+                .Where(hp => hp != null && !hp.FormKey.IsNull)
+                .Select(hp => hp.FormKey)
+                .OrderBy(fk => fk.ToString())
+                .ToList();
+
+            if (formKeys1.Count != formKeys2.Count) return false;
+
+            // Compare sorted FormKeys
+            for (int i = 0; i < formKeys1.Count; i++)
             {
-                var headPart1 = value1[i];
-                var headPart2 = value2[i];
-
-                if (headPart1 == null && headPart2 == null) continue;
-                if (headPart1 == null || headPart2 == null) return false;
-
-                if (!headPart1.FormKey.Equals(headPart2.FormKey))
+                if (formKeys1[i] != formKeys2[i])
                 {
                     return false;
                 }
             }
 
             return true;
+        }
+
+        public override string FormatValue(object? value)
+        {
+            if (value is IReadOnlyList<IFormLinkGetter<IHeadPartGetter>> list)
+            {
+                if (list == null || list.Count == 0)
+                    return "Empty";
+                return string.Join(", ", list.Select(hp => hp?.FormKey.ToString() ?? "null"));
+            }
+            return value?.ToString() ?? "null";
         }
     }
 }

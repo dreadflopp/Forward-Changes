@@ -72,5 +72,16 @@ namespace ForwardChanges.PropertyHandlers.Npc
 
             return true;
         }
+
+        public override string FormatValue(object? value)
+        {
+            if (value is IReadOnlyDictionary<Skill, byte> dict)
+            {
+                if (dict == null || dict.Count == 0)
+                    return "Empty";
+                return string.Join(", ", dict.OrderBy(kvp => kvp.Key).Select(kvp => $"{kvp.Key}={kvp.Value}"));
+            }
+            return value?.ToString() ?? "null";
+        }
     }
 }

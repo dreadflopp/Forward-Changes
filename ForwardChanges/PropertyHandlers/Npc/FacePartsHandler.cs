@@ -62,5 +62,17 @@ namespace ForwardChanges.PropertyHandlers.Npc
 
             return true;
         }
+
+        public override string FormatValue(object? value)
+        {
+            if (value is INpcFacePartsGetter faceParts)
+            {
+                return $"Nose={faceParts.Nose}, " +
+                       $"Unknown={faceParts.Unknown}, " +
+                       $"Eyes={faceParts.Eyes}, " +
+                       $"Mouth={faceParts.Mouth}";
+            }
+            return value?.ToString() ?? "null";
+        }
     }
 }

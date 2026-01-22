@@ -92,5 +92,32 @@ namespace ForwardChanges.PropertyHandlers.Npc
 
             return true;
         }
+
+        public override string FormatValue(object? value)
+        {
+            if (value is INpcFaceMorphGetter faceMorph)
+            {
+                return $"NoseLongVsShort={faceMorph.NoseLongVsShort:F3}, " +
+                       $"NoseUpVsDown={faceMorph.NoseUpVsDown:F3}, " +
+                       $"JawUpVsDown={faceMorph.JawUpVsDown:F3}, " +
+                       $"JawNarrowVsWide={faceMorph.JawNarrowVsWide:F3}, " +
+                       $"JawForwardVsBack={faceMorph.JawForwardVsBack:F3}, " +
+                       $"CheeksUpVsDown={faceMorph.CheeksUpVsDown:F3}, " +
+                       $"CheeksForwardVsBack={faceMorph.CheeksForwardVsBack:F3}, " +
+                       $"EyesUpVsDown={faceMorph.EyesUpVsDown:F3}, " +
+                       $"EyesInVsOut={faceMorph.EyesInVsOut:F3}, " +
+                       $"BrowsUpVsDown={faceMorph.BrowsUpVsDown:F3}, " +
+                       $"BrowsInVsOut={faceMorph.BrowsInVsOut:F3}, " +
+                       $"BrowsForwardVsBack={faceMorph.BrowsForwardVsBack:F3}, " +
+                       $"LipsUpVsDown={faceMorph.LipsUpVsDown:F3}, " +
+                       $"LipsInVsOut={faceMorph.LipsInVsOut:F3}, " +
+                       $"ChinNarrowVsWide={faceMorph.ChinNarrowVsWide:F3}, " +
+                       $"ChinUpVsDown={faceMorph.ChinUpVsDown:F3}, " +
+                       $"ChinUnderbiteVsOverbite={faceMorph.ChinUnderbiteVsOverbite:F3}, " +
+                       $"EyesForwardVsBack={faceMorph.EyesForwardVsBack:F3}, " +
+                       $"Unknown={faceMorph.Unknown:F3}";
+            }
+            return value?.ToString() ?? "null";
+        }
     }
 }
