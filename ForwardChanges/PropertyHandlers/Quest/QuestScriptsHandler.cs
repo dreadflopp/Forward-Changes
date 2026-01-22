@@ -42,19 +42,6 @@ namespace ForwardChanges.PropertyHandlers.Quest
                         var newScript = new ScriptEntry();
                         newScript.DeepCopyIn(script);
                         questRecord.VirtualMachineAdapter.Scripts.Add(newScript);
-
-                        // DEBUG: Log what was set
-                        LogCollector.Add(PropertyName, $"[{PropertyName}] DEBUG: SetValue - Script '{script.Name}' with {script.Properties?.Count ?? 0} properties, copied to {newScript.Properties?.Count ?? 0} properties");
-                        if (script.Properties != null && newScript.Properties != null)
-                        {
-                            var sourceNames = script.Properties.Where(p => p != null).Select(p => p.Name).ToList();
-                            var destNames = newScript.Properties.Where(p => p != null).Select(p => p.Name).ToList();
-                            var missing = sourceNames.Except(destNames).ToList();
-                            if (missing.Any())
-                            {
-                                LogCollector.Add(PropertyName, $"[{PropertyName}] DEBUG: SetValue - WARNING: Missing properties after DeepCopyIn: {string.Join(", ", missing)}");
-                            }
-                        }
                     }
                 }
             }
@@ -177,8 +164,6 @@ namespace ForwardChanges.PropertyHandlers.Quest
             var originalMod = listPropertyContext.OriginalValueContexts?
                 .FirstOrDefault()?.OwnerMod ?? "Unknown";
 
-            LogCollector.Add(PropertyName, $"[{PropertyName}] DEBUG: Original mod is '{originalMod}', Record: {recordFormKey}");
-
             // Get or create persistent trackers for each script
             // Key: script name, Value: ownership tracker
             var propertyTrackers = new Dictionary<string, ScriptPropertyOwnershipTracker>();
@@ -194,11 +179,6 @@ namespace ForwardChanges.PropertyHandlers.Quest
                     tracker = new ScriptPropertyOwnershipTracker();
                     tracker.InitializeFromOriginal(originalScript, originalMod);
                     _persistentTrackers[trackerKey] = tracker;
-                    LogCollector.Add(PropertyName, $"[{PropertyName}] DEBUG: Created persistent tracker for script '{originalScript.Name}' with {originalScript.Properties?.Count ?? 0} original properties");
-                }
-                else
-                {
-                    LogCollector.Add(PropertyName, $"[{PropertyName}] DEBUG: Reusing persistent tracker for script '{originalScript.Name}'");
                 }
 
                 propertyTrackers[originalScript.Name] = tracker;
@@ -235,40 +215,14 @@ namespace ForwardChanges.PropertyHandlers.Quest
                     if (originalScript != null)
                     {
                         tracker.InitializeFromOriginal(originalScript, originalMod);
-                        LogCollector.Add(PropertyName, $"[{PropertyName}] DEBUG: Created persistent tracker for script '{recordScript.Name}' with {originalScript.Properties?.Count ?? 0} original properties");
-                    }
-                    else
-                    {
-                        LogCollector.Add(PropertyName, $"[{PropertyName}] DEBUG: Created persistent tracker for script '{recordScript.Name}' (no original script found)");
                     }
                     _persistentTrackers[trackerKey] = tracker;
-                }
-                else
-                {
-                    LogCollector.Add(PropertyName, $"[{PropertyName}] DEBUG: Reusing persistent tracker for script '{recordScript.Name}'");
                 }
 
                 // IMPORTANT: Also initialize from forward script to track properties added by previous mods
                 // This is critical - properties added by previous mods need to be in the tracker
                 // But only add properties that aren't already tracked (to preserve ownership)
                 tracker.InitializeFromForward(forwardContext.Value, originalScript, forwardContext.OwnerMod);
-
-                // DEBUG: Log current forward script properties and their ownership
-                LogCollector.Add(PropertyName, $"[{PropertyName}] DEBUG: Processing script '{recordScript.Name}' for mod '{context.ModKey}'");
-                LogCollector.Add(PropertyName, $"[{PropertyName}] DEBUG: Forward script has {forwardContext.Value.Properties?.Count ?? 0} properties (owned by '{forwardContext.OwnerMod}')");
-                foreach (var forwardProp in forwardContext.Value.Properties ?? Enumerable.Empty<IScriptPropertyGetter>())
-                {
-                    if (forwardProp == null) continue;
-                    var ownership = tracker.GetOwnership(forwardProp);
-                    if (ownership != null)
-                    {
-                        LogCollector.Add(PropertyName, $"[{PropertyName}] DEBUG:   Property '{forwardProp.Name}': owned by '{ownership.OwnerMod}', removed={ownership.IsRemoved}");
-                    }
-                    else
-                    {
-                        LogCollector.Add(PropertyName, $"[{PropertyName}] DEBUG:   Property '{forwardProp.Name}': NOT TRACKED (this is a problem!)");
-                    }
-                }
 
                 // Merge properties: create a new script with merged properties
                 var mergedScript = MergeScriptProperties(
@@ -283,17 +237,6 @@ namespace ForwardChanges.PropertyHandlers.Quest
                 if (mergedScript != null)
                 {
                     forwardContext.Value = mergedScript;
-                    LogCollector.Add(PropertyName, $"[{PropertyName}] DEBUG: After merging, script '{recordScript.Name}' has {mergedScript.Properties?.Count ?? 0} properties");
-                }
-            }
-
-            // DEBUG: Log final forward contexts after all processing
-            LogCollector.Add(PropertyName, $"[{PropertyName}] DEBUG: Final forward contexts after processing mod '{context.ModKey}':");
-            foreach (var forwardItem in currentForwardItems.Where(i => !i.IsRemoved))
-            {
-                if (forwardItem.Value != null)
-                {
-                    LogCollector.Add(PropertyName, $"[{PropertyName}] DEBUG:   Script '{forwardItem.Value.Name}': {forwardItem.Value.Properties?.Count ?? 0} properties");
                 }
             }
         }
@@ -336,22 +279,10 @@ namespace ForwardChanges.PropertyHandlers.Quest
                     var ownership = propertyTracker.GetOwnership(recordProp);
                     bool wasRemoved = ownership?.IsRemoved == true;
 
-                    LogCollector.Add(PropertyName, $"[{PropertyName}] DEBUG: Property '{recordProp.Name}' not in forward script");
-                    if (ownership != null)
-                    {
-                        LogCollector.Add(PropertyName, $"[{PropertyName}] DEBUG:   Ownership found: owned by '{ownership.OwnerMod}', removed={ownership.IsRemoved}");
-                    }
-                    else
-                    {
-                        LogCollector.Add(PropertyName, $"[{PropertyName}] DEBUG:   No ownership info - treating as new property");
-                    }
-
-                    if (wasRemoved)
+                    if (wasRemoved && ownership != null)
                     {
                         // Property was removed - check if we have permission to add it back
-                        LogCollector.Add(PropertyName, $"[{PropertyName}] DEBUG:   Property was removed by '{ownership!.OwnerMod}', checking permission...");
                         bool hasPermission = HasPermissionsToModify(recordMod, ownership.OwnerMod);
-                        LogCollector.Add(PropertyName, $"[{PropertyName}] DEBUG:   Permission check: {hasPermission} (recordMod masters: {string.Join(", ", recordMod.MasterReferences.Select(m => m.Master.FileName))})");
 
                         if (hasPermission)
                         {
@@ -398,21 +329,15 @@ namespace ForwardChanges.PropertyHandlers.Quest
                     // Get ownership info for this property
                     var ownership = propertyTracker.GetOwnership(forwardProp);
 
-                    LogCollector.Add(PropertyName, $"[{PropertyName}] DEBUG: Property '{forwardProp.Name}' not in record script, checking removal permission...");
-
                     if (ownership != null)
                     {
-                        LogCollector.Add(PropertyName, $"[{PropertyName}] DEBUG:   Ownership found: owned by '{ownership.OwnerMod}', removed={ownership.IsRemoved}");
-
                         // Property is tracked - check if we have permission to remove it
                         bool hasPermission = HasPermissionsToModify(recordMod, ownership.OwnerMod);
-                        LogCollector.Add(PropertyName, $"[{PropertyName}] DEBUG:   Permission check: {hasPermission} (recordMod='{recordMod.ModKey}', ownerMod='{ownership.OwnerMod}', masters: {string.Join(", ", recordMod.MasterReferences.Select(m => m.Master.FileName))})");
 
                         if (hasPermission)
                         {
                             // We have permission - mark for removal
                             propertiesToRemove.Add(forwardProp);
-                            LogCollector.Add(PropertyName, $"[{PropertyName}] DEBUG:   Permission granted - marking for removal");
                         }
                         else
                         {
@@ -422,8 +347,6 @@ namespace ForwardChanges.PropertyHandlers.Quest
                     }
                     else
                     {
-                        LogCollector.Add(PropertyName, $"[{PropertyName}] DEBUG:   Property NOT TRACKED in ownership tracker");
-
                         // Property not tracked - this shouldn't happen if initialization worked correctly
                         // But be safe: if it exists in original, we can remove it (permission already checked at script level)
                         bool existsInOriginal = originalProperties.Any(op =>
@@ -431,14 +354,12 @@ namespace ForwardChanges.PropertyHandlers.Quest
 
                         if (existsInOriginal)
                         {
-                            LogCollector.Add(PropertyName, $"[{PropertyName}] DEBUG:   Property exists in original - adding to tracker and removing");
                             // Property was in original but not tracked - add to tracker and remove
                             propertyTracker.MarkPropertyRemoved(forwardProp, newOwnerMod);
                             propertiesToRemove.Add(forwardProp);
                         }
                         else
                         {
-                            LogCollector.Add(PropertyName, $"[{PropertyName}] DEBUG:   Property NOT in original - this is a property added by a previous mod!");
                             LogCollector.Add(PropertyName, $"[{PropertyName}] Cannot remove property '{forwardProp.Name}' from script '{recordScript.Name}' - property not tracked and not in original");
                         }
                     }
@@ -491,14 +412,6 @@ namespace ForwardChanges.PropertyHandlers.Quest
                         }
                     }
                 }
-            }
-
-            // DEBUG: Log final merged script state
-            LogCollector.Add(PropertyName, $"[{PropertyName}] DEBUG: MergeScriptProperties completed for '{recordScript.Name}': {mergedScript.Properties?.Count ?? 0} properties");
-            if (mergedScript.Properties != null)
-            {
-                var propNames = mergedScript.Properties.Where(p => p != null).Select(p => p.Name).ToList();
-                LogCollector.Add(PropertyName, $"[{PropertyName}] DEBUG:     Properties: {string.Join(", ", propNames)}");
             }
 
             return mergedScript;
