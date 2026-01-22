@@ -86,11 +86,11 @@ namespace ForwardChanges.PropertyHandlers.Abstracts
             //LogCollector.Add(PropertyName, $"DEBUG UpdatePropertyContext: Final result has {forwardValueContexts.Count} items");
 
             // Debug: Show detailed result by printing all forward value contexts
-            LogCollector.Add(PropertyName, $"DEBUG UpdatePropertyContext: Final result has {forwardValueContexts.Count} items");
-            foreach (var item in forwardValueContexts)
-            {
-                LogCollector.Add(PropertyName, $"DEBUG   - {FormatItem(item.Value)} (owned by {item.OwnerMod}, status: {(item.IsRemoved ? "REMOVED" : "ACTIVE")})");
-            }
+            // LogCollector.Add(PropertyName, $"DEBUG UpdatePropertyContext: Final result has {forwardValueContexts.Count} items");
+            // foreach (var item in forwardValueContexts)
+            // {
+            //     LogCollector.Add(PropertyName, $"DEBUG   - {FormatItem(item.Value)} (owned by {item.OwnerMod}, status: {(item.IsRemoved ? "REMOVED" : "ACTIVE")})");
+            // }
         }
 
         private void ProcessRemovals(
@@ -471,8 +471,8 @@ namespace ForwardChanges.PropertyHandlers.Abstracts
             List<T> recordItems,
             List<ListPropertyValueContext<T>> forwardValueContexts)
         {
-            LogCollector.Add(PropertyName, $"=== NEIGHBOR-BASED SORTING ALGORITHM: {context.ModKey} ===");
-            LogCollector.Add(PropertyName, $"Mod wants: {string.Join(", ", recordItems.Select((item, i) => $"[{i}]{FormatItem(item)}"))}");
+            //LogCollector.Add(PropertyName, $"=== NEIGHBOR-BASED SORTING ALGORITHM: {context.ModKey} ===");
+            //LogCollector.Add(PropertyName, $"Mod wants: {string.Join(", ", recordItems.Select((item, i) => $"[{i}]{FormatItem(item)}"))}");
 
             var modName = context.ModKey.ToString();
 
@@ -480,7 +480,7 @@ namespace ForwardChanges.PropertyHandlers.Abstracts
             // STEP 1: GET CURRENT STATE
             // ============================================================================
             var currentActiveItems = forwardValueContexts.Where(item => !item.IsRemoved).ToList();
-            LogCollector.Add(PropertyName, $"STEP 1 - Current active items: {string.Join(", ", currentActiveItems.Select((item, i) => $"[{i}]{FormatItem(item.Value)}"))}");
+            //LogCollector.Add(PropertyName, $"STEP 1 - Current active items: {string.Join(", ", currentActiveItems.Select((item, i) => $"[{i}]{FormatItem(item.Value)}"))}");
 
             // ============================================================================
             // STEP 2: BUILD PERMISSION-AWARE FINAL ORDER
@@ -498,17 +498,17 @@ namespace ForwardChanges.PropertyHandlers.Abstracts
                     {
                         finalOrder.Add(match);
                         remainingInstances.Remove(match);
-                        LogCollector.Add(PropertyName, $"STEP 2 - Added to final order: {FormatItem(match.Value)} (has permission)");
+                        //LogCollector.Add(PropertyName, $"STEP 2 - Added to final order: {FormatItem(match.Value)} (has permission)");
                     }
                     else
                     {
-                        LogCollector.Add(PropertyName, $"STEP 2 - Skipped from final order: {FormatItem(match.Value)} (no permission, owner: {match.OrderOwnerMod})");
+                        //LogCollector.Add(PropertyName, $"STEP 2 - Skipped from final order: {FormatItem(match.Value)} (no permission, owner: {match.OrderOwnerMod})");
                     }
                 }
             }
 
-            LogCollector.Add(PropertyName, $"STEP 2 - Final order: {string.Join(", ", finalOrder.Select((item, i) => $"[{i}]{FormatItem(item.Value)}"))}");
-            LogCollector.Add(PropertyName, $"STEP 2 - Remaining instances: {string.Join(", ", remainingInstances.Select((item, i) => $"[{i}]{FormatItem(item.Value)}"))}");
+            //LogCollector.Add(PropertyName, $"STEP 2 - Final order: {string.Join(", ", finalOrder.Select((item, i) => $"[{i}]{FormatItem(item.Value)}"))}");
+            //LogCollector.Add(PropertyName, $"STEP 2 - Remaining instances: {string.Join(", ", remainingInstances.Select((item, i) => $"[{i}]{FormatItem(item.Value)}"))}");
 
             // ============================================================================
             // STEP 3: PLACE REMAINING ITEMS BASED ON ORIGINAL "BEFORE" RELATIONSHIPS
@@ -521,11 +521,11 @@ namespace ForwardChanges.PropertyHandlers.Abstracts
             {
                 int position = FindPositionBasedOnBeforeRelationships(remainingItem, currentActiveItems, finalOrder);
                 finalOrder.Insert(position, remainingItem);
-                LogCollector.Add(PropertyName, $"STEP 3 - Placed existing remaining item: {FormatItem(remainingItem.Value)} at position {position}");
+                //LogCollector.Add(PropertyName, $"STEP 3 - Placed existing remaining item: {FormatItem(remainingItem.Value)} at position {position}");
             }
 
-            LogCollector.Add(PropertyName, $"STEP 3 - Final order after existing items placement: {string.Join(", ", finalOrder.Select((item, i) => $"[{i}]{FormatItem(item.Value)}"))}");
-            LogCollector.Add(PropertyName, $"STEP 3 - New items to place in Step 5: {string.Join(", ", newRemainingItems.Select(item => FormatItem(item.Value)))}");
+            //LogCollector.Add(PropertyName, $"STEP 3 - Final order after existing items placement: {string.Join(", ", finalOrder.Select((item, i) => $"[{i}]{FormatItem(item.Value)}"))}");
+            //LogCollector.Add(PropertyName, $"STEP 3 - New items to place in Step 5: {string.Join(", ", newRemainingItems.Select(item => FormatItem(item.Value)))}");
 
             // ============================================================================
             // STEP 4: ASSIGN ORDER OWNERSHIP
@@ -550,13 +550,13 @@ namespace ForwardChanges.PropertyHandlers.Abstracts
                 {
                     // This item moved - take order ownership
                     finalItem.OrderOwnerMod = modName;
-                    LogCollector.Add(PropertyName, $"STEP 4 - Order ownership: {FormatItem(finalItem.Value)} moved (neighbors changed) → {modName}");
-                    LogCollector.Add(PropertyName, $"    Original: before={FormatItem(originalBefore?.Value)}, after={FormatItem(originalAfter?.Value)}");
-                    LogCollector.Add(PropertyName, $"    Final: before={FormatItem(finalBefore?.Value)}, after={FormatItem(finalAfter?.Value)}");
+                    //LogCollector.Add(PropertyName, $"STEP 4 - Order ownership: {FormatItem(finalItem.Value)} moved (neighbors changed) → {modName}");
+                    //LogCollector.Add(PropertyName, $"    Original: before={FormatItem(originalBefore?.Value)}, after={FormatItem(originalAfter?.Value)}");
+                    //LogCollector.Add(PropertyName, $"    Final: before={FormatItem(finalBefore?.Value)}, after={FormatItem(finalAfter?.Value)}");
                 }
                 else
                 {
-                    LogCollector.Add(PropertyName, $"STEP 4 - No move: {FormatItem(finalItem.Value)} (neighbors unchanged)");
+                    //LogCollector.Add(PropertyName, $"STEP 4 - No move: {FormatItem(finalItem.Value)} (neighbors unchanged)");
                 }
             }
 
@@ -574,7 +574,7 @@ namespace ForwardChanges.PropertyHandlers.Abstracts
                 }
             }
 
-            LogCollector.Add(PropertyName, $"STEP 5 - New items in mod's declared order: {string.Join(", ", sortedNewItems.Select(item => FormatItem(item.Value)))}");
+            //LogCollector.Add(PropertyName, $"STEP 5 - New items in mod's declared order: {string.Join(", ", sortedNewItems.Select(item => FormatItem(item.Value)))}");
 
             // Place each new item based on what should be before it according to mod's wishes
             foreach (var newItem in sortedNewItems)
@@ -582,7 +582,7 @@ namespace ForwardChanges.PropertyHandlers.Abstracts
                 int position = FindPositionForNewItem(newItem, recordItems, finalOrder);
                 finalOrder.Insert(position, newItem);
                 newItem.OrderOwnerMod = modName; // Set order ownership for new items
-                LogCollector.Add(PropertyName, $"STEP 5 - Placed new item: {FormatItem(newItem.Value)} at position {position} → {modName}");
+                //LogCollector.Add(PropertyName, $"STEP 5 - Placed new item: {FormatItem(newItem.Value)} at position {position} → {modName}");
             }
 
             // ============================================================================
@@ -593,7 +593,7 @@ namespace ForwardChanges.PropertyHandlers.Abstracts
             forwardValueContexts.AddRange(finalOrder);
             forwardValueContexts.AddRange(removedItems);
 
-            LogCollector.Add(PropertyName, $"STEP 6 - Final order: {string.Join(", ", finalOrder.Select((item, i) => $"[{i}]{FormatItem(item.Value)}"))}");
+            //LogCollector.Add(PropertyName, $"STEP 6 - Final order: {string.Join(", ", finalOrder.Select((item, i) => $"[{i}]{FormatItem(item.Value)}"))}");
 
         }
 
@@ -628,12 +628,12 @@ namespace ForwardChanges.PropertyHandlers.Abstracts
             if (!foundItemToPlace)
             {
                 // Item not found in original order (new item added by this mod), place at the end
-                LogCollector.Add(PropertyName, $"    FindPosition: {FormatItem(itemToPlace.Value)} not found in original order (new item), placing at end");
+                //LogCollector.Add(PropertyName, $"    FindPosition: {FormatItem(itemToPlace.Value)} not found in original order (new item), placing at end");
                 return currentFinalOrder.Count;
             }
 
-            LogCollector.Add(PropertyName, $"    FindPosition: {FormatItem(itemToPlace.Value)} - found {originalBeforeItems.Count} items that were originally before it");
-            LogCollector.Add(PropertyName, $"      Original before items: {string.Join(", ", originalBeforeItems.Select(item => FormatItem(item.Value)))}");
+            //LogCollector.Add(PropertyName, $"    FindPosition: {FormatItem(itemToPlace.Value)} - found {originalBeforeItems.Count} items that were originally before it");
+            //LogCollector.Add(PropertyName, $"      Original before items: {string.Join(", ", originalBeforeItems.Select(item => FormatItem(item.Value)))}");
 
             // Find the position after the last "before" item that's already in finalOrder
             int position = 0;
@@ -644,14 +644,14 @@ namespace ForwardChanges.PropertyHandlers.Abstracts
                 {
                     // This "before" item is already placed, position should be after it
                     position = Math.Max(position, beforeIndex + 1);
-                    LogCollector.Add(PropertyName, $"        Found 'before' item {FormatItem(beforeItem.Value)} at position {beforeIndex}, updating position to {position}");
+                    //LogCollector.Add(PropertyName, $"        Found 'before' item {FormatItem(beforeItem.Value)} at position {beforeIndex}, updating position to {position}");
                 }
             }
 
             // Ensure we don't exceed the current list length
             position = Math.Min(position, currentFinalOrder.Count);
 
-            LogCollector.Add(PropertyName, $"    FindPosition: Final position for {FormatItem(itemToPlace.Value)}: {position}");
+            //LogCollector.Add(PropertyName, $"    FindPosition: Final position for {FormatItem(itemToPlace.Value)}: {position}");
             return position;
         }
 
@@ -673,11 +673,11 @@ namespace ForwardChanges.PropertyHandlers.Abstracts
             if (declaredIndex == -1)
             {
                 // Item not found in declared order (shouldn't happen), place at the end
-                LogCollector.Add(PropertyName, $"    FindPositionForNewItem: {FormatItem(newItem.Value)} not found in declared order, placing at end");
+                //LogCollector.Add(PropertyName, $"    FindPositionForNewItem: {FormatItem(newItem.Value)} not found in declared order, placing at end");
                 return currentFinalOrder.Count;
             }
 
-            LogCollector.Add(PropertyName, $"    FindPositionForNewItem: {FormatItem(newItem.Value)} is at declared index {declaredIndex}");
+            //LogCollector.Add(PropertyName, $"    FindPositionForNewItem: {FormatItem(newItem.Value)} is at declared index {declaredIndex}");
 
             // Find all items that should be before this new item according to mod's declared order
             var declaredBeforeItems = new List<T>();
@@ -686,7 +686,7 @@ namespace ForwardChanges.PropertyHandlers.Abstracts
                 declaredBeforeItems.Add(recordItems[i]);
             }
 
-            LogCollector.Add(PropertyName, $"      Declared before items: {string.Join(", ", declaredBeforeItems.Select(item => FormatItem(item)))}");
+            //LogCollector.Add(PropertyName, $"      Declared before items: {string.Join(", ", declaredBeforeItems.Select(item => FormatItem(item)))}");
 
             // Find the position after the last "before" item that's already in finalOrder
             int position = 0;
@@ -697,14 +697,14 @@ namespace ForwardChanges.PropertyHandlers.Abstracts
                 {
                     // This "before" item is already placed, position should be after it
                     position = Math.Max(position, beforeIndex + 1);
-                    LogCollector.Add(PropertyName, $"        Found 'before' item {FormatItem(beforeItem)} at position {beforeIndex}, updating position to {position}");
+                    //LogCollector.Add(PropertyName, $"        Found 'before' item {FormatItem(beforeItem)} at position {beforeIndex}, updating position to {position}");
                 }
             }
 
             // Ensure we don't exceed the current list length
             position = Math.Min(position, currentFinalOrder.Count);
 
-            LogCollector.Add(PropertyName, $"    FindPositionForNewItem: Final position for {FormatItem(newItem.Value)}: {position}");
+            //LogCollector.Add(PropertyName, $"    FindPositionForNewItem: Final position for {FormatItem(newItem.Value)}: {position}");
             return position;
         }
 
