@@ -1,7 +1,10 @@
 using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Plugins;
+using Mutagen.Bethesda.Plugins.Cache;
+using Mutagen.Bethesda.Synthesis;
 using ForwardChanges.PropertyHandlers.Abstracts;
+using ForwardChanges.Contexts;
 using System.Reflection;
 using System.Linq;
 
@@ -52,10 +55,32 @@ namespace ForwardChanges.PropertyHandlers.Quest
             if (value1 == null || value2 == null) return false;
             if (value1.Count != value2.Count) return false;
 
-            for (int i = 0; i < value1.Count; i++)
+            // Group aliases by ID for efficient matching
+            var aliases1ById = value1
+                .Where(a => a != null)
+                .GroupBy(a => a.ID)
+                .ToDictionary(g => g.Key, g => g.First());
+
+            var aliases2ById = value2
+                .Where(a => a != null)
+                .GroupBy(a => a.ID)
+                .ToDictionary(g => g.Key, g => g.First());
+
+            // Check that all aliases in value1 have matching aliases in value2 with same properties
+            foreach (var alias1 in aliases1ById.Values)
             {
-                if (!IsItemEqual(value1[i], value2[i])) return false;
+                if (!aliases2ById.TryGetValue(alias1.ID, out var alias2))
+                {
+                    return false; // Alias ID not found in value2
+                }
+
+                // Compare aliases by all properties (for forwarding decision)
+                if (!AreQuestAliasesEqual(alias1, alias2))
+                {
+                    return false; // Aliases differ
+                }
             }
+
             return true;
         }
 
@@ -64,8 +89,8 @@ namespace ForwardChanges.PropertyHandlers.Quest
             if (item1 == null && item2 == null) return true;
             if (item1 == null || item2 == null) return false;
 
-            // Compare all quest alias properties for content-based equality
-            return AreQuestAliasesEqual(item1, item2);
+            // Match aliases by ID only - properties are handled separately in ProcessHandlerSpecificLogic
+            return item1.ID == item2.ID;
         }
 
         private bool AreQuestAliasesEqual(IQuestAliasGetter item1, IQuestAliasGetter item2)
@@ -417,6 +442,57 @@ namespace ForwardChanges.PropertyHandlers.Quest
         {
             if (item == null) return "null";
             return $"QuestAlias(ID:{item.ID}, Type:{item.Type}, Name:{item.Name ?? "null"}, Flags:{item.Flags})";
+        }
+
+        protected override void ProcessHandlerSpecificLogic(
+            IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> context,
+            IPatcherState<ISkyrimMod, ISkyrimModGetter> state,
+            ListPropertyContext<IQuestAliasGetter> listPropertyContext,
+            List<IQuestAliasGetter> recordItems,
+            List<ListPropertyValueContext<IQuestAliasGetter>> currentForwardItems)
+        {
+            var recordMod = state.LoadOrder[context.ModKey].Mod;
+            if (recordMod == null) return;
+
+            // Group forward aliases by ID for efficient matching
+            var forwardAliasesById = currentForwardItems
+                .Where(i => !i.IsRemoved)
+                .GroupBy(i => i.Value.ID)
+                .ToDictionary(g => g.Key, g => g.First());
+
+            // Process each alias in the record
+            foreach (var recordAlias in recordItems)
+            {
+                if (recordAlias == null) continue;
+
+                // Find matching forward alias by ID
+                if (!forwardAliasesById.TryGetValue(recordAlias.ID, out var forwardContext))
+                {
+                    // Alias doesn't exist in forward - will be handled by ProcessAdditions
+                    continue;
+                }
+
+                // Check if we have permission to modify this alias
+                if (!HasPermissionsToModify(recordMod, forwardContext.OwnerMod))
+                {
+                    LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: Cannot modify alias ID {recordAlias.ID} - no permission (owned by {forwardContext.OwnerMod})");
+                    continue;
+                }
+
+                // Check if properties differ (using full comparison)
+                if (!AreQuestAliasesEqual(recordAlias, forwardContext.Value))
+                {
+                    // Properties differ - update all properties from record alias to forward alias
+                    // Create a new alias with all properties from record alias
+                    var updatedAlias = recordAlias.DeepCopy();
+
+                    // Update the forward context with the new alias and take ownership
+                    forwardContext.Value = updatedAlias;
+                    forwardContext.OwnerMod = context.ModKey.ToString();
+
+                    LogCollector.Add(PropertyName, $"[{PropertyName}] Updating alias ID {recordAlias.ID} (taking ownership as '{context.ModKey}')");
+                }
+            }
         }
     }
 }
