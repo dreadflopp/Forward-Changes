@@ -42,7 +42,9 @@ namespace ForwardChanges
                 typeof(IActivatorGetter),
                 typeof(ILightGetter),
                 typeof(IMagicEffectGetter),
-                typeof(IQuestGetter)
+                typeof(IQuestGetter),
+                typeof(ITextureSetGetter),
+                typeof(IMiscItemGetter)
             };
 
         /// <summary>
@@ -90,9 +92,9 @@ namespace ForwardChanges
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"     Early break optimization failed for {winningContext.Record.FormKey} ({winningContext.ModKey}): {ex.Message}");
-                Console.WriteLine($"     Record type: {winningContext.Record.GetType().Name}");
-                Console.WriteLine($"     Exception type: {ex.GetType().Name}");
+                //Console.WriteLine($"     Early break optimization failed for {winningContext.Record.FormKey} ({winningContext.ModKey}): {ex.Message}");
+                //Console.WriteLine($"     Record type: {winningContext.Record.GetType().Name}");
+                //Console.WriteLine($"     Exception type: {ex.GetType().Name}");
                 return false;
             }
         }
@@ -142,6 +144,8 @@ namespace ForwardChanges
             var lightContexts = state.LoadOrder.PriorityOrder.WinningContextOverrides<ISkyrimMod, ISkyrimModGetter, ILight, ILightGetter>(state.LinkCache).ToArray();
             var magicEffectContexts = state.LoadOrder.PriorityOrder.WinningContextOverrides<ISkyrimMod, ISkyrimModGetter, IMagicEffect, IMagicEffectGetter>(state.LinkCache).ToArray();
             var questContexts = state.LoadOrder.PriorityOrder.WinningContextOverrides<ISkyrimMod, ISkyrimModGetter, IQuest, IQuestGetter>(state.LinkCache).ToArray();
+            var textureSetContexts = state.LoadOrder.PriorityOrder.WinningContextOverrides<ISkyrimMod, ISkyrimModGetter, ITextureSet, ITextureSetGetter>(state.LinkCache).ToArray();
+            var miscItemContexts = state.LoadOrder.PriorityOrder.WinningContextOverrides<ISkyrimMod, ISkyrimModGetter, IMiscItem, IMiscItemGetter>(state.LinkCache).ToArray();
 
             // Filter out contexts that would break early
             Console.WriteLine("Filtering contexts (this may take a while)...");
@@ -220,6 +224,12 @@ namespace ForwardChanges
             Console.WriteLine("Filtering Quests...");
             var filteredQuestContexts = questContexts.Where(context => !ShouldBreakEarly(context, state)).ToArray();
             Console.WriteLine($"Quest contexts: {questContexts.Length} -> {filteredQuestContexts.Length} (filtered: {questContexts.Length - filteredQuestContexts.Length})");
+            Console.WriteLine("Filtering Texture Sets...");
+            var filteredTextureSetContexts = textureSetContexts.Where(context => !ShouldBreakEarly(context, state)).ToArray();
+            Console.WriteLine($"Texture Set contexts: {textureSetContexts.Length} -> {filteredTextureSetContexts.Length} (filtered: {textureSetContexts.Length - filteredTextureSetContexts.Length})");
+            Console.WriteLine("Filtering Misc Items...");
+            var filteredMiscItemContexts = miscItemContexts.Where(context => !ShouldBreakEarly(context, state)).ToArray();
+            Console.WriteLine($"Misc Item contexts: {miscItemContexts.Length} -> {filteredMiscItemContexts.Length} (filtered: {miscItemContexts.Length - filteredMiscItemContexts.Length})");
 
 
             Console.WriteLine();
@@ -333,6 +343,14 @@ namespace ForwardChanges
                         case Type t when t == typeof(IQuestGetter):
                             var questHandler = new QuestRecordHandler();
                             questHandler.Process(state, filteredQuestContexts);
+                            break;
+                        case Type t when t == typeof(ITextureSetGetter):
+                            var textureSetHandler = new TextureSetRecordHandler();
+                            textureSetHandler.Process(state, filteredTextureSetContexts);
+                            break;
+                        case Type t when t == typeof(IMiscItemGetter):
+                            var miscItemHandler = new MiscItemRecordHandler();
+                            miscItemHandler.Process(state, filteredMiscItemContexts);
                             break;
                         default:
                             Console.WriteLine($"Warning: No handler implemented for {recordType.Name}");
