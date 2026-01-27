@@ -44,7 +44,8 @@ namespace ForwardChanges
                 typeof(IMagicEffectGetter),
                 typeof(IQuestGetter),
                 typeof(ITextureSetGetter),
-                typeof(IMiscItemGetter)
+                typeof(IMiscItemGetter),
+                typeof(IStaticGetter)
             };
 
         /// <summary>
@@ -146,6 +147,7 @@ namespace ForwardChanges
             var questContexts = state.LoadOrder.PriorityOrder.WinningContextOverrides<ISkyrimMod, ISkyrimModGetter, IQuest, IQuestGetter>(state.LinkCache).ToArray();
             var textureSetContexts = state.LoadOrder.PriorityOrder.WinningContextOverrides<ISkyrimMod, ISkyrimModGetter, ITextureSet, ITextureSetGetter>(state.LinkCache).ToArray();
             var miscItemContexts = state.LoadOrder.PriorityOrder.WinningContextOverrides<ISkyrimMod, ISkyrimModGetter, IMiscItem, IMiscItemGetter>(state.LinkCache).ToArray();
+            var staticContexts = state.LoadOrder.PriorityOrder.WinningContextOverrides<ISkyrimMod, ISkyrimModGetter, IStatic, IStaticGetter>(state.LinkCache).ToArray();
 
             // Filter out contexts that would break early
             Console.WriteLine("Filtering contexts (this may take a while)...");
@@ -230,6 +232,9 @@ namespace ForwardChanges
             Console.WriteLine("Filtering Misc Items...");
             var filteredMiscItemContexts = miscItemContexts.Where(context => !ShouldBreakEarly(context, state)).ToArray();
             Console.WriteLine($"Misc Item contexts: {miscItemContexts.Length} -> {filteredMiscItemContexts.Length} (filtered: {miscItemContexts.Length - filteredMiscItemContexts.Length})");
+            Console.WriteLine("Filtering Statics...");
+            var filteredStaticContexts = staticContexts.Where(context => !ShouldBreakEarly(context, state)).ToArray();
+            Console.WriteLine($"Static contexts: {staticContexts.Length} -> {filteredStaticContexts.Length} (filtered: {staticContexts.Length - filteredStaticContexts.Length})");
 
 
             Console.WriteLine();
@@ -351,6 +356,10 @@ namespace ForwardChanges
                         case Type t when t == typeof(IMiscItemGetter):
                             var miscItemHandler = new MiscItemRecordHandler();
                             miscItemHandler.Process(state, filteredMiscItemContexts);
+                            break;
+                        case Type t when t == typeof(IStaticGetter):
+                            var staticHandler = new StaticRecordHandler();
+                            staticHandler.Process(state, filteredStaticContexts);
                             break;
                         default:
                             Console.WriteLine($"Warning: No handler implemented for {recordType.Name}");
