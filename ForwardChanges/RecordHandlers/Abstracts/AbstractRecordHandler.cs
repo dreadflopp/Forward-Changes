@@ -1,3 +1,4 @@
+using System;
 using Mutagen.Bethesda;
 using Mutagen.Bethesda.Synthesis;
 using Mutagen.Bethesda.Skyrim;
@@ -300,6 +301,119 @@ namespace ForwardChanges.RecordHandlers.Abstracts
             IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> winningContext,
             IPatcherState<ISkyrimMod, ISkyrimModGetter> state);
 
-        public abstract void ApplyForwardedProperties(IMajorRecord record, Dictionary<string, object?> propertiesToForward);
+        /// <summary>
+        /// Applies flag properties (MajorRecordFlagsRaw and SkyrimMajorRecordFlags) together.
+        /// These share the same record header in the file format, so setting one might affect the other.
+        /// This method ensures both are set together to preserve values correctly.
+        /// 
+        /// IMPORTANT: When setting SkyrimMajorRecordFlags, we always preserve MajorRecordFlagsRaw from the record
+        /// (which should be the winning value), even if MajorRecordFlagsRaw is not in propertiesToForward.
+        /// This prevents SkyrimMajorRecordFlags from overwriting MajorRecordFlagsRaw.
+        /// </summary>
+        /// <param name="record">The record to apply properties to</param>
+        /// <param name="propertiesToForward">Dictionary of properties to forward (will be modified to remove processed flags)</param>
+        protected virtual void ApplyFlagProperties(IMajorRecord record, Dictionary<string, object?> propertiesToForward)
+        {
+            bool hasMajorRecordFlagsRaw = propertiesToForward.TryGetValue("MajorRecordFlagsRaw", out var majorRecordFlagsRawValue);
+            bool hasSkyrimMajorRecordFlags = propertiesToForward.TryGetValue("SkyrimMajorRecordFlags", out var skyrimMajorRecordFlagsValue);
+
+            // Always handle flags if either is being set, OR if SkyrimMajorRecordFlags is being set (to preserve MajorRecordFlagsRaw)
+            if (hasMajorRecordFlagsRaw || hasSkyrimMajorRecordFlags)
+            {
+                // Read current values from the record (which should be the winning values since we're applying to an override)
+                int currentMajorRecordFlagsRaw = record.MajorRecordFlagsRaw;
+                Mutagen.Bethesda.Skyrim.SkyrimMajorRecord.SkyrimMajorRecordFlag currentSkyrimMajorRecordFlags = 0;
+                
+                if (record is ISkyrimMajorRecord skyrimRecord)
+                {
+                    currentSkyrimMajorRecordFlags = skyrimRecord.SkyrimMajorRecordFlags;
+                }
+
+                // Determine what values to set
+                int newMajorRecordFlagsRaw = hasMajorRecordFlagsRaw && majorRecordFlagsRawValue is int majorRecordFlagsRawInt
+                    ? majorRecordFlagsRawInt
+                    : currentMajorRecordFlagsRaw; // Always preserve current value if not being explicitly set
+
+                Mutagen.Bethesda.Skyrim.SkyrimMajorRecord.SkyrimMajorRecordFlag newSkyrimMajorRecordFlags = hasSkyrimMajorRecordFlags && skyrimMajorRecordFlagsValue is Mutagen.Bethesda.Skyrim.SkyrimMajorRecord.SkyrimMajorRecordFlag skyrimFlags
+                    ? skyrimFlags
+                    : currentSkyrimMajorRecordFlags;
+
+                // Set MajorRecordFlagsRaw first
+                record.MajorRecordFlagsRaw = newMajorRecordFlagsRaw;
+                if (PropertyHandlers.TryGetValue("MajorRecordFlagsRaw", out var majorRecordFlagsRawHandler))
+                {
+                    if (hasMajorRecordFlagsRaw)
+                    {
+                        Console.WriteLine($"[MajorRecordFlagsRaw] Applying value: {majorRecordFlagsRawHandler.FormatValue(newMajorRecordFlagsRaw)}");
+                    }
+                    else if (hasSkyrimMajorRecordFlags)
+                    {
+                        // Even if not forwarding MajorRecordFlagsRaw, log that we're preserving it
+                        Console.WriteLine($"[MajorRecordFlagsRaw] Preserving value: {majorRecordFlagsRawHandler.FormatValue(newMajorRecordFlagsRaw)} (not in propertiesToForward, but preserving to prevent overwrite)");
+                    }
+                }
+
+                // Then set SkyrimMajorRecordFlags (this might internally reconstruct flags, so we set MajorRecordFlagsRaw again after)
+                if (record is ISkyrimMajorRecord skyrimRecordForFlags)
+                {
+                    skyrimRecordForFlags.SkyrimMajorRecordFlags = newSkyrimMajorRecordFlags;
+                    if (hasSkyrimMajorRecordFlags && PropertyHandlers.TryGetValue("SkyrimMajorRecordFlags", out var skyrimMajorRecordFlagsHandler))
+                    {
+                        Console.WriteLine($"[SkyrimMajorRecordFlags] Applying value: {skyrimMajorRecordFlagsHandler.FormatValue(newSkyrimMajorRecordFlags)}");
+                    }
+
+                    // ALWAYS re-apply MajorRecordFlagsRaw after setting SkyrimMajorRecordFlags to ensure it's preserved
+                    // (in case Mutagen's internal logic reconstructed the flags)
+                    // This is critical even if MajorRecordFlagsRaw wasn't in propertiesToForward
+                    int majorRecordFlagsRawAfterSkyrim = record.MajorRecordFlagsRaw;
+                    
+                    if (majorRecordFlagsRawAfterSkyrim != newMajorRecordFlagsRaw)
+                    {
+                        // Mutagen may have set additional bits in MajorRecordFlagsRaw when we set SkyrimMajorRecordFlags
+                        // We need to preserve BOTH:
+                        // 1. The bits we want from newMajorRecordFlagsRaw (e.g., Persistent = 0x400)
+                        // 2. The bits Mutagen set for SkyrimMajorRecordFlags (e.g., InitiallyDisabled = 0x800)
+                        // Solution: OR them together to preserve both sets of flags
+                        int mergedFlags = newMajorRecordFlagsRaw | majorRecordFlagsRawAfterSkyrim;
+                        record.MajorRecordFlagsRaw = mergedFlags;
+                    }
+                }
+
+                // Remove from dictionary so we don't process them again
+                propertiesToForward.Remove("MajorRecordFlagsRaw");
+                propertiesToForward.Remove("SkyrimMajorRecordFlags");
+            }
+        }
+
+        /// <summary>
+        /// Applies forwarded properties to the record.
+        /// Default implementation handles flag properties specially, then processes all other properties.
+        /// Override this method if you need custom property application logic.
+        /// </summary>
+        /// <param name="record">The record to apply properties to</param>
+        /// <param name="propertiesToForward">Dictionary of properties to forward</param>
+        public virtual void ApplyForwardedProperties(IMajorRecord record, Dictionary<string, object?> propertiesToForward)
+        {
+            // Handle flag properties first (they need special coordination)
+            ApplyFlagProperties(record, propertiesToForward);
+
+            // Process all other properties normally
+            foreach (var (propertyName, value) in propertiesToForward)
+            {
+                if (PropertyHandlers.TryGetValue(propertyName, out var handler))
+                {
+                    try
+                    {
+                        Console.WriteLine($"[{propertyName}] Applying value: {handler.FormatValue(value)}, Type: {value?.GetType()}");
+                        handler.SetValue(record, value);
+                    }
+                    catch (Exception ex)
+                    {
+                        // Property doesn't exist on this record type - just continue
+                        Console.WriteLine($"Warning: Property {propertyName} not available on record {record.FormKey}: {ex.Message}");
+                    }
+                }
+            }
+        }
     }
 }

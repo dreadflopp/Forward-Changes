@@ -144,7 +144,7 @@ namespace ForwardChanges.PropertyHandlers.Abstracts
                             var oldState = existingFlagContext.IsSet;
                             existingFlagContext.IsSet = isFlagSetInRecord;
                             existingFlagContext.OwnerMod = context.ModKey.ToString();
-                            LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: Change: {originalValue} -> {isFlagSetInRecord} Success");
+                            LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: Change flag {FormatFlag(flag)}: {originalValue} -> {isFlagSetInRecord} Success");
                         }
                         else
                         {
@@ -155,11 +155,11 @@ namespace ForwardChanges.PropertyHandlers.Abstracts
                                 var oldState = existingFlagContext.IsSet;
                                 existingFlagContext.IsSet = isFlagSetInRecord;
                                 existingFlagContext.OwnerMod = context.ModKey.ToString();
-                                LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: Reversion: {oldState} -> {isFlagSetInRecord} Success");
+                                LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: Reversion flag {FormatFlag(flag)}: {oldState} -> {isFlagSetInRecord} Success");
                             }
                             else
                             {
-                                LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: Reversion: {existingFlagContext.IsSet} -> {isFlagSetInRecord} Permission denied");
+                                LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: Reversion flag {FormatFlag(flag)}: {existingFlagContext.IsSet} -> {isFlagSetInRecord} Permission denied");
                             }
                         }
                     }

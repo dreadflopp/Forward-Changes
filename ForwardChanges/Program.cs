@@ -7,9 +7,14 @@ using Mutagen.Bethesda.Strings;
 using Mutagen.Bethesda.Plugins.Binary.Overlay;
 using System.Reflection;
 using System.Linq;
+using System.Diagnostics;
+using System.Collections.Generic;
 using Noggog;
 using Mutagen.Bethesda.Plugins.Cache;
 using ForwardChanges.RecordHandlers;
+using ForwardChanges.PropertyHandlers.PlacedObject;
+using ForwardChanges.PropertyHandlers.General;
+using ForwardChanges.PropertyHandlers.Interfaces;
 using Mutagen.Bethesda.Plugins.Aspects;
 
 namespace ForwardChanges
@@ -92,7 +97,7 @@ namespace ForwardChanges
                 // No early break conditions met
                 return false;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 //Console.WriteLine($"     Early break optimization failed for {winningContext.Record.FormKey} ({winningContext.ModKey}): {ex.Message}");
                 //Console.WriteLine($"     Record type: {winningContext.Record.GetType().Name}");
@@ -254,122 +259,122 @@ namespace ForwardChanges
 
                     switch (recordType)
                     {
-                        case Type t when t == typeof(INpcGetter):
-                            var npcHandler = new NpcRecordHandler();
-                            npcHandler.Process(state, filteredNpcContexts);
-                            break;
-                        case Type t when t == typeof(IContainerGetter):
-                            var containerHandler = new ContainerRecordHandler();
-                            containerHandler.Process(state, filteredContainerContexts);
-                            break;
-                        case Type t when t == typeof(IWeaponGetter):
-                            var weaponHandler = new WeaponRecordHandler();
-                            weaponHandler.Process(state, filteredWeaponContexts);
-                            break;
-                        case Type t when t == typeof(ICellGetter):
-                            var cellHandler = new CellRecordHandler();
-                            cellHandler.Process(state, filteredCellContexts);
-                            break;
+                        // case Type t when t == typeof(INpcGetter):
+                        //     var npcHandler = new NpcRecordHandler();
+                        //     npcHandler.Process(state, filteredNpcContexts);
+                        //     break;
+                        // case Type t when t == typeof(IContainerGetter):
+                        //     var containerHandler = new ContainerRecordHandler();
+                        //     containerHandler.Process(state, filteredContainerContexts);
+                        //     break;
+                        // case Type t when t == typeof(IWeaponGetter):
+                        //     var weaponHandler = new WeaponRecordHandler();
+                        //     weaponHandler.Process(state, filteredWeaponContexts);
+                        //     break;
+                        // case Type t when t == typeof(ICellGetter):
+                        //     var cellHandler = new CellRecordHandler();
+                        //     cellHandler.Process(state, filteredCellContexts);
+                        //     break;
                         case Type t when t == typeof(IPlacedObjectGetter):
                             var placedObjectHandler = new PlacedObjectRecordHandler();
                             placedObjectHandler.Process(state, filteredPlacedObjectContexts);
                             break;
-                        case Type t when t == typeof(IPlacedNpcGetter):
-                            var placedNpcHandler = new PlacedNpcRecordHandler();
-                            placedNpcHandler.Process(state, filteredPlacedNpcContexts);
-                            break;
-                        case Type t when t == typeof(IIngestibleGetter):
-                            var ingestibleHandler = new IngestibleRecordHandler();
-                            ingestibleHandler.Process(state, filteredIngestibleContexts);
-                            break;
-                        case Type t when t == typeof(IIngredientGetter):
-                            var ingredientHandler = new IngredientRecordHandler();
-                            ingredientHandler.Process(state, filteredIngredientContexts);
-                            break;
-                        case Type t when t == typeof(IObjectEffectGetter):
-                            var objectEffectHandler = new ObjectEffectRecordHandler();
-                            objectEffectHandler.Process(state, filteredObjectEffectContexts);
-                            break;
-                        case Type t when t == typeof(IWorldspaceGetter):
-                            var worldspaceHandler = new WorldspaceRecordHandler();
-                            worldspaceHandler.Process(state, filteredWorldspaceContexts);
-                            break;
-                        case Type t when t == typeof(IDialogTopicGetter):
-                            var dialogTopicHandler = new DialogTopicRecordHandler();
-                            dialogTopicHandler.Process(state, filteredDialogTopicContexts);
-                            break;
-                        case Type t when t == typeof(IDialogResponsesGetter):
-                            var dialogResponseHandler = new DialogResponseRecordHandler();
-                            dialogResponseHandler.Process(state, filteredDialogResponseContexts);
-                            break;
-                        case Type t when t == typeof(IFormListGetter):
-                            var formListHandler = new FormIdRecordHandler();
-                            formListHandler.Process(state, filteredFormListContexts);
-                            break;
-                        case Type t when t == typeof(ISoundDescriptorGetter):
-                            var soundDescriptorHandler = new SoundDescriptorRecordHandler();
-                            soundDescriptorHandler.Process(state, filteredSoundDescriptorContexts);
-                            break;
-                        case Type t when t == typeof(IEffectShaderGetter):
-                            var effectShaderHandler = new EffectShaderRecordHandler();
-                            effectShaderHandler.Process(state, filteredEffectShaderContexts);
-                            break;
-                        case Type t when t == typeof(IArmorAddonGetter):
-                            var armorAddonHandler = new ArmorAddonRecordHandler();
-                            armorAddonHandler.Process(state, filteredArmorAddonContexts);
-                            break;
-                        case Type t when t == typeof(IBookGetter):
-                            var bookHandler = new BookRecordHandler();
-                            bookHandler.Process(state, filteredBookContexts);
-                            break;
-                        case Type t when t == typeof(ISpellGetter):
-                            var spellHandler = new SpellRecordHandler();
-                            spellHandler.Process(state, filteredSpellContexts);
-                            break;
-                        case Type t when t == typeof(ILocationGetter):
-                            var locationHandler = new LocationRecordHandler();
-                            locationHandler.Process(state, filteredLocationContexts);
-                            break;
-                        case Type t when t == typeof(IFactionGetter):
-                            var factionHandler = new FactionRecordHandler();
-                            factionHandler.Process(state, filteredFactionContexts);
-                            break;
-                        case Type t when t == typeof(IEncounterZoneGetter):
-                            var encounterZoneHandler = new EncounterZoneRecordHandler();
-                            encounterZoneHandler.Process(state, filteredEncounterZoneContexts);
-                            break;
-                        case Type t when t == typeof(IActivatorGetter):
-                            var activatorHandler = new ActivatorRecordHandler();
-                            activatorHandler.Process(state, filteredActivatorContexts);
-                            break;
-                        case Type t when t == typeof(ILightGetter):
-                            var lightHandler = new LightRecordHandler();
-                            lightHandler.Process(state, filteredLightContexts);
-                            break;
-                        case Type t when t == typeof(IMagicEffectGetter):
-                            var magicEffectHandler = new MagicEffectRecordHandler();
-                            magicEffectHandler.Process(state, filteredMagicEffectContexts);
-                            break;
-                        case Type t when t == typeof(IQuestGetter):
-                            var questHandler = new QuestRecordHandler();
-                            questHandler.Process(state, filteredQuestContexts);
-                            break;
-                        case Type t when t == typeof(ITextureSetGetter):
-                            var textureSetHandler = new TextureSetRecordHandler();
-                            textureSetHandler.Process(state, filteredTextureSetContexts);
-                            break;
-                        case Type t when t == typeof(IMiscItemGetter):
-                            var miscItemHandler = new MiscItemRecordHandler();
-                            miscItemHandler.Process(state, filteredMiscItemContexts);
-                            break;
-                        case Type t when t == typeof(IStaticGetter):
-                            var staticHandler = new StaticRecordHandler();
-                            staticHandler.Process(state, filteredStaticContexts);
-                            break;
-                        case Type t when t == typeof(ILeveledItemGetter):
-                            var leveledItemHandler = new LeveledItemRecordHandler();
-                            leveledItemHandler.Process(state, filteredLeveledItemContexts);
-                            break;
+                        // case Type t when t == typeof(IPlacedNpcGetter):
+                        //     var placedNpcHandler = new PlacedNpcRecordHandler();
+                        //     placedNpcHandler.Process(state, filteredPlacedNpcContexts);
+                        //     break;
+                        // case Type t when t == typeof(IIngestibleGetter):
+                        //     var ingestibleHandler = new IngestibleRecordHandler();
+                        //     ingestibleHandler.Process(state, filteredIngestibleContexts);
+                        //     break;
+                        // case Type t when t == typeof(IIngredientGetter):
+                        //     var ingredientHandler = new IngredientRecordHandler();
+                        //     ingredientHandler.Process(state, filteredIngredientContexts);
+                        //     break;
+                        // case Type t when t == typeof(IObjectEffectGetter):
+                        //     var objectEffectHandler = new ObjectEffectRecordHandler();
+                        //     objectEffectHandler.Process(state, filteredObjectEffectContexts);
+                        //     break;
+                        // case Type t when t == typeof(IWorldspaceGetter):
+                        //     var worldspaceHandler = new WorldspaceRecordHandler();
+                        //     worldspaceHandler.Process(state, filteredWorldspaceContexts);
+                        //     break;
+                        // case Type t when t == typeof(IDialogTopicGetter):
+                        //     var dialogTopicHandler = new DialogTopicRecordHandler();
+                        //     dialogTopicHandler.Process(state, filteredDialogTopicContexts);
+                        //     break;
+                        // case Type t when t == typeof(IDialogResponsesGetter):
+                        //     var dialogResponseHandler = new DialogResponseRecordHandler();
+                        //     dialogResponseHandler.Process(state, filteredDialogResponseContexts);
+                        //     break;
+                        // case Type t when t == typeof(IFormListGetter):
+                        //     var formListHandler = new FormIdRecordHandler();
+                        //     formListHandler.Process(state, filteredFormListContexts);
+                        //     break;
+                        // case Type t when t == typeof(ISoundDescriptorGetter):
+                        //     var soundDescriptorHandler = new SoundDescriptorRecordHandler();
+                        //     soundDescriptorHandler.Process(state, filteredSoundDescriptorContexts);
+                        //     break;
+                        // case Type t when t == typeof(IEffectShaderGetter):
+                        //     var effectShaderHandler = new EffectShaderRecordHandler();
+                        //     effectShaderHandler.Process(state, filteredEffectShaderContexts);
+                        //     break;
+                        // case Type t when t == typeof(IArmorAddonGetter):
+                        //     var armorAddonHandler = new ArmorAddonRecordHandler();
+                        //     armorAddonHandler.Process(state, filteredArmorAddonContexts);
+                        //     break;
+                        // case Type t when t == typeof(IBookGetter):
+                        //     var bookHandler = new BookRecordHandler();
+                        //     bookHandler.Process(state, filteredBookContexts);
+                        //     break;
+                        // case Type t when t == typeof(ISpellGetter):
+                        //     var spellHandler = new SpellRecordHandler();
+                        //     spellHandler.Process(state, filteredSpellContexts);
+                        //     break;
+                        // case Type t when t == typeof(ILocationGetter):
+                        //     var locationHandler = new LocationRecordHandler();
+                        //     locationHandler.Process(state, filteredLocationContexts);
+                        //     break;
+                        // case Type t when t == typeof(IFactionGetter):
+                        //     var factionHandler = new FactionRecordHandler();
+                        //     factionHandler.Process(state, filteredFactionContexts);
+                        //     break;
+                        // case Type t when t == typeof(IEncounterZoneGetter):
+                        //     var encounterZoneHandler = new EncounterZoneRecordHandler();
+                        //     encounterZoneHandler.Process(state, filteredEncounterZoneContexts);
+                        //     break;
+                        // case Type t when t == typeof(IActivatorGetter):
+                        //     var activatorHandler = new ActivatorRecordHandler();
+                        //     activatorHandler.Process(state, filteredActivatorContexts);
+                        //     break;
+                        // case Type t when t == typeof(ILightGetter):
+                        //     var lightHandler = new LightRecordHandler();
+                        //     lightHandler.Process(state, filteredLightContexts);
+                        //     break;
+                        // case Type t when t == typeof(IMagicEffectGetter):
+                        //     var magicEffectHandler = new MagicEffectRecordHandler();
+                        //     magicEffectHandler.Process(state, filteredMagicEffectContexts);
+                        //     break;
+                        // case Type t when t == typeof(IQuestGetter):
+                        //     var questHandler = new QuestRecordHandler();
+                        //     questHandler.Process(state, filteredQuestContexts);
+                        //     break;
+                        // case Type t when t == typeof(ITextureSetGetter):
+                        //     var textureSetHandler = new TextureSetRecordHandler();
+                        //     textureSetHandler.Process(state, filteredTextureSetContexts);
+                        //     break;
+                        // case Type t when t == typeof(IMiscItemGetter):
+                        //     var miscItemHandler = new MiscItemRecordHandler();
+                        //     miscItemHandler.Process(state, filteredMiscItemContexts);
+                        //     break;
+                        // case Type t when t == typeof(IStaticGetter):
+                        //     var staticHandler = new StaticRecordHandler();
+                        //     staticHandler.Process(state, filteredStaticContexts);
+                        //     break;
+                        // case Type t when t == typeof(ILeveledItemGetter):
+                        //     var leveledItemHandler = new LeveledItemRecordHandler();
+                        //     leveledItemHandler.Process(state, filteredLeveledItemContexts);
+                        //     break;
                         default:
                             Console.WriteLine($"Warning: No handler implemented for {recordType.Name}");
                             break;
