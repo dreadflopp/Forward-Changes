@@ -45,7 +45,8 @@ namespace ForwardChanges
                 typeof(IQuestGetter),
                 typeof(ITextureSetGetter),
                 typeof(IMiscItemGetter),
-                typeof(IStaticGetter)
+                typeof(IStaticGetter),
+                typeof(ILeveledItemGetter)
             };
 
         /// <summary>
@@ -148,6 +149,7 @@ namespace ForwardChanges
             var textureSetContexts = state.LoadOrder.PriorityOrder.WinningContextOverrides<ISkyrimMod, ISkyrimModGetter, ITextureSet, ITextureSetGetter>(state.LinkCache).ToArray();
             var miscItemContexts = state.LoadOrder.PriorityOrder.WinningContextOverrides<ISkyrimMod, ISkyrimModGetter, IMiscItem, IMiscItemGetter>(state.LinkCache).ToArray();
             var staticContexts = state.LoadOrder.PriorityOrder.WinningContextOverrides<ISkyrimMod, ISkyrimModGetter, IStatic, IStaticGetter>(state.LinkCache).ToArray();
+            var leveledItemContexts = state.LoadOrder.PriorityOrder.WinningContextOverrides<ISkyrimMod, ISkyrimModGetter, ILeveledItem, ILeveledItemGetter>(state.LinkCache).ToArray();
 
             // Filter out contexts that would break early
             Console.WriteLine("Filtering contexts (this may take a while)...");
@@ -235,6 +237,9 @@ namespace ForwardChanges
             Console.WriteLine("Filtering Statics...");
             var filteredStaticContexts = staticContexts.Where(context => !ShouldBreakEarly(context, state)).ToArray();
             Console.WriteLine($"Static contexts: {staticContexts.Length} -> {filteredStaticContexts.Length} (filtered: {staticContexts.Length - filteredStaticContexts.Length})");
+            Console.WriteLine("Filtering Leveled Items...");
+            var filteredLeveledItemContexts = leveledItemContexts.Where(context => !ShouldBreakEarly(context, state)).ToArray();
+            Console.WriteLine($"Leveled Item contexts: {leveledItemContexts.Length} -> {filteredLeveledItemContexts.Length} (filtered: {leveledItemContexts.Length - filteredLeveledItemContexts.Length})");
 
 
             Console.WriteLine();
@@ -360,6 +365,10 @@ namespace ForwardChanges
                         case Type t when t == typeof(IStaticGetter):
                             var staticHandler = new StaticRecordHandler();
                             staticHandler.Process(state, filteredStaticContexts);
+                            break;
+                        case Type t when t == typeof(ILeveledItemGetter):
+                            var leveledItemHandler = new LeveledItemRecordHandler();
+                            leveledItemHandler.Process(state, filteredLeveledItemContexts);
                             break;
                         default:
                             Console.WriteLine($"Warning: No handler implemented for {recordType.Name}");
