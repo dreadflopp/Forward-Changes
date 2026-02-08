@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Reflection;
 using System.Linq;
 using Mutagen.Bethesda.Plugins.Records;
+using ForwardChanges;
 using ForwardChanges.PropertyHandlers.Abstracts;
 using ForwardChanges.PropertyHandlers.Interfaces;
 using Noggog;
@@ -30,10 +31,12 @@ namespace ForwardChanges.PropertyHandlers.General
         private readonly PropertyInfo? _setterProperty;
         private readonly PropertyInfo[]? _pathProperties;
         private readonly Type[]? _pathTypes;
+        private readonly float? _p3FloatEpsilon;
 
-        public SimpleReflectionPropertyHandler(string propertyName)
+        public SimpleReflectionPropertyHandler(string propertyName, float? p3FloatEpsilon = null)
         {
             _propertyName = propertyName;
+            _p3FloatEpsilon = p3FloatEpsilon;
             _propertyPath = propertyName.Split('.');
 
             // Find the property on the getter interface
@@ -282,8 +285,9 @@ namespace ForwardChanges.PropertyHandlers.General
                     }
                 }
                 
-                // Handle P3Float? - extract Value and use P3Float's Equals method
-                // P3Float.Equals uses EqualsWithin for epsilon-based comparison of X, Y, Z components
+                // Handle P3Float? - extract Value and use explicit epsilon comparison
+                // Use component-wise epsilon (0.0001f) to match float? handling - ensures reversions
+                // are correctly detected when values come from different mods/serialization (Position, Rotation, etc.)
                 if (underlyingType == typeof(P3Float))
                 {
                     // For P3Float?, we need to handle nullable comparison
@@ -300,32 +304,28 @@ namespace ForwardChanges.PropertyHandlers.General
                         // One null, one not
                         if (!hasValue1 || !hasValue2) return false;
                         
-                        // Both have values - extract and compare using P3Float.Equals
+                        // Both have values - extract and compare using explicit epsilon
                         var v1 = valueProp.GetValue(value1);
                         var v2 = valueProp.GetValue(value2);
                         
                         // Try to cast to P3Float - this should work since underlyingType is P3Float
                         if (v1 != null && v2 != null)
                         {
-                            // Use P3Float's Equals method which uses EqualsWithin for epsilon comparison
-                            // This handles the epsilon comparison correctly for floating point values
                             if (v1 is P3Float p1 && v2 is P3Float p2)
                             {
-                                return p1.Equals(p2);
+                                return P3FloatComparison.EqualsWithin(p1, p2, _p3FloatEpsilon ?? P3FloatComparison.DefaultEpsilon);
                             }
                             
                             // Fallback: try to convert and compare directly
-                            // This ensures we always use P3Float.Equals for P3Float values
                             try
                             {
                                 var p1Fallback = (P3Float)v1;
                                 var p2Fallback = (P3Float)v2;
-                                return p1Fallback.Equals(p2Fallback);
+                                return P3FloatComparison.EqualsWithin(p1Fallback, p2Fallback, _p3FloatEpsilon ?? P3FloatComparison.DefaultEpsilon);
                             }
                             catch
                             {
                                 // If conversion fails, we'll fall through to other comparison methods below
-                                // but this should not happen for P3Float values
                             }
                         }
                         
@@ -335,14 +335,12 @@ namespace ForwardChanges.PropertyHandlers.General
                 }
             }
 
-            // For P3Float (non-nullable), use P3Float's Equals method directly
-            // P3Float.Equals uses EqualsWithin for epsilon-based comparison of X, Y, Z components
+            // For P3Float (non-nullable), use explicit epsilon comparison
             if (typeof(TValue) == typeof(P3Float))
             {
                 if (value1 is P3Float p1 && value2 is P3Float p2)
                 {
-                    // Use P3Float's Equals method which uses EqualsWithin for epsilon comparison
-                    return p1.Equals(p2);
+                    return P3FloatComparison.EqualsWithin(p1, p2, _p3FloatEpsilon ?? P3FloatComparison.DefaultEpsilon);
                 }
             }
 

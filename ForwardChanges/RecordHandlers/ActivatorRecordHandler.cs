@@ -20,6 +20,7 @@ namespace ForwardChanges.RecordHandlers
             _propertyHandlers = new Dictionary<string, IPropertyHandler>
             {
                 { "EditorID", new EditorIDHandler() },
+                { "MajorRecordFlagsRaw", new MajorRecordFlagsRawHandler() },
                 { "SkyrimMajorRecordFlags", new SkyrimMajorRecordFlagsHandler() },
                 { "VirtualMachineAdapter", new VirtualMachineAdapterHandler() },
                 { "ObjectBounds", new ObjectBoundsHandler() },
@@ -48,39 +49,13 @@ namespace ForwardChanges.RecordHandlers
             {
                 throw new InvalidOperationException($"Expected IActivatorGetter but got {winningContext.Record.GetType()}");
             }
-            var contexts = activatorRecord
+            return activatorRecord
                 .ToLink<IActivatorGetter>()
                 .ResolveAllContexts<ISkyrimMod, ISkyrimModGetter, IActivator, IActivatorGetter>(state.LinkCache)
                 .ToArray();
-
-            return contexts;
         }
 
-        public override IMajorRecord GetOverrideRecord(
-            IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> winningContext,
-            IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
-        {
-            return winningContext.GetOrAddAsOverride(state.PatchMod);
-        }
-
-        public override void ApplyForwardedProperties(IMajorRecord record, Dictionary<string, object?> propertiesToForward)
-        {
-            foreach (var (propertyName, value) in propertiesToForward)
-            {
-                if (PropertyHandlers.TryGetValue(propertyName, out var handler))
-                {
-                    try
-                    {
-                        Console.WriteLine($"[{propertyName}] Applying value: {handler.FormatValue(value)}, Type: {value?.GetType()}");
-                        handler.SetValue(record, value);
-                    }
-                    catch (Exception ex)
-                    {
-                        // Property doesn't exist on this activator type - just continue
-                        Console.WriteLine($"Warning: Property {propertyName} not available on activator {record.FormKey}: {ex.Message}");
-                    }
-                }
-            }
-        }
+        // GetOverrideRecord and ApplyForwardedProperties are now handled by the base class
+        // The base class automatically handles flag property coordination
     }
 }

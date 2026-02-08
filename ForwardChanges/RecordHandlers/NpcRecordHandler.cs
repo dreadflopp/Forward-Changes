@@ -16,6 +16,7 @@ namespace ForwardChanges.RecordHandlers
         public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()
         {
                 { "Name", new NameHandler() },
+                { "MajorRecordFlagsRaw", new MajorRecordFlagsRawHandler() },
                 { "SkyrimMajorRecordFlags", new SkyrimMajorRecordFlagsHandler() },
                 { "MajorFlags", new MajorFlagsHandler() },
                 { "DeathItem", new DeathItemHandler() },
@@ -89,16 +90,7 @@ namespace ForwardChanges.RecordHandlers
             return state.PatchMod.Npcs.GetOrAddAsOverride(winningContext.Record);
         }
 
-        public override void ApplyForwardedProperties(IMajorRecord record, Dictionary<string, object?> propertiesToForward)
-        {
-            foreach (var (propertyName, value) in propertiesToForward)
-            {
-                if (PropertyHandlers.TryGetValue(propertyName, out var handler))
-                {
-                    Console.WriteLine($"[{propertyName}] Applying value: {handler.FormatValue(value)}, Type: {value?.GetType()}");
-                    handler.SetValue(record, value);
-                }
-            }
-        }
+        // ApplyForwardedProperties is now handled by the base class
+        // The base class automatically handles flag property coordination
     }
 }

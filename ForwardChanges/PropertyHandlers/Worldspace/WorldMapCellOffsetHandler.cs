@@ -2,6 +2,7 @@ using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Plugins.Cache;
 using Noggog;
+using ForwardChanges;
 using ForwardChanges.PropertyHandlers.Abstracts;
 using ForwardChanges.PropertyHandlers.Interfaces;
 
@@ -32,8 +33,7 @@ namespace ForwardChanges.PropertyHandlers.Worldspace
 
         public override bool AreValuesEqual(P3Float value1, P3Float value2)
         {
-            // Use P3Float's built-in equality
-            return value1.Equals(value2);
+            return P3FloatComparison.EqualsWithin(value1, value2);
         }
     }
 }

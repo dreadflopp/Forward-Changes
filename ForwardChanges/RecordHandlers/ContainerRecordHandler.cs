@@ -21,6 +21,7 @@ namespace ForwardChanges.RecordHandlers
         {
             { "Name", new NameHandler() },
             { "EditorID", new EditorIDHandler() },
+            { "MajorRecordFlagsRaw", new MajorRecordFlagsRawHandler() },
             { "SkyrimMajorRecordFlags", new SkyrimMajorRecordFlagsHandler() },
             { "ObjectBounds", new ObjectBoundsHandler() },
             { "Model", new ModelHandler() },
@@ -42,7 +43,6 @@ namespace ForwardChanges.RecordHandlers
             {
                 throw new InvalidOperationException($"Expected IContainerGetter but got {winningContext.Record.GetType()}");
             }
-
             return containerRecord
                 .ToLink<IContainerGetter>()
                 .ResolveAllContexts<ISkyrimMod, ISkyrimModGetter, IContainer, IContainerGetter>(state.LinkCache)
@@ -56,16 +56,7 @@ namespace ForwardChanges.RecordHandlers
             return state.PatchMod.Containers.GetOrAddAsOverride(winningContext.Record);
         }
 
-        public override void ApplyForwardedProperties(IMajorRecord record, Dictionary<string, object?> propertiesToForward)
-        {
-            foreach (var (propertyName, value) in propertiesToForward)
-            {
-                if (PropertyHandlers.TryGetValue(propertyName, out var handler))
-                {
-                    Console.WriteLine($"[{propertyName}] Applying value: {handler.FormatValue(value)}, Type: {value?.GetType()}");
-                    handler.SetValue(record, value);
-                }
-            }
-        }
+        // ApplyForwardedProperties is now handled by the base class
+        // The base class automatically handles flag property coordination
     }
 }

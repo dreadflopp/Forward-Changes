@@ -18,6 +18,8 @@ public class QuestRecordHandler : AbstractRecordHandler
     public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()
     {
         { "EditorID", new EditorIDHandler() },
+        { "MajorRecordFlagsRaw", new MajorRecordFlagsRawHandler() },
+        { "SkyrimMajorRecordFlags", new SkyrimMajorRecordFlagsHandler() },
         { "Name", new NameHandler() },
         { "QuestScripts", new QuestScriptsHandler() },
         { "QuestScriptFragments", new QuestScriptFragmentHandler() },
@@ -55,22 +57,6 @@ public class QuestRecordHandler : AbstractRecordHandler
         return contexts!;
     }
 
-    public override IMajorRecord GetOverrideRecord(
-        IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> winningContext,
-        IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
-    {
-        return winningContext.GetOrAddAsOverride(state.PatchMod);
-    }
-
-    public override void ApplyForwardedProperties(IMajorRecord record, Dictionary<string, object?> propertiesToForward)
-    {
-        foreach (var (propertyName, value) in propertiesToForward)
-        {
-            if (PropertyHandlers.TryGetValue(propertyName, out var handler))
-            {
-                Console.WriteLine($"[{propertyName}] Applying value: {handler.FormatValue(value)}, Type: {value?.GetType()}");
-                handler.SetValue(record, value);
-            }
-        }
-    }
+    // GetOverrideRecord and ApplyForwardedProperties are now handled by the base class
+    // The base class automatically handles flag property coordination
 }

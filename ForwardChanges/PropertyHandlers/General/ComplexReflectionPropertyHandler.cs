@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using Mutagen.Bethesda.Plugins;
 using Mutagen.Bethesda.Plugins.Records;
+using Mutagen.Bethesda.Strings;
 using ForwardChanges.PropertyHandlers.Abstracts;
 using ForwardChanges.PropertyHandlers.Interfaces;
 using Noggog;
@@ -375,6 +376,20 @@ namespace ForwardChanges.PropertyHandlers.General
                         continue;
                     }
 
+                    // Handle TranslatedString types
+                    if (IsTranslatedStringType(valueType))
+                    {
+                        prop.SetValue(newInstance, DeepCopyTranslatedString(value));
+                        continue;
+                    }
+
+                    // Handle ReadOnlyMemory<T> and ReadOnlySpan<T> (convert to arrays)
+                    if (IsReadOnlyMemoryType(valueType) || IsReadOnlySpanType(valueType))
+                    {
+                        prop.SetValue(newInstance, ConvertReadOnlyMemoryToArray(value));
+                        continue;
+                    }
+
                     // Handle collections
                     if (value is IEnumerable collection && !(value is string))
                     {
@@ -399,6 +414,62 @@ namespace ForwardChanges.PropertyHandlers.General
             {
                 Console.WriteLine($"Warning: Error deep copying {sourceType.Name}: {ex.Message}, returning original");
                 return source;
+            }
+        }
+
+        /// <summary>
+        /// Checks if a type is a TranslatedString type (ITranslatedStringGetter, TranslatedString).
+        /// </summary>
+        private bool IsTranslatedStringType(Type type)
+        {
+            if (type == null) return false;
+
+            // Check if it implements ITranslatedStringGetter
+            var interfaces = type.GetInterfaces();
+            if (interfaces.Any(i => i.Name == "ITranslatedStringGetter" || i.Name == "ITranslatedString"))
+            {
+                return true;
+            }
+
+            // Check if it's a TranslatedString type
+            if (type.Name == "TranslatedString" || type.Name == "ITranslatedStringGetter")
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Deep copies a TranslatedString by creating a new instance and copying the String property.
+        /// </summary>
+        private object DeepCopyTranslatedString(object translatedString)
+        {
+            try
+            {
+                // Get the String property from the getter
+                var stringProperty = translatedString.GetType().GetProperty("String");
+                if (stringProperty == null)
+                {
+                    Console.WriteLine($"Warning: Could not find String property on TranslatedString");
+                    return translatedString;
+                }
+
+                var stringValue = stringProperty.GetValue(translatedString);
+
+                // Create new TranslatedString
+                var newTranslatedString = new TranslatedString(Language.English);
+                if (stringValue != null)
+                {
+                    newTranslatedString.String = stringValue.ToString();
+                }
+
+                return newTranslatedString;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Warning: Error copying TranslatedString: {ex.Message}");
+                return translatedString;
             }
         }
 
@@ -668,6 +739,27 @@ namespace ForwardChanges.PropertyHandlers.General
                 if (val1 == null && val2 == null) continue;
                 if (val1 == null || val2 == null) return false;
 
+                // Handle ReadOnlyMemory<T> and ReadOnlySpan<T> - convert to arrays and compare
+                var val1Type = val1.GetType();
+                var val2Type = val2.GetType();
+                if (IsReadOnlyMemoryType(val1Type) || IsReadOnlySpanType(val1Type) ||
+                    IsReadOnlyMemoryType(val2Type) || IsReadOnlySpanType(val2Type))
+                {
+                    var arr1 = ConvertReadOnlyMemoryToArray(val1);
+                    var arr2 = ConvertReadOnlyMemoryToArray(val2);
+                    if (arr1 is Array a1 && arr2 is Array a2)
+                    {
+                        if (a1.Length != a2.Length) return false;
+                        for (int i = 0; i < a1.Length; i++)
+                        {
+                            if (!Equals(a1.GetValue(i), a2.GetValue(i))) return false;
+                        }
+                        continue;
+                    }
+                    if (!Equals(arr1, arr2)) return false;
+                    continue;
+                }
+
                 // Handle collections
                 if (val1 is IEnumerable collection1 && !(val1 is string))
                 {
@@ -685,6 +777,15 @@ namespace ForwardChanges.PropertyHandlers.General
                     continue;
                 }
 
+                // Handle TranslatedString - compare by String property
+                if (IsTranslatedStringType(val1.GetType()))
+                {
+                    var string1 = val1.GetType().GetProperty("String")?.GetValue(val1);
+                    var string2 = val2.GetType().GetProperty("String")?.GetValue(val2);
+                    if (!Equals(string1, string2)) return false;
+                    continue;
+                }
+
                 // Handle value types and primitives
                 if (val1.GetType().IsValueType || val1.GetType().IsPrimitive || val1 is string)
                 {
@@ -697,6 +798,80 @@ namespace ForwardChanges.PropertyHandlers.General
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// Checks if a type is ReadOnlyMemory<T>.
+        /// </summary>
+        private bool IsReadOnlyMemoryType(Type type)
+        {
+            return type.IsGenericType && 
+                   type.GetGenericTypeDefinition().FullName == "System.ReadOnlyMemory`1";
+        }
+
+        /// <summary>
+        /// Checks if a type is ReadOnlySpan<T>.
+        /// </summary>
+        private bool IsReadOnlySpanType(Type type)
+        {
+            return type.IsGenericType && 
+                   type.GetGenericTypeDefinition().FullName == "System.ReadOnlySpan`1";
+        }
+
+        /// <summary>
+        /// Converts ReadOnlyMemory<T> or ReadOnlySpan<T> to an array.
+        /// </summary>
+        private object? ConvertReadOnlyMemoryToArray(object value)
+        {
+            try
+            {
+                var valueType = value.GetType();
+                
+                // Handle ReadOnlyMemory<T>
+                if (IsReadOnlyMemoryType(valueType))
+                {
+                    // Use reflection to call ToArray() method
+                    var toArrayMethod = valueType.GetMethod("ToArray");
+                    if (toArrayMethod != null)
+                    {
+                        return toArrayMethod.Invoke(value, null);
+                    }
+                    
+                    // Fallback: use Span property
+                    var spanProperty = valueType.GetProperty("Span");
+                    if (spanProperty != null)
+                    {
+                        var span = spanProperty.GetValue(value);
+                        if (span != null)
+                        {
+                            var spanToArrayMethod = span.GetType().GetMethod("ToArray");
+                            if (spanToArrayMethod != null)
+                            {
+                                return spanToArrayMethod.Invoke(span, null);
+                            }
+                        }
+                    }
+                }
+                
+                // Handle ReadOnlySpan<T>
+                if (IsReadOnlySpanType(valueType))
+                {
+                    // Use reflection to call ToArray() method
+                    var toArrayMethod = valueType.GetMethod("ToArray");
+                    if (toArrayMethod != null)
+                    {
+                        return toArrayMethod.Invoke(value, null);
+                    }
+                }
+                
+                Console.WriteLine($"Warning: Could not convert {valueType.Name} to array");
+                return value;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Warning: Error converting ReadOnlyMemory/Span to array: {ex.Message}");
+                return value;
+            }
         }
 
         /// <summary>

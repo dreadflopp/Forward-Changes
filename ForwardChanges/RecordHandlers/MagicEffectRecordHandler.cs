@@ -42,6 +42,7 @@ namespace ForwardChanges.RecordHandlers
             {
                 // Base properties
                 { "EditorID", new EditorIDHandler() },
+                { "MajorRecordFlagsRaw", new MajorRecordFlagsRawHandler() },
                 { "SkyrimMajorRecordFlags", new SkyrimMajorRecordFlagsHandler() },
                 
                 // Essential Magic Effect properties
@@ -100,31 +101,7 @@ namespace ForwardChanges.RecordHandlers
             };
         }
 
-        public override IMajorRecord GetOverrideRecord(
-            IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> winningContext,
-            IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
-        {
-            return winningContext.GetOrAddAsOverride(state.PatchMod);
-        }
-
-        public override void ApplyForwardedProperties(IMajorRecord record, Dictionary<string, object?> propertiesToForward)
-        {
-            foreach (var (propertyName, value) in propertiesToForward)
-            {
-                if (PropertyHandlers.TryGetValue(propertyName, out var handler))
-                {
-                    try
-                    {
-                        Console.WriteLine($"[{propertyName}] Applying value: {handler.FormatValue(value)}, Type: {value?.GetType()}");
-                        handler.SetValue(record, value);
-                    }
-                    catch (Exception ex)
-                    {
-                        // Property doesn't exist on this magic effect type - just continue
-                        Console.WriteLine($"     Warning: Could not apply property {propertyName}: {ex.Message}");
-                    }
-                }
-            }
-        }
+        // GetOverrideRecord and ApplyForwardedProperties are now handled by the base class
+        // The base class automatically handles flag property coordination
     }
 }

@@ -73,6 +73,7 @@ namespace ForwardChanges.PropertyHandlers.Abstracts
             // Then apply sorting algorithm if ordering is required
             if (Ordering == ListOrdering.PreserveModOrder)
             {
+                // Uses ProcessSortingAlgorithm_Unified (cleaner, same logic). REVERT: change to ProcessSortingAlgorithm_Legacy(...) if issues occur.
                 ProcessSortingAlgorithm(context, recordMod, recordItems, forwardValueContexts);
             }
 
@@ -141,7 +142,8 @@ namespace ForwardChanges.PropertyHandlers.Abstracts
                         {
                             // Only remove items from mods we have permission to modify
                             // (either our own mod or mods we have as masters)
-                            if (HasPermissionsToModify(recordMod, forwardItems[i].OwnerMod))
+                            // Skip already-removed items so we don't "remove" the same one twice
+                            if (!forwardItems[i].IsRemoved && HasPermissionsToModify(recordMod, forwardItems[i].OwnerMod))
                             {
                                 itemToRemove = forwardItems[i];
                                 break;
@@ -243,6 +245,15 @@ namespace ForwardChanges.PropertyHandlers.Abstracts
                                              .Select(g => (Item: g.Key, Count: g.Count()))
                                              .ToList();
 
+            if (PropertyName == "LocationRefTypes")
+            {
+                LogCollector.Add(PropertyName, $"[DEBUG {PropertyName}] ProcessAdditions: recordItems.Count={recordItems.Count}, forwardValueContexts.Count={forwardValueContexts.Count}");
+                for (int di = 0; di < recordItems.Count; di++)
+                    LogCollector.Add(PropertyName, $"[DEBUG {PropertyName}]   recordItems[{di}] = {FormatItem(recordItems[di])} refHash={recordItems[di]?.GetHashCode() ?? 0}");
+                LogCollector.Add(PropertyName, $"[DEBUG {PropertyName}] GroupBy(item=>item) gave recordItemGroups.Count={recordItemGroups.Count}");
+                foreach (var g in recordItemGroups)
+                    LogCollector.Add(PropertyName, $"[DEBUG {PropertyName}]   group Item={FormatItem(g.Item)} Count={g.Count}");
+            }
 
             // ============================================================================
             // SECTION 2: PROCESS EACH RECORD ITEM (ADD MISSING OR UN-REMOVE ITEMS)
@@ -258,16 +269,8 @@ namespace ForwardChanges.PropertyHandlers.Abstracts
                 // Find if this record item exists in our forward contexts
                 var forwardGroup = forwardItemGroups.FirstOrDefault(g => IsItemEqual(g.Item, recordItem));
 
-                // Debug: Log what we're looking for and what we found
-                // LogCollector.Add(PropertyName, $"DEBUG ProcessAdditions: Looking for {FormatItem(recordItem)} in forward groups");
-                // if (forwardGroup.Item != null)
-                // {
-                //     LogCollector.Add(PropertyName, $"DEBUG   Found in forward group: {FormatItem(forwardGroup.Item)}");
-                // }
-                // else
-                // {
-                //     LogCollector.Add(PropertyName, $"DEBUG   NOT FOUND in forward groups - will add as new item");
-                // }
+                if (PropertyName == "LocationRefTypes")
+                    LogCollector.Add(PropertyName, $"[DEBUG {PropertyName}] iter {recordIndex}: recordItem={FormatItem(recordItem)} recordCount={recordCount} forwardGroupFound={forwardGroup.Item != null}");
 
                 if (forwardGroup.Item != null)
                 {
@@ -335,25 +338,23 @@ namespace ForwardChanges.PropertyHandlers.Abstracts
                     // ============================================================================
                     // SECTION 2B: ITEM DOESN'T EXIST IN FORWARD CONTEXTS - ADD ALL INSTANCES
                     // ============================================================================
-                    // DEBUG: Show current forward contexts state
-                    // LogCollector.Add(PropertyName, $"[{PropertyName}] DEBUG {context.ModKey}: Item {FormatItem(recordItem)} not found in forward contexts. Current forward contexts:");
-                    // foreach (var ctx in forwardValueContexts)
-                    // {
-                    //     var status = ctx.IsRemoved ? "REMOVED" : "ACTIVE";
-                    //     LogCollector.Add(PropertyName, $"[{PropertyName}] DEBUG   - {FormatItem(ctx.Value)} (owned by {ctx.OwnerMod}, status: {status})");
-                    // }
+                    // When we add new items we must also add them to forwardItemGroups so that
+                    // a later iteration with the same recordItem (e.g. duplicate FormKey) finds
+                    // the group and goes to 2A instead of adding again (which caused 2+2+1+1=6).
+                    if (PropertyName == "LocationRefTypes")
+                        LogCollector.Add(PropertyName, $"[DEBUG {PropertyName}] SECTION 2B: adding recordCount={recordCount} items for {FormatItem(recordItem)}");
 
-                    // Item doesn't exist in forward contexts, add all required instances
+                    var newGroupItems = new List<ListPropertyValueContext<T>>();
                     for (int i = 0; i < recordCount; i++)
                     {
                         var newItem = new ListPropertyValueContext<T>(recordItem, context.ModKey.ToString());
                         newItem.OrderOwnerMod = null; // New items - will be set during sorting
 
-                        // Add new item to forward contexts
-
                         forwardValueContexts.Add(newItem);
+                        newGroupItems.Add(newItem);
                         LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: Adding new item {FormatItem(recordItem)} (new owner: {newItem.OwnerMod}) Success");
                     }
+                    forwardItemGroups.Add((recordItem, newGroupItems));
                 }
             }
 
@@ -465,22 +466,111 @@ namespace ForwardChanges.PropertyHandlers.Abstracts
         /// - Remaining: D
         /// - Final: A, B, C, D (D stays at end, maintains original position)
         /// </summary>
+        /// <remarks>
+        /// ENTRY POINT - Dispatches to the active implementation.
+        /// REVERT: If ProcessSortingAlgorithm_Unified causes issues, change the call in UpdatePropertyContext to ProcessSortingAlgorithm_Legacy(...)
+        /// </remarks>
         private void ProcessSortingAlgorithm(
             IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> context,
             ISkyrimModGetter recordMod,
             List<T> recordItems,
             List<ListPropertyValueContext<T>> forwardValueContexts)
         {
-            //LogCollector.Add(PropertyName, $"=== NEIGHBOR-BASED SORTING ALGORITHM: {context.ModKey} ===");
-            //LogCollector.Add(PropertyName, $"Mod wants: {string.Join(", ", recordItems.Select((item, i) => $"[{i}]{FormatItem(item)}"))}");
+            ProcessSortingAlgorithm_Unified(context, recordMod, recordItems, forwardValueContexts);
+        }
 
+        /// <summary>
+        /// UNIFIED PLACEMENT IMPLEMENTATION - Cleaner refactor using PlaceAfter(beforeItems) helper.
+        /// Same algorithm as Legacy, restructured. Uses ReferenceEquals for correct duplicate handling.
+        /// Validated by ForwardChanges.Tests.SortingAlgorithmAlternativesTests.Alt3_UnifiedPlacement_*.
+        /// </summary>
+        private void ProcessSortingAlgorithm_Unified(
+            IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> context,
+            ISkyrimModGetter recordMod,
+            List<T> recordItems,
+            List<ListPropertyValueContext<T>> forwardValueContexts)
+        {
             var modName = context.ModKey.ToString();
+            var currentActiveItems = forwardValueContexts.Where(item => !item.IsRemoved).ToList();
+            var finalOrder = new List<ListPropertyValueContext<T>>();
+            var remainingInstances = new List<ListPropertyValueContext<T>>(currentActiveItems);
+
+            // Step 2: Build permission-aware final order (declared items we can reorder)
+            foreach (var declaredValue in recordItems)
+            {
+                var match = remainingInstances.FirstOrDefault(inst => IsItemEqual(inst.Value, declaredValue));
+                if (match != null && HasPermissionsToModify(recordMod, match.OrderOwnerMod))
+                {
+                    finalOrder.Add(match);
+                    remainingInstances.Remove(match);
+                }
+            }
+
+            var existingRemainingItems = remainingInstances.Where(item => item.OrderOwnerMod != null).ToList();
+            var newRemainingItems = remainingInstances.Where(item => item.OrderOwnerMod == null).ToList();
+
+            // Step 3: Place existing remaining items using unified PlaceAfter helper
+            foreach (var remainingItem in existingRemainingItems)
+            {
+                var beforeItems = GetBeforeItems(currentActiveItems, remainingItem);
+                int position = PlaceAfter(beforeItems, finalOrder);
+                finalOrder.Insert(position, remainingItem);
+            }
+
+            // Step 4: Assign order ownership (use ReferenceEquals for duplicate handling)
+            UpdateOrderOwnership(finalOrder, currentActiveItems, modName);
+
+            // Step 5: Place new items based on mod's declared order
+            var sortedNewItems = new List<(ListPropertyValueContext<T> Item, int RecordIndex)>();
+            var remainingToMatch = new List<ListPropertyValueContext<T>>(newRemainingItems);
+            for (int recordIndex = 0; recordIndex < recordItems.Count; recordIndex++)
+            {
+                var declaredValue = recordItems[recordIndex];
+                var matchIndex = remainingToMatch.FindIndex(item => IsItemEqual(item.Value, declaredValue));
+                if (matchIndex >= 0)
+                {
+                    sortedNewItems.Add((remainingToMatch[matchIndex], recordIndex));
+                    remainingToMatch.RemoveAt(matchIndex);
+                }
+            }
+
+            foreach (var (newItem, declaredIndex) in sortedNewItems)
+            {
+                int position = FindPositionForNewItem(newItem, recordItems, finalOrder, declaredIndex: declaredIndex);
+                finalOrder.Insert(position, newItem);
+                newItem.OrderOwnerMod = modName;
+            }
+
+            // Step 6: Update forward contexts
+            var removedItems = forwardValueContexts.Where(x => x.IsRemoved).ToList();
+            forwardValueContexts.Clear();
+            forwardValueContexts.AddRange(finalOrder);
+            forwardValueContexts.AddRange(removedItems);
+        }
+
+        /// <summary>
+        /// LEGACY IMPLEMENTATION - Original algorithm. Kept for easy revert.
+        /// To revert: In UpdatePropertyContext, change ProcessSortingAlgorithm(...) to ProcessSortingAlgorithm_Legacy(...)
+        /// </summary>
+        private void ProcessSortingAlgorithm_Legacy(
+            IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> context,
+            ISkyrimModGetter recordMod,
+            List<T> recordItems,
+            List<ListPropertyValueContext<T>> forwardValueContexts)
+        {
+            var modName = context.ModKey.ToString();
+            if (PropertyName == "LocationRefTypes")
+            {
+                LogCollector.Add(PropertyName, $"[DEBUG SORT] ProcessSortingAlgorithm mod={modName} recordItems.Count={recordItems.Count}");
+                LogCollector.Add(PropertyName, $"[DEBUG SORT]   recordItems order: {string.Join(", ", recordItems.Select((item, i) => $"[{i}]{FormatItem(item)}"))}");
+            }
 
             // ============================================================================
             // STEP 1: GET CURRENT STATE
             // ============================================================================
             var currentActiveItems = forwardValueContexts.Where(item => !item.IsRemoved).ToList();
-            //LogCollector.Add(PropertyName, $"STEP 1 - Current active items: {string.Join(", ", currentActiveItems.Select((item, i) => $"[{i}]{FormatItem(item.Value)}"))}");
+            if (PropertyName == "LocationRefTypes")
+                LogCollector.Add(PropertyName, $"[DEBUG SORT] STEP 1 currentActiveItems: {string.Join(", ", currentActiveItems.Select((item, i) => $"[{i}]{FormatItem(item.Value)}"))}");
 
             // ============================================================================
             // STEP 2: BUILD PERMISSION-AWARE FINAL ORDER
@@ -506,9 +596,11 @@ namespace ForwardChanges.PropertyHandlers.Abstracts
                     }
                 }
             }
-
-            //LogCollector.Add(PropertyName, $"STEP 2 - Final order: {string.Join(", ", finalOrder.Select((item, i) => $"[{i}]{FormatItem(item.Value)}"))}");
-            //LogCollector.Add(PropertyName, $"STEP 2 - Remaining instances: {string.Join(", ", remainingInstances.Select((item, i) => $"[{i}]{FormatItem(item.Value)}"))}");
+            if (PropertyName == "LocationRefTypes")
+            {
+                LogCollector.Add(PropertyName, $"[DEBUG SORT] STEP 2 finalOrder: {string.Join(", ", finalOrder.Select((item, i) => $"[{i}]{FormatItem(item.Value)}"))}");
+                LogCollector.Add(PropertyName, $"[DEBUG SORT] STEP 2 remainingInstances: {string.Join(", ", remainingInstances.Select((item, i) => $"[{i}]{FormatItem(item.Value)}"))}");
+            }
 
             // ============================================================================
             // STEP 3: PLACE REMAINING ITEMS BASED ON ORIGINAL "BEFORE" RELATIONSHIPS
@@ -517,15 +609,18 @@ namespace ForwardChanges.PropertyHandlers.Abstracts
             var existingRemainingItems = remainingInstances.Where(item => item.OrderOwnerMod != null).ToList();
             var newRemainingItems = remainingInstances.Where(item => item.OrderOwnerMod == null).ToList();
 
+            if (PropertyName == "LocationRefTypes")
+            {
+                LogCollector.Add(PropertyName, $"[DEBUG SORT] STEP 3 finalOrder after existing: {string.Join(", ", finalOrder.Select((item, i) => $"[{i}]{FormatItem(item.Value)}"))}");
+                LogCollector.Add(PropertyName, $"[DEBUG SORT] STEP 3 newRemainingItems: {string.Join(", ", newRemainingItems.Select(item => FormatItem(item.Value)))}");
+            }
+
             foreach (var remainingItem in existingRemainingItems)
             {
                 int position = FindPositionBasedOnBeforeRelationships(remainingItem, currentActiveItems, finalOrder);
                 finalOrder.Insert(position, remainingItem);
                 //LogCollector.Add(PropertyName, $"STEP 3 - Placed existing remaining item: {FormatItem(remainingItem.Value)} at position {position}");
             }
-
-            //LogCollector.Add(PropertyName, $"STEP 3 - Final order after existing items placement: {string.Join(", ", finalOrder.Select((item, i) => $"[{i}]{FormatItem(item.Value)}"))}");
-            //LogCollector.Add(PropertyName, $"STEP 3 - New items to place in Step 5: {string.Join(", ", newRemainingItems.Select(item => FormatItem(item.Value)))}");
 
             // ============================================================================
             // STEP 4: ASSIGN ORDER OWNERSHIP
@@ -563,26 +658,34 @@ namespace ForwardChanges.PropertyHandlers.Abstracts
             // ============================================================================
             // STEP 5: PLACE NEW ITEMS BASED ON MOD'S DECLARED ORDER
             // ============================================================================
-            // Sort new items according to the mod's declared order
-            var sortedNewItems = new List<ListPropertyValueContext<T>>();
-            foreach (var declaredValue in recordItems)
+            // Sort new items according to the mod's declared order. Consume matches so that
+            // duplicate values (e.g. two 0697D3) each get their own context in correct order.
+            var sortedNewItems = new List<(ListPropertyValueContext<T> Item, int RecordIndex)>();
+            var remainingToMatch = new List<ListPropertyValueContext<T>>(newRemainingItems);
+            for (int recordIndex = 0; recordIndex < recordItems.Count; recordIndex++)
             {
-                var newItem = newRemainingItems.FirstOrDefault(item => IsItemEqual(item.Value, declaredValue));
-                if (newItem != null)
+                var declaredValue = recordItems[recordIndex];
+                var matchIndex = remainingToMatch.FindIndex(item => IsItemEqual(item.Value, declaredValue));
+                if (matchIndex >= 0)
                 {
-                    sortedNewItems.Add(newItem);
+                    var newItem = remainingToMatch[matchIndex];
+                    sortedNewItems.Add((newItem, recordIndex));
+                    remainingToMatch.RemoveAt(matchIndex);
                 }
             }
 
-            //LogCollector.Add(PropertyName, $"STEP 5 - New items in mod's declared order: {string.Join(", ", sortedNewItems.Select(item => FormatItem(item.Value)))}");
+            if (PropertyName == "LocationRefTypes")
+                LogCollector.Add(PropertyName, $"[DEBUG SORT] STEP 5 sortedNewItems (after consume): {string.Join(", ", sortedNewItems.Select((item, i) => $"[{i}]{FormatItem(item.Item.Value)}"))}");
 
-            // Place each new item based on what should be before it according to mod's wishes
-            foreach (var newItem in sortedNewItems)
+            // Place each new item based on what should be before it. Use declaredIndex (position in
+            // recordItems) so duplicates get correct placement: second 0697D3 goes after first, not at same slot.
+            foreach (var (newItem, declaredIndex) in sortedNewItems)
             {
-                int position = FindPositionForNewItem(newItem, recordItems, finalOrder);
+                int position = FindPositionForNewItem(newItem, recordItems, finalOrder, declaredIndex: declaredIndex);
+                if (PropertyName == "LocationRefTypes")
+                    LogCollector.Add(PropertyName, $"[DEBUG SORT] STEP 5 place declaredIndex={declaredIndex} {FormatItem(newItem.Value)} at position={position}");
                 finalOrder.Insert(position, newItem);
                 newItem.OrderOwnerMod = modName; // Set order ownership for new items
-                //LogCollector.Add(PropertyName, $"STEP 5 - Placed new item: {FormatItem(newItem.Value)} at position {position} → {modName}");
             }
 
             // ============================================================================
@@ -593,8 +696,77 @@ namespace ForwardChanges.PropertyHandlers.Abstracts
             forwardValueContexts.AddRange(finalOrder);
             forwardValueContexts.AddRange(removedItems);
 
-            //LogCollector.Add(PropertyName, $"STEP 6 - Final order: {string.Join(", ", finalOrder.Select((item, i) => $"[{i}]{FormatItem(item.Value)}"))}");
+            if (PropertyName == "LocationRefTypes")
+                LogCollector.Add(PropertyName, $"[DEBUG SORT] STEP 6 finalOrder written to forwardValueContexts: {string.Join(", ", finalOrder.Select((item, i) => $"[{i}]{FormatItem(item.Value)}"))}");
+        }
 
+        /// <summary>
+        /// Returns all items that appear before the given item in originalOrder.
+        /// Uses ReferenceEquals for duplicate handling. Used by ProcessSortingAlgorithm_Unified.
+        /// </summary>
+        private List<ListPropertyValueContext<T>> GetBeforeItems(
+            List<ListPropertyValueContext<T>> originalOrder,
+            ListPropertyValueContext<T> item)
+        {
+            var before = new List<ListPropertyValueContext<T>>();
+            foreach (var o in originalOrder)
+            {
+                if (ReferenceEquals(o, item)) break;
+                before.Add(o);
+            }
+            return before;
+        }
+
+        /// <summary>
+        /// Returns the insert position: after the last "before" item that's already in finalOrder.
+        /// Uses ReferenceEquals to find exact instances. Used by ProcessSortingAlgorithm_Unified.
+        /// </summary>
+        private int PlaceAfter(
+            List<ListPropertyValueContext<T>> beforeItems,
+            List<ListPropertyValueContext<T>> finalOrder)
+        {
+            int pos = 0;
+            foreach (var b in beforeItems)
+            {
+                int i = finalOrder.FindIndex(item => ReferenceEquals(item, b));
+                if (i != -1) pos = Math.Max(pos, i + 1);
+            }
+            return Math.Min(pos, finalOrder.Count);
+        }
+
+        /// <summary>
+        /// Updates OrderOwnerMod for items that moved (both neighbors changed).
+        /// Uses ReferenceEquals for correct duplicate handling.
+        /// </summary>
+        private void UpdateOrderOwnership(
+            List<ListPropertyValueContext<T>> finalOrder,
+            List<ListPropertyValueContext<T>> originalOrder,
+            string modName)
+        {
+            foreach (var finalItem in finalOrder)
+            {
+                var originalBefore = GetNeighbor(originalOrder, finalItem, -1);
+                var originalAfter = GetNeighbor(originalOrder, finalItem, 1);
+                var finalBefore = GetNeighbor(finalOrder, finalItem, -1);
+                var finalAfter = GetNeighbor(finalOrder, finalItem, 1);
+                bool beforeChanged = !AreItemsEqual(originalBefore, finalBefore);
+                bool afterChanged = !AreItemsEqual(originalAfter, finalAfter);
+                if (beforeChanged && afterChanged)
+                    finalItem.OrderOwnerMod = modName;
+            }
+        }
+
+        /// <summary>
+        /// Gets the neighbor at offset (-1 = before, +1 = after). Uses ReferenceEquals for duplicate handling.
+        /// </summary>
+        private ListPropertyValueContext<T>? GetNeighbor(
+            List<ListPropertyValueContext<T>> list,
+            ListPropertyValueContext<T> item,
+            int offset)
+        {
+            int i = list.FindIndex(x => ReferenceEquals(x, item));
+            int j = i + offset;
+            return j >= 0 && j < list.Count ? list[j] : null;
         }
 
         /// <summary>
@@ -617,7 +789,8 @@ namespace ForwardChanges.PropertyHandlers.Abstracts
 
             foreach (var originalItem in originalOrder)
             {
-                if (IsItemEqual(originalItem.Value, itemToPlace.Value))
+                // Use reference equality for duplicate handling: find the exact instance we're placing
+                if (ReferenceEquals(originalItem, itemToPlace))
                 {
                     foundItemToPlace = true;
                     break; // Stop when we find the item we're placing
@@ -635,11 +808,12 @@ namespace ForwardChanges.PropertyHandlers.Abstracts
             //LogCollector.Add(PropertyName, $"    FindPosition: {FormatItem(itemToPlace.Value)} - found {originalBeforeItems.Count} items that were originally before it");
             //LogCollector.Add(PropertyName, $"      Original before items: {string.Join(", ", originalBeforeItems.Select(item => FormatItem(item.Value)))}");
 
-            // Find the position after the last "before" item that's already in finalOrder
+            // Find the position after the last "before" item that's already in finalOrder.
+            // Use reference equality for duplicates: find the exact instance already placed.
             int position = 0;
             foreach (var beforeItem in originalBeforeItems)
             {
-                int beforeIndex = currentFinalOrder.FindIndex(item => IsItemEqual(item.Value, beforeItem.Value));
+                int beforeIndex = currentFinalOrder.FindIndex(item => ReferenceEquals(item, beforeItem));
                 if (beforeIndex != -1)
                 {
                     // This "before" item is already placed, position should be after it
@@ -657,47 +831,45 @@ namespace ForwardChanges.PropertyHandlers.Abstracts
 
         /// <summary>
         /// Finds the position for a new item based on the mod's declared order.
-        /// This method ensures that new items are placed according to the mod's intentions.
+        /// When declaredIndex is provided (e.g. from sortedNewItems iteration), uses it so that
+        /// duplicate values get correct placement: second occurrence goes after first, not at same slot.
         /// </summary>
         /// <param name="newItem">The new item we want to place</param>
         /// <param name="recordItems">The mod's declared items in order</param>
         /// <param name="currentFinalOrder">The current state of the final order being built</param>
+        /// <param name="declaredIndex">Optional: index in recordItems this item corresponds to (for occurrence-aware placement)</param>
         /// <returns>The position (index) to insert the item</returns>
         private int FindPositionForNewItem(
             ListPropertyValueContext<T> newItem,
             List<T> recordItems,
-            List<ListPropertyValueContext<T>> currentFinalOrder)
+            List<ListPropertyValueContext<T>> currentFinalOrder,
+            int? declaredIndex = null)
         {
-            // Find the position of this new item in the mod's declared order
-            int declaredIndex = recordItems.FindIndex(item => IsItemEqual(item, newItem.Value));
-            if (declaredIndex == -1)
+            int index = declaredIndex ?? recordItems.FindIndex(item => IsItemEqual(item, newItem.Value));
+            if (index < 0)
             {
-                // Item not found in declared order (shouldn't happen), place at the end
-                //LogCollector.Add(PropertyName, $"    FindPositionForNewItem: {FormatItem(newItem.Value)} not found in declared order, placing at end");
                 return currentFinalOrder.Count;
             }
 
-            //LogCollector.Add(PropertyName, $"    FindPositionForNewItem: {FormatItem(newItem.Value)} is at declared index {declaredIndex}");
-
             // Find all items that should be before this new item according to mod's declared order
             var declaredBeforeItems = new List<T>();
-            for (int i = 0; i < declaredIndex; i++)
+            for (int i = 0; i < index; i++)
             {
                 declaredBeforeItems.Add(recordItems[i]);
             }
 
             //LogCollector.Add(PropertyName, $"      Declared before items: {string.Join(", ", declaredBeforeItems.Select(item => FormatItem(item)))}");
 
-            // Find the position after the last "before" item that's already in finalOrder
+            // Find the position after the last "before" item that's already in finalOrder.
+            // Use FindLastIndex so duplicate values (e.g. two 0697D3) place after the last occurrence,
+            // not the first (which gave position=1 instead of 2 for 0EA307).
             int position = 0;
             foreach (var beforeItem in declaredBeforeItems)
             {
-                int beforeIndex = currentFinalOrder.FindIndex(item => IsItemEqual(item.Value, beforeItem));
+                int beforeIndex = currentFinalOrder.FindLastIndex(item => IsItemEqual(item.Value, beforeItem));
                 if (beforeIndex != -1)
                 {
-                    // This "before" item is already placed, position should be after it
                     position = Math.Max(position, beforeIndex + 1);
-                    //LogCollector.Add(PropertyName, $"        Found 'before' item {FormatItem(beforeItem)} at position {beforeIndex}, updating position to {position}");
                 }
             }
 
@@ -711,12 +883,13 @@ namespace ForwardChanges.PropertyHandlers.Abstracts
         /// <summary>
         /// Gets the item that comes before the specified item in the given list.
         /// Returns null if the item is first or not found.
+        /// Uses ReferenceEquals for correct duplicate handling.
         /// </summary>
         private ListPropertyValueContext<T>? GetItemBefore(
             ListPropertyValueContext<T> item,
             List<ListPropertyValueContext<T>> list)
         {
-            int index = list.FindIndex(i => IsItemEqual(i.Value, item.Value));
+            int index = list.FindIndex(i => ReferenceEquals(i, item));
             if (index <= 0) return null;
             return list[index - 1];
         }
@@ -724,12 +897,13 @@ namespace ForwardChanges.PropertyHandlers.Abstracts
         /// <summary>
         /// Gets the item that comes after the specified item in the given list.
         /// Returns null if the item is last or not found.
+        /// Uses ReferenceEquals for correct duplicate handling.
         /// </summary>
         private ListPropertyValueContext<T>? GetItemAfter(
             ListPropertyValueContext<T> item,
             List<ListPropertyValueContext<T>> list)
         {
-            int index = list.FindIndex(i => IsItemEqual(i.Value, item.Value));
+            int index = list.FindIndex(i => ReferenceEquals(i, item));
             if (index < 0 || index >= list.Count - 1) return null;
             return list[index + 1];
         }

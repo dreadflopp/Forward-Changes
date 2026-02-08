@@ -293,13 +293,26 @@ namespace ForwardChanges.RecordHandlers.Abstracts
         }
 
 
+        /// <summary>
+        /// Gets all record contexts for a given record across the load order.
+        /// Each handler must implement this to specify its record types.
+        /// The pattern is: cast to TGetter, call ToLink&lt;TGetter&gt;(), then ResolveAllContexts.
+        /// </summary>
         public abstract IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter>[] GetRecordContexts(
             IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> winningContext,
             IPatcherState<ISkyrimMod, ISkyrimModGetter> state);
 
-        public abstract IMajorRecord GetOverrideRecord(
+        /// <summary>
+        /// Gets or creates an override record in the patch mod for the winning context.
+        /// Default implementation uses the generic GetOrAddAsOverride method.
+        /// Override this method if you need record-type-specific behavior.
+        /// </summary>
+        public virtual IMajorRecord GetOverrideRecord(
             IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> winningContext,
-            IPatcherState<ISkyrimMod, ISkyrimModGetter> state);
+            IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
+        {
+            return winningContext.GetOrAddAsOverride(state.PatchMod);
+        }
 
         /// <summary>
         /// Applies flag properties (MajorRecordFlagsRaw and SkyrimMajorRecordFlags) together.

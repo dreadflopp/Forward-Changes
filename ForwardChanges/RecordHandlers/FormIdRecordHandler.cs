@@ -35,31 +35,9 @@ namespace ForwardChanges.RecordHandlers
             return contexts;
         }
 
-        public override IMajorRecord GetOverrideRecord(
-            IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> winningContext,
-            IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
-        {
-            return winningContext.GetOrAddAsOverride(state.PatchMod);
-        }
-
-        public override void ApplyForwardedProperties(IMajorRecord record, Dictionary<string, object?> propertiesToForward)
-        {
-            foreach (var (propertyName, value) in propertiesToForward)
-            {
-                if (PropertyHandlers.TryGetValue(propertyName, out var handler))
-                {
-                    try
-                    {
-                        Console.WriteLine($"[{propertyName}] Applying value: {handler.FormatValue(value)}, Type: {value?.GetType()}");
-                        handler.SetValue(record, value);
-                    }
-                    catch (Exception ex)
-                    {
-                        // Property doesn't exist on this form list type - just continue
-                        Console.WriteLine($"Warning: Property {propertyName} not available on form list {record.FormKey}: {ex.Message}");
-                    }
-                }
-            }
-        }
+        // GetOverrideRecord and ApplyForwardedProperties are now handled by the base class
+        // The base class automatically handles flag property coordination
+        // Note: FormIdRecordHandler doesn't have MajorRecordFlagsRaw or SkyrimMajorRecordFlags handlers
+        // as FormList records may not support these flags
     }
 }

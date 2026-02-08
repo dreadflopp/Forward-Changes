@@ -12,9 +12,10 @@ using System.Collections.Generic;
 using Noggog;
 using Mutagen.Bethesda.Plugins.Cache;
 using ForwardChanges.RecordHandlers;
-using ForwardChanges.PropertyHandlers.PlacedObject;
 using ForwardChanges.PropertyHandlers.General;
 using ForwardChanges.PropertyHandlers.Interfaces;
+using ForwardChanges.PropertyHandlers.FormList;
+using ForwardChanges.Contexts;
 using Mutagen.Bethesda.Plugins.Aspects;
 
 namespace ForwardChanges
@@ -110,7 +111,7 @@ namespace ForwardChanges
         {
             return await SynthesisPipeline.Instance
                 .AddPatch<ISkyrimMod, ISkyrimModGetter>(RunPatch)
-                .SetTypicalOpen(GameRelease.SkyrimSE, "YourPatcher.esp")
+                .SetTypicalOpen(GameRelease.SkyrimSE, "Synthesis.esp")
                 .Run(args);
         }
 
