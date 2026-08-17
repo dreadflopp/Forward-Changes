@@ -3,8 +3,10 @@ using Mutagen.Bethesda.Synthesis;
 using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Plugins.Cache;
+using Mutagen.Bethesda.Plugins;
 using ForwardChanges.PropertyHandlers.PlacedNpc;
 using ForwardChanges.PropertyHandlers.General;
+using ForwardChanges.PropertyHandlers.Abstracts;
 using ForwardChanges.RecordHandlers.Abstracts;
 using ForwardChanges.PropertyHandlers.Interfaces;
 using System;
@@ -19,32 +21,32 @@ namespace ForwardChanges.RecordHandlers
             { "MajorRecordFlagsRaw", new MajorRecordFlagsRawHandler() },
             { "SkyrimMajorRecordFlags", new SkyrimMajorRecordFlagsHandler() },
             { "MajorFlags", new MajorFlagsHandler() },
-            { "Base", new BaseHandler() },
-            { "EncounterZone", new EncounterZoneHandler() },
-            { "Patrol", new PatrolHandler() },
-            { "LevelModifier", new LevelModifierHandler() },
-            { "MerchantContainer", new MerchantContainerHandler() },
-            { "Count", new CountHandler() },
-            { "Radius", new RadiusHandler() },
-            { "Health", new HealthHandler() },
-            { "LinkedReferences", new LinkedReferencesHandler() },
-            { "ActivateParents", new ActivateParentsHandler() },
-            { "LinkedReferenceColor", new LinkedReferenceColorHandler() },
-            { "PersistentLocation", new PersistentLocationHandler() },
-            { "LocationReference", new LocationReferenceHandler() },
-            { "IsIgnoredBySandbox", new IsIgnoredBySandboxHandler() },
-            { "LocationRefTypes", new LocationRefTypesHandler() },
-            { "HeadTrackingWeight", new HeadTrackingWeightHandler() },
-            { "Horse", new HorseHandler() },
-            { "FavorCost", new FavorCostHandler() },
-            { "EnableParent", new EnableParentHandler() },
-            { "Owner", new OwnerHandler() },
-            { "FactionRank", new FactionRankHandler() },
-            { "Emittance", new EmittanceHandler() },
-            { "MultiboundReference", new MultiboundReferenceHandler() },
-            { "IsIgnoredBySandbox2", new IsIgnoredBySandbox2Handler() },
-            { "Scale", new ScaleHandler() },
-            { "Placement", new PlacementHandler() },
+            { "Base", new SimpleReflectionFormLinkPropertyHandler<INpcGetter, IPlacedNpc, IPlacedNpcGetter>("Base") },
+            { "EncounterZone", new SimpleReflectionFormLinkPropertyHandler<IEncounterZoneGetter, IPlacedNpc, IPlacedNpcGetter>("EncounterZone") },
+            { "Patrol", new ComplexReflectionPropertyHandler<IPatrolGetter, IPlacedNpc, IPlacedNpcGetter>("Patrol") },
+            { "LevelModifier", new SimpleReflectionPropertyHandler<Level?, IPlacedNpc, IPlacedNpcGetter>("LevelModifier") },
+            { "MerchantContainer", new SimpleReflectionFormLinkPropertyHandler<IPlacedObjectGetter, IPlacedNpc, IPlacedNpcGetter>("MerchantContainer") },
+            { "Count", new SimpleReflectionPropertyHandler<int?, IPlacedNpc, IPlacedNpcGetter>("Count") },
+            { "Radius", new SimpleReflectionPropertyHandler<float?, IPlacedNpc, IPlacedNpcGetter>("Radius") },
+            { "Health", new SimpleReflectionPropertyHandler<float?, IPlacedNpc, IPlacedNpcGetter>("Health") },
+            { "LinkedReferences", new SimpleReflectionListPropertyHandler<ILinkedReferencesGetter, IPlacedNpc, IPlacedNpcGetter>("LinkedReferences", ListOrdering.PreserveModOrder) },
+            { "ActivateParents", new ComplexReflectionPropertyHandler<IActivateParentsGetter, IPlacedNpc, IPlacedNpcGetter>("ActivateParents") },
+            { "LinkedReferenceColor", new ComplexReflectionPropertyHandler<ILinkedReferenceColorGetter, IPlacedNpc, IPlacedNpcGetter>("LinkedReferenceColor") },
+            { "PersistentLocation", new SimpleReflectionFormLinkPropertyHandler<ILocationGetter, IPlacedNpc, IPlacedNpcGetter>("PersistentLocation") },
+            { "LocationReference", new SimpleReflectionFormLinkPropertyHandler<ILocationRecordGetter, IPlacedNpc, IPlacedNpcGetter>("LocationReference") },
+            { "IsIgnoredBySandbox", new SimpleReflectionPropertyHandler<bool, IPlacedNpc, IPlacedNpcGetter>("IsIgnoredBySandbox") },
+            { "LocationRefTypes", new SimpleReflectionListPropertyHandler<IFormLinkGetter<ILocationReferenceTypeGetter>, IPlacedNpc, IPlacedNpcGetter>("LocationRefTypes", ListOrdering.PreserveModOrder, canBeNull: true) },
+            { "HeadTrackingWeight", new SimpleReflectionPropertyHandler<float?, IPlacedNpc, IPlacedNpcGetter>("HeadTrackingWeight") },
+            { "Horse", new SimpleReflectionFormLinkPropertyHandler<IPlacedNpcGetter, IPlacedNpc, IPlacedNpcGetter>("Horse") },
+            { "FavorCost", new SimpleReflectionPropertyHandler<float?, IPlacedNpc, IPlacedNpcGetter>("FavorCost") },
+            { "EnableParent", new ComplexReflectionPropertyHandler<IEnableParentGetter, IPlacedNpc, IPlacedNpcGetter>("EnableParent") },
+            { "Owner", new SimpleReflectionFormLinkPropertyHandler<IOwnerGetter, IPlacedNpc, IPlacedNpcGetter>("Owner") },
+            { "FactionRank", new SimpleReflectionPropertyHandler<int?, IPlacedNpc, IPlacedNpcGetter>("FactionRank") },
+            { "Emittance", new SimpleReflectionFormLinkPropertyHandler<IEmittanceGetter, IPlacedNpc, IPlacedNpcGetter>("Emittance") },
+            { "MultiboundReference", new SimpleReflectionFormLinkPropertyHandler<IPlacedObjectGetter, IPlacedNpc, IPlacedNpcGetter>("MultiboundReference") },
+            { "IsIgnoredBySandbox2", new SimpleReflectionPropertyHandler<bool, IPlacedNpc, IPlacedNpcGetter>("IsIgnoredBySandbox2") },
+            { "Scale", new SimpleReflectionPropertyHandler<float?, IPlacedNpc, IPlacedNpcGetter>("Scale") },
+            { "Placement", new ComplexReflectionPropertyHandler<IPlacementGetter, IPlacedNpc, IPlacedNpcGetter>("Placement") },
             { "VirtualMachineAdapter", new VirtualMachineAdapterHandler() }
         };
 

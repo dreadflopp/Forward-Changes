@@ -3,10 +3,12 @@ using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Synthesis;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Plugins.Cache;
+using Mutagen.Bethesda.Plugins;
 using ForwardChanges.RecordHandlers.Abstracts;
 using ForwardChanges.PropertyHandlers.Interfaces;
 using ForwardChanges.PropertyHandlers.Quest;
 using ForwardChanges.PropertyHandlers.General;
+using ForwardChanges.PropertyHandlers.Abstracts;
 using System.Collections.Generic;
 using System;
 using System.Linq;
@@ -25,14 +27,14 @@ public class QuestRecordHandler : AbstractRecordHandler
         { "QuestScriptFragments", new QuestScriptFragmentHandler() },
         { "QuestFragmentAliases", new QuestFragmentAliasHandler() },
         { "Flags", new FlagsHandler() },
-        { "Priority", new PriorityHandler() },
-        { "QuestFormVersion", new QuestFormVersionHandler() },
-        { "Unknown", new UnknownHandler() },
-        { "Type", new TypeHandler() },
-        { "Event", new QuestEventHandler() },
-        { "TextDisplayGlobals", new TextDisplayGlobalsHandler() },
-        { "Filter", new FilterHandler() },
-        { "NextAliasID", new NextAliasIDHandler() },
+        { "Priority", new SimpleReflectionPropertyHandler<byte, IQuest, IQuestGetter>("Priority") },
+        { "QuestFormVersion", new SimpleReflectionPropertyHandler<byte, IQuest, IQuestGetter>("QuestFormVersion") },
+        { "Unknown", new SimpleReflectionPropertyHandler<int, IQuest, IQuestGetter>("Unknown") },
+        { "Type", new SimpleReflectionPropertyHandler<Quest.TypeEnum, IQuest, IQuestGetter>("Type") },
+        { "Event", new SimpleReflectionPropertyHandler<RecordType?, IQuest, IQuestGetter>("Event") },
+        { "TextDisplayGlobals", new SimpleReflectionListPropertyHandler<IFormLinkGetter<IGlobalGetter>, IQuest, IQuestGetter>("TextDisplayGlobals", ListOrdering.None) },
+        { "Filter", new SimpleReflectionPropertyHandler<string, IQuest, IQuestGetter>("Filter") },
+        { "NextAliasID", new SimpleReflectionPropertyHandler<uint?, IQuest, IQuestGetter>("NextAliasID") },
         { "Description", new DescriptionHandler() },
         { "DialogConditions", new DialogConditionsHandler() },
         { "EventConditions", new EventConditionsHandler() },

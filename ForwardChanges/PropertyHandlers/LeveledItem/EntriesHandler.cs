@@ -53,8 +53,11 @@ namespace ForwardChanges.PropertyHandlers.LeveledItem
                         leveledItem.Entries = new ExtendedList<LeveledItemEntry>();
                     }
 
-                    // Sort entries by Level first, then Reference before setting
-                    var sortedEntries = value.OrderBy(e => GetSortKey(e)).ToList();
+                    // Sort entries by Level first, then Reference string key for deterministic ordering.
+                    var sortedEntries = value
+                        .OrderBy(e => e.Data?.Level ?? 0)
+                        .ThenBy(e => GetReferenceSortKey(e), StringComparer.OrdinalIgnoreCase)
+                        .ToList();
 
                     foreach (var entryGetter in sortedEntries)
                     {
@@ -90,9 +93,10 @@ namespace ForwardChanges.PropertyHandlers.LeveledItem
             var leveledItem = TryCastRecord<ILeveledItemGetter>(record, PropertyName);
             if (leveledItem != null && leveledItem.Entries != null)
             {
-                // Sort entries by Level first, then Reference before returning
+                // Sort entries by Level first, then Reference string key for deterministic ordering.
                 return leveledItem.Entries
-                    .OrderBy(e => GetSortKey(e))
+                    .OrderBy(e => e.Data?.Level ?? 0)
+                    .ThenBy(e => GetReferenceSortKey(e), StringComparer.OrdinalIgnoreCase)
                     .ToList();
             }
             return null;
@@ -275,14 +279,10 @@ namespace ForwardChanges.PropertyHandlers.LeveledItem
             return copiedOwner ?? new NoOwner();
         }
 
-        /// <summary>
-        /// Get a sort key for an entry: Level first, then Reference FormKey
-        /// </summary>
-        private (short Level, FormKey Reference) GetSortKey(ILeveledItemEntryGetter entry)
+        private string GetReferenceSortKey(ILeveledItemEntryGetter entry)
         {
-            var level = entry.Data?.Level ?? 0;
             var reference = entry.Data?.Reference.FormKey ?? FormKey.Null;
-            return (level, reference);
+            return reference.ToString();
         }
 
         protected override string FormatItem(ILeveledItemEntryGetter? item)

@@ -47,6 +47,15 @@ namespace ForwardChanges.PropertyHandlers.ArmorAddon
 
             return value1.Male == value2.Male && value1.Female == value2.Female;
         }
+
+        public override string FormatValue(object? value)
+        {
+            if (value is IGenderedItemGetter<bool> gendered)
+            {
+                return $"Male: {gendered.Male}, Female: {gendered.Female}";
+            }
+            return value?.ToString() ?? "null";
+        }
     }
 }
 

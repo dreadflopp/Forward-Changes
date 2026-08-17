@@ -38,18 +38,21 @@ namespace ForwardChanges.PropertyHandlers.Worldspace
             if (value1 == null && value2 == null) return true;
             if (value1 == null || value2 == null) return false;
 
-            // Compare File
-            if (value1.File.ToString() != value2.File.ToString()) return false;
+            // Compare File - use DataRelativePath for value-based comparison (avoids reference equality from different overlays)
+            if (value1.File.DataRelativePath != value2.File.DataRelativePath) return false;
 
-            // Compare AlternateTextures
-            if (value1.AlternateTextures?.Count != value2.AlternateTextures?.Count) return false;
-            if (value1.AlternateTextures != null && value2.AlternateTextures != null)
+            // Compare AlternateTextures - treat null and empty as equivalent
+            var alt1Count = value1.AlternateTextures?.Count ?? 0;
+            var alt2Count = value2.AlternateTextures?.Count ?? 0;
+            if (alt1Count != alt2Count) return false;
+
+            if (alt1Count > 0 && value1.AlternateTextures != null && value2.AlternateTextures != null)
             {
-                for (int i = 0; i < value1.AlternateTextures.Count; i++)
+                for (int i = 0; i < alt1Count; i++)
                 {
                     var alt1 = value1.AlternateTextures[i];
                     var alt2 = value2.AlternateTextures[i];
-                    if (alt1.Name != alt2.Name || alt1.NewTexture.ToString() != alt2.NewTexture.ToString()) return false;
+                    if (alt1.Name != alt2.Name || alt1.NewTexture?.FormKey != alt2.NewTexture?.FormKey) return false;
                 }
             }
 

@@ -59,10 +59,11 @@ namespace ForwardChanges.PropertyHandlers.Static
             if (value1 == null && value2 == null) return true;
             if (value1 == null || value2 == null) return false;
 
-            return value1.Level0 == value2.Level0 &&
-                   value1.Level1 == value2.Level1 &&
-                   value1.Level2 == value2.Level2 &&
-                   value1.Level3 == value2.Level3;
+            // Use DataRelativePath for value-based comparison (avoids reference equality from different overlays)
+            return value1.Level0.DataRelativePath == value2.Level0.DataRelativePath &&
+                   value1.Level1.DataRelativePath == value2.Level1.DataRelativePath &&
+                   value1.Level2.DataRelativePath == value2.Level2.DataRelativePath &&
+                   value1.Level3.DataRelativePath == value2.Level3.DataRelativePath;
         }
     }
 }

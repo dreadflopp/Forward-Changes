@@ -9,15 +9,51 @@ namespace ForwardChanges
     {
         private static readonly Dictionary<string, List<string>> _logsByIdentifier = [];
         private static readonly List<string> _identifierOrder = [];
+        private static bool _currentDeepDiveRecord;
+        private static bool _currentDetailedRecord;
+
+        /// <summary>True when the current record is in deep-dive mode.</summary>
+        public static bool IsDeepDiveMode => _currentDeepDiveRecord;
+
+        /// <summary>True when the current record should emit detailed logs.</summary>
+        public static bool IsDetailedMode => _currentDetailedRecord;
 
         public static void Add(string identifier, string line)
         {
+            if (!ShouldEmit(identifier, line))
+            {
+                return;
+            }
+
             if (!_logsByIdentifier.ContainsKey(identifier))
             {
                 _logsByIdentifier[identifier] = [];
                 _identifierOrder.Add(identifier);
             }
             _logsByIdentifier[identifier].Add(line);
+        }
+
+        public static void SetRecordLoggingContext(bool deepDiveRecord, bool detailedRecord)
+        {
+            _currentDeepDiveRecord = deepDiveRecord;
+            _currentDetailedRecord = detailedRecord;
+        }
+
+        private static bool ShouldEmit(string identifier, string line)
+        {
+            // Summary mode + non-deep: suppress ALL handler log lines.
+            if (!_currentDetailedRecord && !_currentDeepDiveRecord)
+            {
+                return false;
+            }
+
+            // Deep-dive: optionally narrow to selected properties.
+            if (_currentDeepDiveRecord && !LoggingSettings.ShouldLogProperty(identifier, deepDiveRecord: true))
+            {
+                return false;
+            }
+
+            return true;
         }
 
         public static void PrintAll(bool stripAllControlChars = true)

@@ -1,6 +1,6 @@
 using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Plugins.Records;
-using Mutagen.Bethesda.Plugins.Cache;
+using Mutagen.Bethesda.Plugins;
 using Mutagen.Bethesda.Plugins.Assets;
 using Mutagen.Bethesda.Skyrim.Assets;
 using ForwardChanges.PropertyHandlers.Abstracts;
@@ -9,11 +9,15 @@ using Noggog;
 
 namespace ForwardChanges.PropertyHandlers.General
 {
-    public class ModelHandler : AbstractPropertyHandler<ISimpleModelGetter>
+    /// <summary>
+    /// Handler for full Model structures (File, Data, and AlternateTextures).
+    /// Used by IModeled records: Activator, Book, Container, Weapon, MiscItem, Ingredient, Ingestible.
+    /// </summary>
+    public class ModelHandler : AbstractPropertyHandler<IModelGetter?>
     {
         public override string PropertyName => "Model";
 
-        public override void SetValue(IMajorRecord record, ISimpleModelGetter? value)
+        public override void SetValue(IMajorRecord record, IModelGetter? value)
         {
             if (record is IModeled modeledRecord)
             {
@@ -23,10 +27,28 @@ namespace ForwardChanges.PropertyHandlers.General
                 }
                 else
                 {
-                    // Deep copy
+                    // Deep copy full model (File, Data, AlternateTextures)
                     var newModel = new Model();
-                    newModel.File = (AssetLink<SkyrimModelAssetType>)value.File;
+                    newModel.File = value.File.IsNull
+                        ? new AssetLink<SkyrimModelAssetType>()
+                        : new AssetLink<SkyrimModelAssetType>(value.File.DataRelativePath.ToString());
                     newModel.Data = value.Data?.ToArray();
+
+                    if (value.AlternateTextures != null)
+                    {
+                        newModel.AlternateTextures = new ExtendedList<AlternateTexture>();
+                        foreach (var altTexture in value.AlternateTextures)
+                        {
+                            var newAltTexture = new AlternateTexture
+                            {
+                                Name = altTexture.Name,
+                                NewTexture = new FormLink<ITextureSetGetter>(altTexture.NewTexture.FormKey),
+                                Index = altTexture.Index
+                            };
+                            newModel.AlternateTextures.Add(newAltTexture);
+                        }
+                    }
+
                     modeledRecord.Model = newModel;
                 }
             }
@@ -36,7 +58,7 @@ namespace ForwardChanges.PropertyHandlers.General
             }
         }
 
-        public override ISimpleModelGetter? GetValue(IMajorRecordGetter record)
+        public override IModelGetter? GetValue(IMajorRecordGetter record)
         {
             if (record is IModeledGetter modeledRecord)
             {
@@ -49,13 +71,43 @@ namespace ForwardChanges.PropertyHandlers.General
             return null;
         }
 
-        public override bool AreValuesEqual(ISimpleModelGetter? value1, ISimpleModelGetter? value2)
+        public override bool AreValuesEqual(IModelGetter? value1, IModelGetter? value2)
         {
             if (value1 == null && value2 == null) return true;
             if (value1 == null || value2 == null) return false;
 
-            // Compare simple model properties using value-based comparison
-            return value1.File == value2.File;
+            // Compare File - use DataRelativePath for value-based comparison (avoids reference equality from different overlays)
+            if (value1.File.DataRelativePath != value2.File.DataRelativePath) return false;
+
+            // Compare AlternateTextures - treat null and empty as equivalent
+            var alt1Count = value1.AlternateTextures?.Count ?? 0;
+            var alt2Count = value2.AlternateTextures?.Count ?? 0;
+            if (alt1Count != alt2Count) return false;
+
+            if (alt1Count > 0 && value1.AlternateTextures != null && value2.AlternateTextures != null)
+            {
+                for (int i = 0; i < alt1Count; i++)
+                {
+                    var alt1 = value1.AlternateTextures[i];
+                    var alt2 = value2.AlternateTextures[i];
+                    if (alt1?.Name != alt2?.Name || alt1?.NewTexture?.FormKey != alt2?.NewTexture?.FormKey)
+                    {
+                        return false;
+                    }
+                }
+            }
+
+            return true;
+        }
+
+        public override string FormatValue(object? value)
+        {
+            if (value is IModelGetter model)
+            {
+                var altTextureCount = model.AlternateTextures?.Count ?? 0;
+                return $"Model(File: {model.File}, AltTextures: {altTextureCount})";
+            }
+            return value?.ToString() ?? "null";
         }
     }
 }

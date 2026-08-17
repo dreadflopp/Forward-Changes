@@ -7,8 +7,6 @@ using ForwardChanges.RecordHandlers.Abstracts;
 using ForwardChanges.PropertyHandlers.Interfaces;
 using ForwardChanges.PropertyHandlers.Container;
 using ForwardChanges.PropertyHandlers.General;
-using ForwardChanges.Contexts;
-using ForwardChanges.Contexts.Interfaces;
 using System.Collections.Generic;
 using System.Linq;
 using System;
@@ -25,13 +23,13 @@ namespace ForwardChanges.RecordHandlers
             { "SkyrimMajorRecordFlags", new SkyrimMajorRecordFlagsHandler() },
             { "ObjectBounds", new ObjectBoundsHandler() },
             { "Model", new ModelHandler() },
-            { "Weight", new WeightHandler() },
+            { "Weight", new SimpleReflectionPropertyHandler<float, IContainer, IContainerGetter>("Weight") },
             { "Items", new ItemHandler() },
-            { "VirtualMachineAdapter", new VirtualMachineAdapterHandler() },
+            { "VirtualMachineAdapter", new SimpleReflectionVirtualMachineAdapterHandler<IContainer, IContainerGetter>() },
             { "Destructible", new DestructibleHandler() },
             { "Flags", new FlagsHandler() },
-            { "OpenSound", new OpenSoundHandler() },
-            { "CloseSound", new CloseSoundHandler() },
+            { "OpenSound", new SimpleReflectionFormLinkPropertyHandler<ISoundDescriptorGetter, IContainer, IContainerGetter>("OpenSound") },
+            { "CloseSound", new SimpleReflectionFormLinkPropertyHandler<ISoundDescriptorGetter, IContainer, IContainerGetter>("CloseSound") },
             { "MajorFlags", new MajorFlagsHandler() }
         };
 
@@ -47,13 +45,6 @@ namespace ForwardChanges.RecordHandlers
                 .ToLink<IContainerGetter>()
                 .ResolveAllContexts<ISkyrimMod, ISkyrimModGetter, IContainer, IContainerGetter>(state.LinkCache)
                 .ToArray();
-        }
-
-        public override IMajorRecord GetOverrideRecord(
-            IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> winningContext,
-            IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
-        {
-            return state.PatchMod.Containers.GetOrAddAsOverride(winningContext.Record);
         }
 
         // ApplyForwardedProperties is now handled by the base class

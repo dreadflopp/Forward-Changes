@@ -3,6 +3,7 @@ using Mutagen.Bethesda.Synthesis;
 using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Plugins.Cache;
+using Mutagen.Bethesda.Plugins;
 using ForwardChanges.PropertyHandlers.Spell;
 using ForwardChanges.PropertyHandlers.General;
 using ForwardChanges.RecordHandlers.Abstracts;
@@ -20,19 +21,19 @@ namespace ForwardChanges.RecordHandlers
             { "SkyrimMajorRecordFlags", new SkyrimMajorRecordFlagsHandler() },
             { "Name", new NameHandler() },
             { "ObjectBounds", new ObjectBoundsHandler() },
-            { "MenuDisplayObject", new MenuDisplayObjectHandler() },
+            { "MenuDisplayObject", new SimpleReflectionFormLinkPropertyHandler<IStaticGetter, ISpell, ISpellGetter>("MenuDisplayObject") },
             { "Description", new DescriptionHandler() },
             { "Flags", new FlagsHandler() },
             { "Keywords", new KeywordListHandler() },
-            { "EquipmentType", new EquipmentTypeHandler() },
-            { "BaseCost", new BaseCostHandler() },
-            { "Type", new TypeHandler() },
-            { "ChargeTime", new ChargeTimeHandler() },
-            { "CastType", new CastTypeHandler() },
-            { "TargetType", new TargetTypeHandler() },
-            { "CastDuration", new CastDurationHandler() },
-            { "Range", new RangeHandler() },
-            { "HalfCostPerk", new HalfCostPerkHandler() },
+            { "EquipmentType", new SimpleReflectionFormLinkPropertyHandler<IEquipTypeGetter, ISpell, ISpellGetter>("EquipmentType") },
+            { "BaseCost", new SimpleReflectionPropertyHandler<uint, ISpell, ISpellGetter>("BaseCost") },
+            { "Type", new SimpleReflectionPropertyHandler<SpellType, ISpell, ISpellGetter>("Type") },
+            { "ChargeTime", new SimpleReflectionPropertyHandler<float, ISpell, ISpellGetter>("ChargeTime", 0.001f) },
+            { "CastType", new SimpleReflectionPropertyHandler<CastType, ISpell, ISpellGetter>("CastType") },
+            { "TargetType", new SimpleReflectionPropertyHandler<TargetType, ISpell, ISpellGetter>("TargetType") },
+            { "CastDuration", new SimpleReflectionPropertyHandler<float, ISpell, ISpellGetter>("CastDuration", 0.001f) },
+            { "Range", new SimpleReflectionPropertyHandler<float, ISpell, ISpellGetter>("Range", 0.001f) },
+            { "HalfCostPerk", new SimpleReflectionFormLinkPropertyHandler<IPerkGetter, ISpell, ISpellGetter>("HalfCostPerk") },
             { "Effects", new EffectsHandler() }
         };
 

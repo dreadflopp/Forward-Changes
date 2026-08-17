@@ -1,8 +1,14 @@
 using System;
+using System.Linq;
 using System.Reflection;
+using Mutagen.Bethesda;
+using Mutagen.Bethesda.Synthesis;
+using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Plugins.Records;
+using Mutagen.Bethesda.Plugins.Cache;
 using ForwardChanges.PropertyHandlers.Abstracts;
 using ForwardChanges.PropertyHandlers.Interfaces;
+using ForwardChanges.Contexts.Interfaces;
 
 namespace ForwardChanges.PropertyHandlers.General
 {
@@ -35,7 +41,7 @@ namespace ForwardChanges.PropertyHandlers.General
 
             // Find the property on the getter interface
             _getterProperty = FindProperty(typeof(TRecordGetter), _propertyPath);
-            
+
             // Find the property on the setter interface
             _setterProperty = FindProperty(typeof(TRecord), _propertyPath);
 
@@ -63,9 +69,9 @@ namespace ForwardChanges.PropertyHandlers.General
 
             for (int i = 0; i < path.Length; i++)
             {
-                property = currentType.GetProperty(path[i], 
+                property = currentType.GetProperty(path[i],
                     BindingFlags.Public | BindingFlags.Instance | BindingFlags.FlattenHierarchy);
-                
+
                 if (property == null)
                 {
                     return null;
@@ -92,23 +98,23 @@ namespace ForwardChanges.PropertyHandlers.General
 
             for (int i = 0; i < path.Length - 1; i++)
             {
-                var property = currentType.GetProperty(path[i], 
+                var property = currentType.GetProperty(path[i],
                     BindingFlags.Public | BindingFlags.Instance | BindingFlags.FlattenHierarchy);
-                
+
                 if (property == null)
                 {
                     throw new ArgumentException($"Property '{path[i]}' not found in path '{_propertyName}'");
                 }
 
                 pathProperties[i] = property;
-                
+
                 var propType = property.PropertyType;
                 // Handle nullable types - get the underlying type
                 if (propType.IsGenericType && propType.GetGenericTypeDefinition() == typeof(Nullable<>))
                 {
                     propType = propType.GetGenericArguments()[0];
                 }
-                
+
                 pathTypes[i] = propType;
                 currentType = propType;
             }
@@ -142,7 +148,7 @@ namespace ForwardChanges.PropertyHandlers.General
                         }
 
                         currentObject = _pathProperties[i].GetValue(currentObject);
-                        
+
                         // If we got a null value and there are more properties to navigate, return default
                         if (currentObject == null && i < _pathProperties.Length - 1)
                         {
@@ -157,7 +163,7 @@ namespace ForwardChanges.PropertyHandlers.General
                 }
 
                 var value = _getterProperty.GetValue(currentObject);
-                
+
                 // Handle nullable flag types
                 if (value == null)
                 {
@@ -237,13 +243,13 @@ namespace ForwardChanges.PropertyHandlers.General
                 // Check if the property is nullable
                 var propertyType = _setterProperty.PropertyType;
                 object? valueToSet = value;
-                
+
                 if (propertyType.IsGenericType && propertyType.GetGenericTypeDefinition() == typeof(Nullable<>))
                 {
                     // Property is nullable, so we can set it directly (value is a struct)
                     valueToSet = value;
                 }
-                
+
                 _setterProperty.SetValue(currentObject, valueToSet);
             }
             catch (Exception ex)
@@ -280,6 +286,80 @@ namespace ForwardChanges.PropertyHandlers.General
                 result = flagsInt & ~flagInt;
             }
             return (TFlag)Enum.ToObject(typeof(TFlag), result);
+        }
+
+        public string FormatValue(object? value)
+        {
+            if (value == null) return "null";
+            if (value is not TFlag flags) return value.ToString() ?? "null";
+
+            var setFlags = Enum.GetValues<TFlag>()
+                .Where(f => Convert.ToInt64(f) != 0 && IsFlagSet(flags, f))
+                .Select(f => f.ToString())
+                .ToList();
+
+            return setFlags.Count > 0 ? string.Join(", ", setFlags) : flags.ToString();
+        }
+
+        public override void InitializeContext(
+            IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> originalContext,
+            IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> winningContext,
+            IPropertyContext propertyContext)
+        {
+            // Add debug logging for BodyTemplateFlags
+            if (_propertyName == "BodyTemplate.Flags" || _propertyName.Contains("BodyTemplate"))
+            {
+                var originalValue = GetValue(originalContext.Record);
+                var winningValue = GetValue(winningContext.Record);
+                Console.WriteLine($"[DEBUG {PropertyName}] InitializeContext called");
+                Console.WriteLine($"[DEBUG {PropertyName}]   Original record BodyTemplate is null: {IsBodyTemplateNull(originalContext.Record)}");
+                Console.WriteLine($"[DEBUG {PropertyName}]   Winning record BodyTemplate is null: {IsBodyTemplateNull(winningContext.Record)}");
+                Console.WriteLine($"[DEBUG {PropertyName}]   Original value: {FormatValue(originalValue)} ({Convert.ToInt64(originalValue)})");
+                Console.WriteLine($"[DEBUG {PropertyName}]   Winning value: {FormatValue(winningValue)} ({Convert.ToInt64(winningValue)})");
+            }
+
+            base.InitializeContext(originalContext, winningContext, propertyContext);
+
+            // Debug logging after initialization
+            if (_propertyName == "BodyTemplate.Flags" || _propertyName.Contains("BodyTemplate"))
+            {
+                if (propertyContext is ForwardChanges.Contexts.FlagPropertyContext<TFlag> flagContext)
+                {
+                    Console.WriteLine($"[DEBUG {PropertyName}] After InitializeContext:");
+                    Console.WriteLine($"[DEBUG {PropertyName}]   OriginalFlagContexts count: {flagContext.OriginalFlagContexts.Count}");
+                    Console.WriteLine($"[DEBUG {PropertyName}]   ForwardFlagContexts count: {flagContext.ForwardFlagContexts.Count}");
+                    Console.WriteLine($"[DEBUG {PropertyName}]   ForwardFlagContexts with IsSet=true: {flagContext.ForwardFlagContexts.Count(fc => fc.IsSet)}");
+                    var forwardValue = flagContext.GetForwardValue();
+                    Console.WriteLine($"[DEBUG {PropertyName}]   GetForwardValue() result: {FormatValue(forwardValue)} ({Convert.ToInt64(forwardValue)})");
+                }
+            }
+        }
+
+        private bool IsBodyTemplateNull(IMajorRecordGetter record)
+        {
+            if (record is not TRecordGetter typedRecord)
+                return true;
+
+            try
+            {
+                object? currentObject = typedRecord;
+                if (_pathProperties != null && _pathTypes != null)
+                {
+                    for (int i = 0; i < _pathProperties.Length; i++)
+                    {
+                        if (currentObject == null)
+                            return true;
+                        currentObject = _pathProperties[i].GetValue(currentObject);
+                        if (currentObject == null)
+                            return true;
+                    }
+                }
+                return currentObject == null;
+            }
+            catch
+            {
+                return true;
+            }
         }
     }
 }

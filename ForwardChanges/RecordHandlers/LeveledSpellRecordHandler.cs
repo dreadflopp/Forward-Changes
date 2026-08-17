@@ -1,0 +1,43 @@
+using System;
+using Mutagen.Bethesda;
+using Mutagen.Bethesda.Synthesis;
+using Mutagen.Bethesda.Skyrim;
+using Mutagen.Bethesda.Plugins.Records;
+using Mutagen.Bethesda.Plugins.Cache;
+using ForwardChanges.PropertyHandlers.General;
+using ForwardChanges.PropertyHandlers.LeveledSpell;
+using ForwardChanges.PropertyHandlers.Interfaces;
+using ForwardChanges.RecordHandlers.Abstracts;
+using Noggog;
+
+namespace ForwardChanges.RecordHandlers
+{
+    public class LeveledSpellRecordHandler : AbstractRecordHandler
+    {
+        public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()
+        {
+            { "EditorID", new EditorIDHandler() },
+            { "MajorRecordFlagsRaw", new MajorRecordFlagsRawHandler() },
+            { "SkyrimMajorRecordFlags", new SkyrimMajorRecordFlagsHandler() },
+            { "ObjectBounds", new ObjectBoundsHandler() },
+            { "ChanceNone", new SimpleReflectionPropertyHandler<Percent, ILeveledSpell, ILeveledSpellGetter>("ChanceNone") },
+            { "Flags", new SimpleReflectionFlagPropertyHandler<Mutagen.Bethesda.Skyrim.LeveledSpell.Flag, ILeveledSpell, ILeveledSpellGetter>("Flags") },
+            { "Entries", new EntriesHandler() }
+        };
+
+        public override IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter>[] GetRecordContexts(
+            IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> winningContext,
+            IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
+        {
+            if (winningContext.Record is not ILeveledSpellGetter leveledSpell)
+            {
+                throw new InvalidOperationException($"Expected ILeveledSpellGetter but got {winningContext.Record.GetType()}");
+            }
+
+            return leveledSpell
+                .ToLink<ILeveledSpellGetter>()
+                .ResolveAllContexts<ISkyrimMod, ISkyrimModGetter, ILeveledSpell, ILeveledSpellGetter>(state.LinkCache)
+                .ToArray();
+        }
+    }
+}

@@ -10,7 +10,9 @@ namespace ForwardChanges.PropertyHandlers.Abstracts
         where TRecord : class, IMajorRecord
     {
         public override string PropertyName => "Conditions";
-        protected override ListOrdering Ordering => ListOrdering.PreserveModOrder; // Conditions always preserve mod order
+        // Conditions need xEdit-like list alignment behavior so inserts can land at the
+        // beginning/middle/end according to each mod's declared order, not only appended.
+        protected override ListOrdering Ordering => ListOrdering.PreserveModOrder;
 
         public override List<IConditionGetter>? GetValue(IMajorRecordGetter record)
         {

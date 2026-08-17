@@ -35,12 +35,6 @@ namespace ForwardChanges.Contexts
                 .Select(i => (object)i.Value!)
                 .ToList();
 
-            if (activeItems.Count >= 4)
-            {
-                var preview = string.Join(", ", activeItems.Take(8).Select((o, i) => $"[{i}]{o?.ToString() ?? "null"}"));
-                System.Console.WriteLine($"[DEBUG GetForwardValue] List count={activeItems.Count} order: {preview}");
-            }
-
             // Return null for empty lists to match the expected type
             return activeItems.Count > 0 ? activeItems : null;
         }

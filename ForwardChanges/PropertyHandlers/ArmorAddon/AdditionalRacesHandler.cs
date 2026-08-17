@@ -18,12 +18,18 @@ namespace ForwardChanges.PropertyHandlers.ArmorAddon
             {
                 if (value == null)
                 {
-                    Console.WriteLine($"Warning: Cannot set {PropertyName} to null - property is read-only");
+                    armorAddonRecord.AdditionalRaces.Clear();
+                    return;
                 }
-                else
+
+                // Clear existing races and add new ones
+                armorAddonRecord.AdditionalRaces.Clear();
+                foreach (var race in value)
                 {
-                    // AdditionalRaces is read-only, we can't modify it directly
-                    Console.WriteLine($"Warning: Cannot set {PropertyName} - property is read-only");
+                    if (race != null && !race.FormKey.IsNull)
+                    {
+                        armorAddonRecord.AdditionalRaces.Add(new FormLink<IRaceGetter>(race.FormKey));
+                    }
                 }
             }
             else
@@ -46,6 +52,17 @@ namespace ForwardChanges.PropertyHandlers.ArmorAddon
                 Console.WriteLine($"Error: Record does not implement IArmorAddonGetter for {PropertyName}");
             }
             return null;
+        }
+
+        public override bool AreValuesEqual(List<IFormLinkGetter<IRaceGetter>>? value1, List<IFormLinkGetter<IRaceGetter>>? value2)
+        {
+            // Treat null and empty list as equivalent
+            var count1 = value1?.Count ?? 0;
+            var count2 = value2?.Count ?? 0;
+            if (count1 != count2) return false;
+            if (count1 == 0) return true;
+
+            return base.AreValuesEqual(value1, value2);
         }
 
         protected override bool IsItemEqual(IFormLinkGetter<IRaceGetter>? item1, IFormLinkGetter<IRaceGetter>? item2)

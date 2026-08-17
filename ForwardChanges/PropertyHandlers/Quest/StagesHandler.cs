@@ -5,6 +5,7 @@ using Mutagen.Bethesda.Plugins.Cache;
 using Mutagen.Bethesda.Strings;
 using Mutagen.Bethesda.Synthesis;
 using Noggog;
+using ForwardChanges;
 using ForwardChanges.PropertyHandlers.Abstracts;
 using ForwardChanges.Contexts;
 using System.Linq;
@@ -128,14 +129,22 @@ namespace ForwardChanges.PropertyHandlers.Quest
                 if (!forwardStagesByIndex.TryGetValue(recordStage.Index, out var forwardContext))
                     continue;
 
-                if (!HasPermissionsToModify(recordMod, forwardContext.OwnerMod))
-                    continue;
-
                 if (!AreStagesEqual(recordStage, forwardContext.Value))
                 {
+                    var canTakeOwnership = HasPermissionsToModify(recordMod, forwardContext.OwnerMod);
+                    var previousOwner = forwardContext.OwnerMod;
+
                     forwardContext.Value = recordStage.DeepCopy();
-                    forwardContext.OwnerMod = context.ModKey.ToString();
-                    LogCollector.Add(PropertyName, $"[{PropertyName}] Updating stage Index {recordStage.Index} (taking ownership as '{context.ModKey}')");
+
+                    if (canTakeOwnership)
+                    {
+                        forwardContext.OwnerMod = context.ModKey.ToString();
+                        LogCollector.Add(PropertyName, $"[{PropertyName}] Updating stage Index {recordStage.Index} (taking ownership as '{context.ModKey}')");
+                    }
+                    else
+                    {
+                        LogCollector.Add(PropertyName, $"[{PropertyName}] Updating stage Index {recordStage.Index} (ownership retained by '{previousOwner}' due permission restrictions)");
+                    }
                 }
             }
         }
@@ -167,7 +176,7 @@ namespace ForwardChanges.PropertyHandlers.Quest
         {
             if (text1 == null && text2 == null) return true;
             if (text1 == null || text2 == null) return false;
-            return text1.String == text2.String;
+            return StringComparisonHelper.EqualsNormalized(text1.String, text2.String);
         }
 
         private bool AreByteSlicesEqual(ReadOnlyMemorySlice<byte>? slice1, ReadOnlyMemorySlice<byte>? slice2)

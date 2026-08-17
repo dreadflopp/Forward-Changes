@@ -3,6 +3,8 @@ using Mutagen.Bethesda.Synthesis;
 using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Plugins.Cache;
+using Mutagen.Bethesda.Plugins;
+using Noggog;
 using ForwardChanges.PropertyHandlers.SoundDescriptor;
 using ForwardChanges.PropertyHandlers.General;
 using ForwardChanges.RecordHandlers.Abstracts;
@@ -18,19 +20,19 @@ namespace ForwardChanges.RecordHandlers
             { "EditorID", new EditorIDHandler() },
             { "MajorRecordFlagsRaw", new MajorRecordFlagsRawHandler() },
             { "SkyrimMajorRecordFlags", new SkyrimMajorRecordFlagsHandler() },
-            { "Type", new TypeHandler() },
-            { "Category", new CategoryHandler() },
-            { "AlternateSoundFor", new AlternateSoundForHandler() },
+            { "Type", new SimpleReflectionPropertyHandler<SoundDescriptor.DescriptorType?, ISoundDescriptor, ISoundDescriptorGetter>("Type") },
+            { "Category", new SimpleReflectionFormLinkPropertyHandler<ISoundCategoryGetter, ISoundDescriptor, ISoundDescriptorGetter>("Category") },
+            { "AlternateSoundFor", new SimpleReflectionFormLinkPropertyHandler<ISoundDescriptorGetter, ISoundDescriptor, ISoundDescriptorGetter>("AlternateSoundFor") },
             { "SoundFiles", new SoundFilesHandler() },
-            { "OutputModel", new OutputModelHandler() },
-            { "String", new StringHandler() },
+            { "OutputModel", new SimpleReflectionFormLinkPropertyHandler<ISoundOutputModelGetter, ISoundDescriptor, ISoundDescriptorGetter>("OutputModel") },
+            { "String", new SimpleReflectionPropertyHandler<string?, ISoundDescriptor, ISoundDescriptorGetter>("String") },
             { "Conditions", new ConditionsHandler() },
-            { "LoopAndRumble", new LoopAndRumbleHandler() },
-            { "PercentFrequencyShift", new PercentFrequencyShiftHandler() },
-            { "PercentFrequencyVariance", new PercentFrequencyVarianceHandler() },
-            { "Priority", new PriorityHandler() },
-            { "Variance", new VarianceHandler() },
-            { "StaticAttenuation", new StaticAttenuationHandler() }
+            { "LoopAndRumble", new ComplexReflectionPropertyHandler<ISoundLoopAndRumbleGetter, ISoundDescriptor, ISoundDescriptorGetter>("LoopAndRumble") },
+            { "PercentFrequencyShift", new SimpleReflectionPropertyHandler<Percent, ISoundDescriptor, ISoundDescriptorGetter>("PercentFrequencyShift") },
+            { "PercentFrequencyVariance", new SimpleReflectionPropertyHandler<Percent, ISoundDescriptor, ISoundDescriptorGetter>("PercentFrequencyVariance") },
+            { "Priority", new SimpleReflectionPropertyHandler<sbyte, ISoundDescriptor, ISoundDescriptorGetter>("Priority") },
+            { "Variance", new SimpleReflectionPropertyHandler<sbyte, ISoundDescriptor, ISoundDescriptorGetter>("Variance") },
+            { "StaticAttenuation", new SimpleReflectionPropertyHandler<float, ISoundDescriptor, ISoundDescriptorGetter>("StaticAttenuation") }
         };
 
         public override IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter>[] GetRecordContexts(

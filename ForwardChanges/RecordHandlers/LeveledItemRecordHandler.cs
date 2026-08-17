@@ -3,6 +3,7 @@ using Mutagen.Bethesda.Synthesis;
 using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Plugins.Cache;
+using Noggog;
 using ForwardChanges.PropertyHandlers.LeveledItem;
 using ForwardChanges.PropertyHandlers.General;
 using ForwardChanges.RecordHandlers.Abstracts;
@@ -19,9 +20,9 @@ namespace ForwardChanges.RecordHandlers
             { "MajorRecordFlagsRaw", new MajorRecordFlagsRawHandler() },
             { "SkyrimMajorRecordFlags", new SkyrimMajorRecordFlagsHandler() },
             { "ObjectBounds", new ObjectBoundsHandler() },
-            { "ChanceNone", new ChanceNoneHandler() },
+            { "ChanceNone", new SimpleReflectionPropertyHandler<Percent, ILeveledItem, ILeveledItemGetter>("ChanceNone") },
             { "Flags", new FlagsHandler() },
-            { "Global", new GlobalHandler() },
+            { "Global", new SimpleReflectionFormLinkPropertyHandler<IGlobalGetter, ILeveledItem, ILeveledItemGetter>("Global") },
             { "Entries", new EntriesHandler() }
         };
 

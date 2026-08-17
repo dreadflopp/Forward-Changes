@@ -1,6 +1,7 @@
 using Mutagen.Bethesda;
 using Mutagen.Bethesda.Synthesis;
 using Mutagen.Bethesda.Skyrim;
+using Mutagen.Bethesda.Plugins;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Plugins.Cache;
 using ForwardChanges.PropertyHandlers.Faction;
@@ -11,7 +12,10 @@ using System;
 
 namespace ForwardChanges.RecordHandlers
 {
-    // NOTE: The handler is complete
+    // Migration note:
+    // - Generalized: Relations, Ranks, all non-flag FormLink properties, CrimeValues, VendorValues, VendorLocation.
+    // - Kept specialized: Conditions (conditions-specific list semantics), Flags (project flag policy).
+    // - Rationale: reflection handlers cover direct property forwarding; conditions and flags require project-specific behavior.
     public class FactionRecordHandler : AbstractRecordHandler
     {
         public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()
@@ -20,21 +24,21 @@ namespace ForwardChanges.RecordHandlers
             { "MajorRecordFlagsRaw", new MajorRecordFlagsRawHandler() },
             { "SkyrimMajorRecordFlags", new SkyrimMajorRecordFlagsHandler() },
             { "Name", new NameHandler() },
-            { "Relations", new RelationsHandler() },
-            { "Ranks", new RanksHandler() },
+            { "Relations", new SimpleReflectionListPropertyHandler<IRelationGetter, IFaction, IFactionGetter>("Relations") },
+            { "Ranks", new SimpleReflectionListPropertyHandler<IRankGetter, IFaction, IFactionGetter>("Ranks") },
             { "Conditions", new ConditionsHandler() },
             { "Flags", new FlagsHandler() },
-            { "ExteriorJailMarker", new ExteriorJailMarkerHandler() },
-            { "FollowerWaitMarker", new FollowerWaitMarkerHandler() },
-            { "StolenGoodsContainer", new StolenGoodsContainerHandler() },
-            { "PlayerInventoryContainer", new PlayerInventoryContainerHandler() },
-            { "SharedCrimeFactionList", new SharedCrimeFactionHandler() },
-            { "JailOutfit", new JailOutfitHandler() },
-            { "CrimeValues", new CrimeValuesHandler() },
-            { "VendorBuySellList", new VendorBuySellHandler() },
-            { "MerchantContainer", new MerchantContainerHandler() },
-            { "VendorValues", new VendorValuesHandler() },
-            { "VendorLocation", new VendorLocationHandler() }
+            { "ExteriorJailMarker", new SimpleReflectionFormLinkPropertyHandler<IPlacedObjectGetter, IFaction, IFactionGetter>("ExteriorJailMarker") },
+            { "FollowerWaitMarker", new SimpleReflectionFormLinkPropertyHandler<IPlacedObjectGetter, IFaction, IFactionGetter>("FollowerWaitMarker") },
+            { "StolenGoodsContainer", new SimpleReflectionFormLinkPropertyHandler<IPlacedObjectGetter, IFaction, IFactionGetter>("StolenGoodsContainer") },
+            { "PlayerInventoryContainer", new SimpleReflectionFormLinkPropertyHandler<IPlacedObjectGetter, IFaction, IFactionGetter>("PlayerInventoryContainer") },
+            { "SharedCrimeFactionList", new SimpleReflectionFormLinkPropertyHandler<IFormListGetter, IFaction, IFactionGetter>("SharedCrimeFactionList") },
+            { "JailOutfit", new SimpleReflectionFormLinkPropertyHandler<IOutfitGetter, IFaction, IFactionGetter>("JailOutfit") },
+            { "CrimeValues", new SimpleReflectionPropertyHandler<CrimeValues, IFaction, IFactionGetter>("CrimeValues") },
+            { "VendorBuySellList", new SimpleReflectionFormLinkPropertyHandler<IFormListGetter, IFaction, IFactionGetter>("VendorBuySellList") },
+            { "MerchantContainer", new SimpleReflectionFormLinkPropertyHandler<IPlacedObjectGetter, IFaction, IFactionGetter>("MerchantContainer") },
+            { "VendorValues", new SimpleReflectionPropertyHandler<VendorValues, IFaction, IFactionGetter>("VendorValues") },
+            { "VendorLocation", new SimpleReflectionPropertyHandler<LocationTargetRadius, IFaction, IFactionGetter>("VendorLocation") }
         };
 
         public override IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter>[] GetRecordContexts(

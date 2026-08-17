@@ -1,5 +1,6 @@
 using Mutagen.Bethesda;
 using Mutagen.Bethesda.Skyrim;
+using Mutagen.Bethesda.Plugins;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Synthesis;
 using Mutagen.Bethesda.Plugins.Cache;
@@ -16,28 +17,28 @@ namespace ForwardChanges.RecordHandlers
 
         public CellRecordHandler()
         {
-            // Initialize property handlers for Cell records
+            // Initialize property handlers for Cell records. Uses reflection-based handlers where applicable (ICell / ICellGetter).
             _propertyHandlers = new Dictionary<string, IPropertyHandler>
             {
                 { "EditorID", new EditorIDHandler() },
                 { "MajorRecordFlagsRaw", new MajorRecordFlagsRawHandler() },
                 { "SkyrimMajorRecordFlags", new SkyrimMajorRecordFlagsHandler() },
                 { "Name", new NameHandler() },
-                { "Flags", new FlagsHandler() },
-                { "MajorFlags", new MajorFlagsHandler() },
+                { "Flags", new SimpleReflectionFlagPropertyHandler<Cell.Flag, ICell, ICellGetter>("Flags") },
+                { "MajorFlags", new SimpleReflectionFlagPropertyHandler<Cell.MajorFlag, ICell, ICellGetter>("MajorFlags") },
 
-                { "Regions", new RegionsHandler() },
-                { "Location", new LocationHandler() },
-                { "Owner", new OwnerHandler() },
-                { "Water", new WaterHandler() },
+                { "Regions", new SimpleReflectionListPropertyHandler<IFormLinkGetter<IRegionGetter>, ICell, ICellGetter>("Regions") },
+                { "Location", new SimpleReflectionFormLinkPropertyHandler<ILocationGetter, ICell, ICellGetter>("Location") },
+                { "Owner", new SimpleReflectionFormLinkPropertyHandler<IOwnerGetter, ICell, ICellGetter>("Owner") },
+                { "Water", new SimpleReflectionFormLinkPropertyHandler<IWaterGetter, ICell, ICellGetter>("Water") },
                 //{ "WaterHeight", new WaterHeightHandler() },
                 { "Lighting", new LightingHandler() },
-                { "LightingTemplate", new LightingTemplateHandler() },
-                { "AcousticSpace", new AcousticSpaceHandler() },
-                { "EncounterZone", new EncounterZoneHandler() },
-                { "Music", new MusicHandler() },
-                { "ImageSpace", new ImageSpaceHandler() },
-                { "SkyAndWeatherFromRegion", new SkyWeatherHandler() },
+                { "LightingTemplate", new SimpleReflectionFormLinkPropertyHandler<ILightingTemplateGetter, ICell, ICellGetter>("LightingTemplate") },
+                { "AcousticSpace", new SimpleReflectionFormLinkPropertyHandler<IAcousticSpaceGetter, ICell, ICellGetter>("AcousticSpace") },
+                { "EncounterZone", new SimpleReflectionFormLinkPropertyHandler<IEncounterZoneGetter, ICell, ICellGetter>("EncounterZone") },
+                { "Music", new SimpleReflectionFormLinkPropertyHandler<IMusicTypeGetter, ICell, ICellGetter>("Music") },
+                { "ImageSpace", new SimpleReflectionFormLinkPropertyHandler<IImageSpaceGetter, ICell, ICellGetter>("ImageSpace") },
+                { "SkyAndWeatherFromRegion", new SimpleReflectionFormLinkPropertyHandler<IRegionGetter, ICell, ICellGetter>("SkyAndWeatherFromRegion") },
                 { "Grid", new GridHandler() },
                 { "MaxHeightData", new MaxHeightDataHandler() },
                 { "WaterNoiseTexture", new WaterNoiseTextureHandler() },
@@ -46,11 +47,11 @@ namespace ForwardChanges.RecordHandlers
                 { "XWCS", new WaterCurrentCountOldHandler() },
                 { "OcclusionData", new OcclusionDataHandler() },
                 { "LNAM", new LNAMHandler() },
-                { "FactionRank", new FactionRankHandler() },
-                { "LockList", new LockListHandler() },
+                { "FactionRank", new SimpleReflectionPropertyHandler<int?, ICell, ICellGetter>("FactionRank") },
+                { "LockList", new SimpleReflectionFormLinkPropertyHandler<ILockListGetter, ICell, ICellGetter>("LockList") },
                 { "WaterEnvironmentMap", new WaterEnvironmentMapHandler() },
                 // { "Landscape", new LandscapeHandler() },
-                // { "NavigationMeshes", new NavigationMeshesHandler() }, 
+                // { "NavigationMeshes", new NavigationMeshesHandler() },
 
             };
         }

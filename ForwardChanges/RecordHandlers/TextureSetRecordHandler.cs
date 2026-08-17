@@ -7,35 +7,30 @@ using ForwardChanges.RecordHandlers.Abstracts;
 using ForwardChanges.PropertyHandlers.General;
 using ForwardChanges.PropertyHandlers.TextureSet;
 using ForwardChanges.PropertyHandlers.Interfaces;
+using TextureSetFlag = Mutagen.Bethesda.Skyrim.TextureSet.Flag;
 
 namespace ForwardChanges.RecordHandlers
 {
     public class TextureSetRecordHandler : AbstractRecordHandler
     {
-        private readonly Dictionary<string, IPropertyHandler> _propertyHandlers;
-
-        public TextureSetRecordHandler()
+        public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()
         {
-            _propertyHandlers = new Dictionary<string, IPropertyHandler>
-            {
-                { "EditorID", new EditorIDHandler() },
-                { "MajorRecordFlagsRaw", new MajorRecordFlagsRawHandler() },
-                { "SkyrimMajorRecordFlags", new SkyrimMajorRecordFlagsHandler() },
-                { "ObjectBounds", new ObjectBoundsHandler() },
-                { "Diffuse", new DiffuseHandler() },
-                { "NormalOrGloss", new NormalOrGlossHandler() },
-                { "EnvironmentMaskOrSubsurfaceTint", new EnvironmentMaskOrSubsurfaceTintHandler() },
-                { "GlowOrDetailMap", new GlowOrDetailMapHandler() },
-                { "Height", new HeightHandler() },
-                { "Environment", new EnvironmentHandler() },
-                { "Multilayer", new MultilayerHandler() },
-                { "BacklightMaskOrSpecular", new BacklightMaskOrSpecularHandler() },
-                { "Decal", new DecalHandler() },
-                { "Flags", new FlagsHandler() }
-            };
-        }
+            { "EditorID", new EditorIDHandler() },
+            { "MajorRecordFlagsRaw", new MajorRecordFlagsRawHandler() },
+            { "SkyrimMajorRecordFlags", new SkyrimMajorRecordFlagsHandler() },
+            { "ObjectBounds", new ObjectBoundsHandler() },
+            { "Diffuse", new DiffuseHandler() },
+            { "NormalOrGloss", new NormalOrGlossHandler() },
+            { "EnvironmentMaskOrSubsurfaceTint", new EnvironmentMaskOrSubsurfaceTintHandler() },
+            { "GlowOrDetailMap", new GlowOrDetailMapHandler() },
+            { "Height", new HeightHandler() },
+            { "Environment", new EnvironmentHandler() },
+            { "Multilayer", new MultilayerHandler() },
+            { "BacklightMaskOrSpecular", new BacklightMaskOrSpecularHandler() },
+            { "Decal", new ComplexReflectionPropertyHandler<IDecalGetter, ITextureSet, ITextureSetGetter>("Decal") },
+            { "Flags", new SimpleReflectionPropertyHandler<TextureSetFlag?, ITextureSet, ITextureSetGetter>("Flags") },
+        };
 
-        public override Dictionary<string, IPropertyHandler> PropertyHandlers => _propertyHandlers;
 
         public override IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter>[] GetRecordContexts(
             IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> winningContext,

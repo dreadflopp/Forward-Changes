@@ -41,7 +41,7 @@ namespace ForwardChanges.PropertyHandlers.General
 
             // Find the property on the getter interface
             _getterProperty = FindProperty(typeof(TRecordGetter), _propertyPath);
-            
+
             // Find the property on the setter interface
             _setterProperty = FindProperty(typeof(TRecord), _propertyPath);
 
@@ -69,9 +69,9 @@ namespace ForwardChanges.PropertyHandlers.General
 
             for (int i = 0; i < path.Length; i++)
             {
-                property = currentType.GetProperty(path[i], 
+                property = currentType.GetProperty(path[i],
                     BindingFlags.Public | BindingFlags.Instance | BindingFlags.FlattenHierarchy);
-                
+
                 if (property == null)
                 {
                     return null;
@@ -98,23 +98,23 @@ namespace ForwardChanges.PropertyHandlers.General
 
             for (int i = 0; i < path.Length - 1; i++)
             {
-                var property = currentType.GetProperty(path[i], 
+                var property = currentType.GetProperty(path[i],
                     BindingFlags.Public | BindingFlags.Instance | BindingFlags.FlattenHierarchy);
-                
+
                 if (property == null)
                 {
                     throw new ArgumentException($"Property '{path[i]}' not found in path '{_propertyName}'");
                 }
 
                 pathProperties[i] = property;
-                
+
                 var propType = property.PropertyType;
                 // Handle nullable types - get the underlying type
                 if (propType.IsGenericType && propType.GetGenericTypeDefinition() == typeof(Nullable<>))
                 {
                     propType = propType.GetGenericArguments()[0];
                 }
-                
+
                 pathTypes[i] = propType;
                 currentType = propType;
             }
@@ -148,7 +148,7 @@ namespace ForwardChanges.PropertyHandlers.General
                         }
 
                         currentObject = _pathProperties[i].GetValue(currentObject);
-                        
+
                         // If we got a null value and there are more properties to navigate, return default
                         if (currentObject == null && i < _pathProperties.Length - 1)
                         {
@@ -235,13 +235,13 @@ namespace ForwardChanges.PropertyHandlers.General
 
                 // Handle nullable value types - extract value if it's a nullable type
                 object? valueToSet = value;
-                if (value != null && value.GetType().IsGenericType && 
+                if (value != null && value.GetType().IsGenericType &&
                     value.GetType().GetGenericTypeDefinition() == typeof(Nullable<>))
                 {
                     // Check if it has a value using reflection
                     var hasValueProperty = value.GetType().GetProperty("HasValue");
                     var valueProperty = value.GetType().GetProperty("Value");
-                    
+
                     if (hasValueProperty != null && valueProperty != null)
                     {
                         var hasValue = (bool)(hasValueProperty.GetValue(value) ?? false);
@@ -255,7 +255,7 @@ namespace ForwardChanges.PropertyHandlers.General
                         }
                     }
                 }
-                
+
                 _setterProperty.SetValue(currentObject, valueToSet);
             }
             catch (Exception ex)
@@ -269,11 +269,16 @@ namespace ForwardChanges.PropertyHandlers.General
             if (value1 == null && value2 == null) return true;
             if (value1 == null || value2 == null) return false;
 
+            if (value1 is string s1 && value2 is string s2)
+            {
+                return StringComparisonHelper.EqualsNormalized(s1, s2);
+            }
+
             // For nullable float types, use epsilon comparison
             if (typeof(TValue).IsGenericType && typeof(TValue).GetGenericTypeDefinition() == typeof(Nullable<>))
             {
                 var underlyingType = typeof(TValue).GetGenericArguments()[0];
-                
+
                 // Handle float? with epsilon comparison
                 if (underlyingType == typeof(float))
                 {
@@ -284,7 +289,7 @@ namespace ForwardChanges.PropertyHandlers.General
                         return Math.Abs(v1.Value - v2.Value) < 0.0001f;
                     }
                 }
-                
+
                 // Handle P3Float? - extract Value and use explicit epsilon comparison
                 // Use component-wise epsilon (0.0001f) to match float? handling - ensures reversions
                 // are correctly detected when values come from different mods/serialization (Position, Rotation, etc.)
@@ -298,16 +303,16 @@ namespace ForwardChanges.PropertyHandlers.General
                     {
                         var hasValue1 = (bool)(hasValueProp.GetValue(value1) ?? false);
                         var hasValue2 = (bool)(hasValueProp.GetValue(value2) ?? false);
-                        
+
                         // Both null
                         if (!hasValue1 && !hasValue2) return true;
                         // One null, one not
                         if (!hasValue1 || !hasValue2) return false;
-                        
+
                         // Both have values - extract and compare using explicit epsilon
                         var v1 = valueProp.GetValue(value1);
                         var v2 = valueProp.GetValue(value2);
-                        
+
                         // Try to cast to P3Float - this should work since underlyingType is P3Float
                         if (v1 != null && v2 != null)
                         {
@@ -315,7 +320,7 @@ namespace ForwardChanges.PropertyHandlers.General
                             {
                                 return P3FloatComparison.EqualsWithin(p1, p2, _p3FloatEpsilon ?? P3FloatComparison.DefaultEpsilon);
                             }
-                            
+
                             // Fallback: try to convert and compare directly
                             try
                             {
@@ -328,7 +333,7 @@ namespace ForwardChanges.PropertyHandlers.General
                                 // If conversion fails, we'll fall through to other comparison methods below
                             }
                         }
-                        
+
                         // If we got here, we couldn't extract/compare the values properly
                         // Fall through to other comparison methods below
                     }
@@ -356,12 +361,12 @@ namespace ForwardChanges.PropertyHandlers.General
             // For Mutagen types (like P3Float, Placement, etc.), they implement IEquatable with their getter interface
             // Try to find and use the Equals method from IEquatable<IGetterType>
             var valueType = value1.GetType();
-            
+
             // Check all interfaces for IEquatable<T> where T might be a getter interface
             var equatableInterfaces = valueType.GetInterfaces()
                 .Where(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IEquatable<>))
                 .ToList();
-            
+
             foreach (var equatableInterface in equatableInterfaces)
             {
                 var equalsMethod = equatableInterface.GetMethod("Equals");
@@ -435,7 +440,7 @@ namespace ForwardChanges.PropertyHandlers.General
                     {
                         var hasValue = (bool)(hasValueProp.GetValue(value) ?? false);
                         if (!hasValue) return "null";
-                        
+
                         var p3FloatValue = valueProp.GetValue(value);
                         if (p3FloatValue is P3Float p3Float)
                         {

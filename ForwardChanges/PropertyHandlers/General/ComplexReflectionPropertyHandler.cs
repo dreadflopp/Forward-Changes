@@ -6,6 +6,7 @@ using System.Reflection;
 using Mutagen.Bethesda.Plugins;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Strings;
+using ForwardChanges;
 using ForwardChanges.PropertyHandlers.Abstracts;
 using ForwardChanges.PropertyHandlers.Interfaces;
 using Noggog;
@@ -41,7 +42,7 @@ namespace ForwardChanges.PropertyHandlers.General
 
             // Find the property on the getter interface
             _getterProperty = FindProperty(typeof(TRecordGetter), _propertyPath);
-            
+
             // Find the property on the setter interface
             _setterProperty = FindProperty(typeof(TRecord), _propertyPath);
 
@@ -69,9 +70,9 @@ namespace ForwardChanges.PropertyHandlers.General
 
             for (int i = 0; i < path.Length; i++)
             {
-                property = currentType.GetProperty(path[i], 
+                property = currentType.GetProperty(path[i],
                     BindingFlags.Public | BindingFlags.Instance | BindingFlags.FlattenHierarchy);
-                
+
                 if (property == null)
                 {
                     return null;
@@ -98,23 +99,23 @@ namespace ForwardChanges.PropertyHandlers.General
 
             for (int i = 0; i < path.Length - 1; i++)
             {
-                var property = currentType.GetProperty(path[i], 
+                var property = currentType.GetProperty(path[i],
                     BindingFlags.Public | BindingFlags.Instance | BindingFlags.FlattenHierarchy);
-                
+
                 if (property == null)
                 {
                     throw new ArgumentException($"Property '{path[i]}' not found in path '{_propertyName}'");
                 }
 
                 pathProperties[i] = property;
-                
+
                 var propType = property.PropertyType;
                 // Handle nullable types - get the underlying type
                 if (propType.IsGenericType && propType.GetGenericTypeDefinition() == typeof(Nullable<>))
                 {
                     propType = propType.GetGenericArguments()[0];
                 }
-                
+
                 pathTypes[i] = propType;
                 currentType = propType;
             }
@@ -148,7 +149,7 @@ namespace ForwardChanges.PropertyHandlers.General
                         }
 
                         currentObject = _pathProperties[i].GetValue(currentObject);
-                        
+
                         // If we got a null value and there are more properties to navigate, return null
                         if (currentObject == null && i < _pathProperties.Length - 1)
                         {
@@ -235,7 +236,7 @@ namespace ForwardChanges.PropertyHandlers.General
 
                 // Deep copy the value if it's not null
                 object? valueToSet = value != null ? DeepCopy(value) : null;
-                
+
                 // Check if we got a binary overlay that couldn't be copied
                 // If the setter expects a mutable type but we have an overlay, try to create mutable instance
                 if (valueToSet != null && valueToSet.GetType().Name.Contains("Overlay"))
@@ -247,7 +248,7 @@ namespace ForwardChanges.PropertyHandlers.General
                     {
                         targetType = setterPropertyType.GetGenericArguments()[0];
                     }
-                    
+
                     // If setter expects a mutable type (not an overlay), try to create it
                     if (!targetType.Name.Contains("Overlay") && targetType != valueToSet.GetType())
                     {
@@ -260,11 +261,11 @@ namespace ForwardChanges.PropertyHandlers.General
                                 // Copy properties from overlay to mutable instance
                                 var overlayProperties = valueToSet.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance);
                                 var mutableProperties = targetType.GetProperties(BindingFlags.Public | BindingFlags.Instance);
-                                
+
                                 foreach (var overlayProp in overlayProperties)
                                 {
                                     if (!overlayProp.CanRead) continue;
-                                    
+
                                     var mutableProp = mutableProperties.FirstOrDefault(p => p.Name == overlayProp.Name && p.CanWrite);
                                     if (mutableProp != null)
                                     {
@@ -279,7 +280,7 @@ namespace ForwardChanges.PropertyHandlers.General
                                         }
                                     }
                                 }
-                                
+
                                 valueToSet = mutableInstance;
                                 Console.WriteLine($"[{PropertyName}] Converted binary overlay {valueToSet.GetType().Name} to mutable type {targetType.Name}");
                             }
@@ -291,7 +292,7 @@ namespace ForwardChanges.PropertyHandlers.General
                         }
                     }
                 }
-                
+
                 _setterProperty.SetValue(currentObject, valueToSet);
             }
             catch (Exception ex)
@@ -308,6 +309,12 @@ namespace ForwardChanges.PropertyHandlers.General
             if (source == null) return null!;
 
             var sourceType = source.GetType();
+
+            // Handle TranslatedString before collection checks, because it can surface as enumerable.
+            if (IsTranslatedStringType(sourceType))
+            {
+                return DeepCopyTranslatedString(source);
+            }
 
             // Handle FormLink types - create new FormLink with FormKey
             if (IsFormLinkType(sourceType))
@@ -482,7 +489,7 @@ namespace ForwardChanges.PropertyHandlers.General
 
             // Check if it implements IFormLinkGetter or IFormLinkNullableGetter
             var interfaces = type.GetInterfaces();
-            if (interfaces.Any(i => 
+            if (interfaces.Any(i =>
                 (i.IsGenericType && i.GetGenericTypeDefinition().Name.StartsWith("IFormLink")) ||
                 i.Name.StartsWith("IFormLink")))
             {
@@ -536,7 +543,7 @@ namespace ForwardChanges.PropertyHandlers.General
                 if (targetType == null)
                 {
                     var interfaces = formLinkType.GetInterfaces();
-                    var formLinkInterface = interfaces.FirstOrDefault(i => 
+                    var formLinkInterface = interfaces.FirstOrDefault(i =>
                         i.IsGenericType && i.Name.StartsWith("IFormLink"));
                     if (formLinkInterface != null)
                     {
@@ -601,7 +608,7 @@ namespace ForwardChanges.PropertyHandlers.General
                     {
                         var itemType = genericArgs[0];
                         var genericListType = typeof(List<>).MakeGenericType(itemType);
-                        
+
                         // Try to create ExtendedList if the original was ExtendedList
                         if (collectionType.Name.Contains("ExtendedList"))
                         {
@@ -679,14 +686,19 @@ namespace ForwardChanges.PropertyHandlers.General
             if (value1 == null && value2 == null) return true;
             if (value1 == null || value2 == null) return false;
 
+            if (value1 is string s1 && value2 is string s2)
+            {
+                return StringComparisonHelper.EqualsNormalized(s1, s2);
+            }
+
             // Try to use the type's Equals method if it implements IEquatable with a getter interface
             var valueType = value1.GetType();
-            
+
             // Check all interfaces for IEquatable<T> where T might be a getter interface
             var equatableInterfaces = valueType.GetInterfaces()
                 .Where(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IEquatable<>))
                 .ToList();
-            
+
             foreach (var equatableInterface in equatableInterfaces)
             {
                 var equalsMethod = equatableInterface.GetMethod("Equals");
@@ -782,7 +794,7 @@ namespace ForwardChanges.PropertyHandlers.General
                 {
                     var string1 = val1.GetType().GetProperty("String")?.GetValue(val1);
                     var string2 = val2.GetType().GetProperty("String")?.GetValue(val2);
-                    if (!Equals(string1, string2)) return false;
+                    if (!StringComparisonHelper.EqualsNormalized(string1?.ToString(), string2?.ToString())) return false;
                     continue;
                 }
 
@@ -805,7 +817,7 @@ namespace ForwardChanges.PropertyHandlers.General
         /// </summary>
         private bool IsReadOnlyMemoryType(Type type)
         {
-            return type.IsGenericType && 
+            return type.IsGenericType &&
                    type.GetGenericTypeDefinition().FullName == "System.ReadOnlyMemory`1";
         }
 
@@ -814,7 +826,7 @@ namespace ForwardChanges.PropertyHandlers.General
         /// </summary>
         private bool IsReadOnlySpanType(Type type)
         {
-            return type.IsGenericType && 
+            return type.IsGenericType &&
                    type.GetGenericTypeDefinition().FullName == "System.ReadOnlySpan`1";
         }
 
@@ -826,7 +838,7 @@ namespace ForwardChanges.PropertyHandlers.General
             try
             {
                 var valueType = value.GetType();
-                
+
                 // Handle ReadOnlyMemory<T>
                 if (IsReadOnlyMemoryType(valueType))
                 {
@@ -836,7 +848,7 @@ namespace ForwardChanges.PropertyHandlers.General
                     {
                         return toArrayMethod.Invoke(value, null);
                     }
-                    
+
                     // Fallback: use Span property
                     var spanProperty = valueType.GetProperty("Span");
                     if (spanProperty != null)
@@ -852,7 +864,7 @@ namespace ForwardChanges.PropertyHandlers.General
                         }
                     }
                 }
-                
+
                 // Handle ReadOnlySpan<T>
                 if (IsReadOnlySpanType(valueType))
                 {
@@ -863,7 +875,7 @@ namespace ForwardChanges.PropertyHandlers.General
                         return toArrayMethod.Invoke(value, null);
                     }
                 }
-                
+
                 Console.WriteLine($"Warning: Could not convert {valueType.Name} to array");
                 return value;
             }

@@ -1,0 +1,55 @@
+using System;
+using System.Collections.Generic;
+using Mutagen.Bethesda;
+using Mutagen.Bethesda.Skyrim;
+using Mutagen.Bethesda.Synthesis;
+using Mutagen.Bethesda.Plugins.Records;
+using Mutagen.Bethesda.Plugins.Cache;
+using ForwardChanges.PropertyHandlers.General;
+using ForwardChanges.PropertyHandlers.Interfaces;
+using ForwardChanges.RecordHandlers.Abstracts;
+
+namespace ForwardChanges.RecordHandlers;
+
+// Migration note:
+// - Generalized: SLGM item fields, soul-capacity enums, and link fields via existing handlers.
+// - Kept specialized: Name/ObjectBounds/Model/Value/Weight via existing project handlers.
+// - Rationale: follows established misc-item forwarding pattern while preserving shared behavior.
+public class SoulGemRecordHandler : AbstractRecordHandler
+{
+    public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()
+    {
+        { "EditorID", new EditorIDHandler() },
+        { "MajorRecordFlagsRaw", new MajorRecordFlagsRawHandler() },
+        { "SkyrimMajorRecordFlags", new SkyrimMajorRecordFlagsHandler() },
+        { "ObjectBounds", new ObjectBoundsHandler() },
+        { "Name", new NameHandler() },
+        { "Model", new ModelHandler() },
+        { "Icons", new ComplexReflectionPropertyHandler<IIconsGetter, ISoulGem, ISoulGemGetter>("Icons") },
+        { "Destructible", new ComplexReflectionPropertyHandler<IDestructibleGetter, ISoulGem, ISoulGemGetter>("Destructible") },
+        { "PickUpSound", new SimpleReflectionFormLinkPropertyHandler<ISoundDescriptorGetter, ISoulGem, ISoulGemGetter>("PickUpSound") },
+        { "PutDownSound", new SimpleReflectionFormLinkPropertyHandler<ISoundDescriptorGetter, ISoulGem, ISoulGemGetter>("PutDownSound") },
+        { "Keywords", new KeywordListHandler() },
+        { "Value", new ValueHandler() },
+        { "Weight", new WeightHandler() },
+        { "ContainedSoul", new SimpleReflectionPropertyHandler<SoulGem.Level, ISoulGem, ISoulGemGetter>("ContainedSoul") },
+        { "MaximumCapacity", new SimpleReflectionPropertyHandler<SoulGem.Level, ISoulGem, ISoulGemGetter>("MaximumCapacity") },
+        { "LinkedTo", new SimpleReflectionFormLinkPropertyHandler<ISoulGemGetter, ISoulGem, ISoulGemGetter>("LinkedTo") },
+        { "MajorFlags", new SimpleReflectionFlagPropertyHandler<SoulGem.MajorFlag, ISoulGem, ISoulGemGetter>("MajorFlags") }
+    };
+
+    public override IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter>[] GetRecordContexts(
+        IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> winningContext,
+        IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
+    {
+        if (winningContext.Record is not ISoulGemGetter soulGemRecord)
+        {
+            throw new InvalidOperationException($"Expected ISoulGemGetter but got {winningContext.Record.GetType()}");
+        }
+
+        return soulGemRecord
+            .ToLink<ISoulGemGetter>()
+            .ResolveAllContexts<ISkyrimMod, ISkyrimModGetter, ISoulGem, ISoulGemGetter>(state.LinkCache)
+            .ToArray();
+    }
+}

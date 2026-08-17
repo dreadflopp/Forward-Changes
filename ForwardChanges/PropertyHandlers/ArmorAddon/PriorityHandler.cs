@@ -40,6 +40,20 @@ namespace ForwardChanges.PropertyHandlers.ArmorAddon
             return null;
         }
 
+        public override bool AreValuesEqual(IGenderedItemGetter<byte>? value1, IGenderedItemGetter<byte>? value2)
+        {
+            if (value1 == null && value2 == null) return true;
+            if (value1 == null || value2 == null) return false;
+            return value1.Male == value2.Male && value1.Female == value2.Female;
+        }
 
+        public override string FormatValue(object? value)
+        {
+            if (value is IGenderedItemGetter<byte> gendered)
+            {
+                return $"Male: {gendered.Male}, Female: {gendered.Female}";
+            }
+            return value?.ToString() ?? "null";
+        }
     }
 }

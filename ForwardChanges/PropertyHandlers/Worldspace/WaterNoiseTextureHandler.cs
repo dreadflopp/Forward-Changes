@@ -20,7 +20,7 @@ namespace ForwardChanges.PropertyHandlers.Worldspace
                 if (value != null)
                 {
                     // Use DataRelativePath to get the full path including "Data\" prefix
-                    worldspaceRecord.WaterNoiseTexture = new AssetLink<SkyrimTextureAssetType>(value.DataRelativePath);
+                    worldspaceRecord.WaterNoiseTexture = new AssetLink<SkyrimTextureAssetType>(ForwardChanges.PropertyHandlers.General.TexturePathHelper.Normalize(value));
                 }
                 else
                 {
@@ -43,7 +43,7 @@ namespace ForwardChanges.PropertyHandlers.Worldspace
         {
             if (value1 == null && value2 == null) return true;
             if (value1 == null || value2 == null) return false;
-            return value1.DataRelativePath == value2.DataRelativePath;
+            return ForwardChanges.PropertyHandlers.General.TexturePathHelper.Normalize(value1) == ForwardChanges.PropertyHandlers.General.TexturePathHelper.Normalize(value2);
         }
 
         public override string FormatValue(object? value)
@@ -53,7 +53,7 @@ namespace ForwardChanges.PropertyHandlers.Worldspace
                 return value?.ToString() ?? "null";
             }
 
-            return assetLink.DataRelativePath.ToString();
+            return ForwardChanges.PropertyHandlers.General.TexturePathHelper.Normalize(assetLink);
         }
     }
 }

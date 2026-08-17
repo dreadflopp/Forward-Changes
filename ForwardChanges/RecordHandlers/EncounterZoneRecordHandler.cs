@@ -1,6 +1,7 @@
 using Mutagen.Bethesda;
 using Mutagen.Bethesda.Synthesis;
 using Mutagen.Bethesda.Skyrim;
+using Mutagen.Bethesda.Plugins;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Plugins.Cache;
 using ForwardChanges.PropertyHandlers.General;
@@ -18,11 +19,11 @@ namespace ForwardChanges.RecordHandlers
             { "EditorID", new EditorIDHandler() },
             { "MajorRecordFlagsRaw", new MajorRecordFlagsRawHandler() },
             { "SkyrimMajorRecordFlags", new SkyrimMajorRecordFlagsHandler() },
-            { "Owner", new OwnerHandler() },
-            { "Location", new LocationHandler() },
-            { "Rank", new RankHandler() },
-            { "MinLevel", new MinLevelHandler() },
-            { "MaxLevel", new MaxLevelHandler() },
+            { "Owner", new SimpleReflectionFormLinkPropertyHandler<IOwnerGetter, IEncounterZone, IEncounterZoneGetter>("Owner") },
+            { "Location", new SimpleReflectionFormLinkPropertyHandler<ILocationGetter, IEncounterZone, IEncounterZoneGetter>("Location") },
+            { "Rank", new SimpleReflectionPropertyHandler<byte, IEncounterZone, IEncounterZoneGetter>("Rank") },
+            { "MinLevel", new SimpleReflectionPropertyHandler<byte, IEncounterZone, IEncounterZoneGetter>("MinLevel") },
+            { "MaxLevel", new SimpleReflectionPropertyHandler<byte, IEncounterZone, IEncounterZoneGetter>("MaxLevel") },
             { "Flags", new FlagsHandler() }
         };
 

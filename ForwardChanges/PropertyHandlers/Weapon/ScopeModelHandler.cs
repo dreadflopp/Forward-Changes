@@ -42,18 +42,20 @@ namespace ForwardChanges.PropertyHandlers.Weapon
 
         private bool AreModelsEqual(IModelGetter model1, IModelGetter model2)
         {
-            // Compare basic model properties (from ISimpleModelGetter)
-            if (model1.File != model2.File) return false;
-            if (model1.AlternateTextures?.Count != model2.AlternateTextures?.Count) return false;
+            // Compare File - use DataRelativePath for value-based comparison (avoids reference equality from different overlays)
+            if (model1.File.DataRelativePath != model2.File.DataRelativePath) return false;
 
-            // Compare alternate textures if they exist
-            if (model1.AlternateTextures != null && model2.AlternateTextures != null)
+            var alt1Count = model1.AlternateTextures?.Count ?? 0;
+            var alt2Count = model2.AlternateTextures?.Count ?? 0;
+            if (alt1Count != alt2Count) return false;
+
+            if (alt1Count > 0 && model1.AlternateTextures != null && model2.AlternateTextures != null)
             {
-                for (int i = 0; i < model1.AlternateTextures.Count; i++)
+                for (int i = 0; i < alt1Count; i++)
                 {
                     var alt1 = model1.AlternateTextures[i];
                     var alt2 = model2.AlternateTextures[i];
-                    if (alt1?.Name != alt2?.Name || alt1?.NewTexture != alt2?.NewTexture) return false;
+                    if (alt1?.Name != alt2?.Name || alt1?.NewTexture?.FormKey != alt2?.NewTexture?.FormKey) return false;
                 }
             }
 
@@ -66,7 +68,9 @@ namespace ForwardChanges.PropertyHandlers.Weapon
 
             // Create a new Model with the same data
             var newModel = new Model();
-            newModel.File = (AssetLink<SkyrimModelAssetType>)sourceModel.File;
+            newModel.File = sourceModel.File.IsNull
+                ? new AssetLink<SkyrimModelAssetType>()
+                : new AssetLink<SkyrimModelAssetType>(sourceModel.File.DataRelativePath.ToString());
             newModel.Data = sourceModel.Data?.ToArray();
 
             // Copy alternate textures if they exist
@@ -77,7 +81,7 @@ namespace ForwardChanges.PropertyHandlers.Weapon
                 {
                     var newAltTexture = new AlternateTexture();
                     newAltTexture.Name = altTexture.Name;
-                    newAltTexture.NewTexture = (IFormLink<ITextureSetGetter>)altTexture.NewTexture;
+                    newAltTexture.NewTexture = new FormLink<ITextureSetGetter>(altTexture.NewTexture.FormKey);
                     newAltTexture.Index = altTexture.Index;
                     alternateTextures.Add(newAltTexture);
                 }

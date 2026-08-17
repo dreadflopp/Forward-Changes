@@ -1,6 +1,8 @@
+using System.Drawing;
 using Mutagen.Bethesda;
 using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Plugins.Records;
+using Mutagen.Bethesda.Strings;
 using Mutagen.Bethesda.Synthesis;
 using Mutagen.Bethesda.Plugins.Cache;
 using ForwardChanges.RecordHandlers.Abstracts;
@@ -16,26 +18,27 @@ namespace ForwardChanges.RecordHandlers
 
         public ActivatorRecordHandler()
         {
-            // Initialize property handlers for Activator records
+            // Initialize property handlers for Activator records.
+            // Uses reflection-based handlers from General where possible (same approach as PlacedObjectRecordHandler).
             _propertyHandlers = new Dictionary<string, IPropertyHandler>
             {
                 { "EditorID", new EditorIDHandler() },
                 { "MajorRecordFlagsRaw", new MajorRecordFlagsRawHandler() },
                 { "SkyrimMajorRecordFlags", new SkyrimMajorRecordFlagsHandler() },
-                { "VirtualMachineAdapter", new VirtualMachineAdapterHandler() },
+                { "VirtualMachineAdapter", new SimpleReflectionVirtualMachineAdapterHandler<IActivator, IActivatorGetter>() },
                 { "ObjectBounds", new ObjectBoundsHandler() },
                 { "Name", new NameHandler() },
                 { "Model", new ModelHandler() },
                 { "Destructible", new DestructibleHandler() },
                 { "Keywords", new KeywordListHandler() },
-                { "MarkerColor", new MarkerColorHandler() },
-                { "LoopingSound", new LoopingSoundHandler() },
-                { "ActivationSound", new ActivationSoundHandler() },
-                { "WaterType", new WaterTypeHandler() },
-                { "ActivateTextOverride", new ActivateTextOverrideHandler() },
-                { "Flags", new FlagsHandler() },
-                { "MajorFlags", new MajorFlagsHandler() },
-                { "InteractionKeyword", new InteractionKeywordHandler() }
+                { "MarkerColor", new SimpleReflectionPropertyHandler<Color?, IActivator, IActivatorGetter>("MarkerColor") },
+                { "LoopingSound", new SimpleReflectionFormLinkPropertyHandler<ISoundDescriptorGetter, IActivator, IActivatorGetter>("LoopingSound") },
+                { "ActivationSound", new SimpleReflectionFormLinkPropertyHandler<ISoundDescriptorGetter, IActivator, IActivatorGetter>("ActivationSound") },
+                { "WaterType", new SimpleReflectionFormLinkPropertyHandler<IWaterGetter, IActivator, IActivatorGetter>("WaterType") },
+                { "ActivateTextOverride", new ComplexReflectionPropertyHandler<ITranslatedStringGetter, IActivator, IActivatorGetter>("ActivateTextOverride") },
+                { "Flags", new SimpleReflectionFlagPropertyHandler<Mutagen.Bethesda.Skyrim.Activator.Flag, IActivator, IActivatorGetter>("Flags") },
+                { "MajorFlags", new SimpleReflectionFlagPropertyHandler<Mutagen.Bethesda.Skyrim.Activator.MajorFlag, IActivator, IActivatorGetter>("MajorFlags") },
+                { "InteractionKeyword", new SimpleReflectionFormLinkPropertyHandler<IKeywordGetter, IActivator, IActivatorGetter>("InteractionKeyword") }
             };
         }
 

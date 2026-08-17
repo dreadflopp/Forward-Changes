@@ -2,6 +2,7 @@ using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Plugins.Cache;
 using Noggog;
+using ForwardChanges;
 using ForwardChanges.PropertyHandlers.Abstracts;
 using ForwardChanges.PropertyHandlers.Interfaces;
 

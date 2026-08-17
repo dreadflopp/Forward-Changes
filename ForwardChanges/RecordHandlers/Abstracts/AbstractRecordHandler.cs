@@ -1,4 +1,6 @@
 using System;
+using System.Linq;
+using System.Collections;
 using Mutagen.Bethesda;
 using Mutagen.Bethesda.Synthesis;
 using Mutagen.Bethesda.Skyrim;
@@ -16,6 +18,65 @@ namespace ForwardChanges.RecordHandlers.Abstracts
         public abstract Dictionary<string, IPropertyHandler> PropertyHandlers { get; }
 
         protected Dictionary<string, IPropertyContext> PropertyContexts { get; private set; } = [];
+
+        private static bool IsLikelyTypeNameString(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return false;
+            }
+
+            // Common generic/runtime type-name shapes.
+            return text.Contains("System.Collections.Generic.", StringComparison.Ordinal)
+                || text.Contains("Mutagen.Bethesda.", StringComparison.Ordinal)
+                || text.Contains("`1[", StringComparison.Ordinal)
+                || text.Contains("`2[", StringComparison.Ordinal);
+        }
+
+        private static bool IsLowFidelityFormat(object? value, string formatted)
+        {
+            if (value == null)
+            {
+                return false;
+            }
+
+            if (value is string)
+            {
+                return false;
+            }
+
+            // If formatter output equals runtime ToString and looks like a type name,
+            // we almost certainly failed to produce a meaningful value representation.
+            var runtimeToString = value.ToString() ?? string.Empty;
+            if (string.Equals(formatted, runtimeToString, StringComparison.Ordinal) && IsLikelyTypeNameString(formatted))
+            {
+                return true;
+            }
+
+            // Enumerable payloads should usually not format to bare type names.
+            if (value is IEnumerable && IsLikelyTypeNameString(formatted))
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        private string FormatForLogWithWarning(
+            string propertyName,
+            IPropertyHandler handler,
+            object? value,
+            string stage,
+            bool deepDiveRecord)
+        {
+            var formatted = handler.FormatValue(value);
+            if (IsLowFidelityFormat(value, formatted))
+            {
+                Console.WriteLine($"[Warning] [{propertyName}] {stage}: formatter returned a type-name fallback: {formatted}. Consider overriding FormatValue in {handler.GetType().Name}.");
+            }
+
+            return LoggingSettings.ForLog(formatted, deepDiveRecord);
+        }
 
 
         /// <summary>
@@ -46,248 +107,301 @@ namespace ForwardChanges.RecordHandlers.Abstracts
         {
             foreach (var winningContext in filteredWinningContexts)
             {
-                Console.WriteLine(new string('-', 80));
-                Console.WriteLine($"Processing: {winningContext.Record.FormKey} ({winningContext.Record.EditorID})");
-
-                // some break early checks if the pre-filtering failed
-                if (Utility.IsVanilla(winningContext))
+                try
                 {
-                    Console.WriteLine("Breaking early: Winning context is vanilla");
-                    continue;
-                }
+                    var deepDiveRecord = LoggingSettings.IsDeepDiveRecord(winningContext);
+                    var detailedRecord = deepDiveRecord || LoggingSettings.Verbosity == PatcherLogVerbosity.Detailed;
+                    LogCollector.SetRecordLoggingContext(deepDiveRecord, detailedRecord);
 
-                // Get all contexts for this record in load order using concrete handler
-                var recordContexts = GetRecordContexts(winningContext, state);
+                    Console.WriteLine(new string('-', 80));
+                    Console.WriteLine($"Processing: {winningContext.Record.FormKey} ({winningContext.Record.EditorID})");
 
-                if (recordContexts.Length <= 2)
-                {
-                    Console.WriteLine("Breaking early: 2 or less contexts");
-                    continue;
-                }
-
-                // Check if the mod before the winning context is vanilla
-                var previousContext = recordContexts[1];
-                if (Utility.IsVanilla(previousContext))
-                {
-                    Console.WriteLine("Breaking early: Previous context is vanilla");
-                    continue;
-                }
-                Console.WriteLine($"Record contexts: {recordContexts.Length}");
-                Console.WriteLine($"Winning context: {winningContext.ModKey}");
-
-                // Initialize property states and quick initial check for simple properties
-                var originalContext = recordContexts.Last();
-                Console.WriteLine($"Original context: {originalContext.ModKey}");
-                InitializePropertyContexts(originalContext, winningContext);
-
-                // Quick initial check for simple properties
-                // all simple properties (not lists) should be resolved if the original and winning values are different
-                bool allResolved = true;
-                bool requiresPass1 = false;
-                foreach (var (propName, handler) in PropertyHandlers)
-                {
-                    if (!handler.RequiresFullLoadOrderProcessing)
+                    // some break early checks if the pre-filtering failed
+                    if (Utility.IsVanilla(winningContext))
                     {
-                        var originalValue = handler.GetValue(originalContext.Record);
-                        var winningValue = handler.GetValue(winningContext.Record);
-                        var propContext = PropertyContexts[propName];
+                        Console.WriteLine("Breaking early: Winning context is vanilla");
+                        continue;
+                    }
 
-                        if (!handler.AreValuesEqual(originalValue, winningValue))
+                    // Get all contexts for this record in load order using concrete handler
+                    var recordContexts = GetRecordContexts(winningContext, state);
+
+                    if (recordContexts.Length <= 2)
+                    {
+                        Console.WriteLine("Breaking early: 2 or less contexts");
+                        continue;
+                    }
+
+                    // Check if the mod before the winning context is vanilla
+                    var previousContext = recordContexts[1];
+                    if (Utility.IsVanilla(previousContext))
+                    {
+                        Console.WriteLine("Breaking early: Previous context is vanilla");
+                        continue;
+                    }
+                    Console.WriteLine($"Record contexts: {recordContexts.Length}");
+                    Console.WriteLine($"Winning context: {winningContext.ModKey}");
+
+                    // Initialize property states and quick initial check for simple properties
+                    var originalContext = recordContexts.Last();
+                    Console.WriteLine($"Original context: {originalContext.ModKey}");
+                    InitializePropertyContexts(originalContext, winningContext);
+
+                    // Quick initial check for simple properties
+                    // all simple properties (not lists) should be resolved if the original and winning values are different
+                    bool allResolved = true;
+                    bool requiresPass1 = false;
+                    foreach (var (propName, handler) in PropertyHandlers)
+                    {
+                        if (!handler.RequiresFullLoadOrderProcessing)
                         {
-                            propContext.IsResolved = true;
-                            LogCollector.Add(propName, $"[{propName}] {winningContext.Record.FormKey} Resolved, nothing to forward. Original: {handler.FormatValue(originalValue)}, Winning: {handler.FormatValue(winningValue)}");
+                            var originalValue = handler.GetValue(originalContext.Record);
+                            var winningValue = handler.GetValue(winningContext.Record);
+                            var propContext = PropertyContexts[propName];
+
+                            if (!handler.AreValuesEqual(originalValue, winningValue))
+                            {
+                                propContext.IsResolved = true;
+                                if (detailedRecord && LoggingSettings.ShouldLogProperty(propName, deepDiveRecord))
+                                {
+                                    LogCollector.Add(propName, $"[{propName}] {winningContext.Record.FormKey} Resolved, nothing to forward. Original: {FormatForLogWithWarning(propName, handler, originalValue, "quick-check original", deepDiveRecord)}, Winning: {FormatForLogWithWarning(propName, handler, winningValue, "quick-check winning", deepDiveRecord)}");
+                                }
+                            }
+                            else
+                            {
+                                allResolved = false;
+                            }
                         }
                         else
                         {
-                            allResolved = false;
+                            requiresPass1 = true;
                         }
+                    }
+
+                    // print original and winning values for all properties
+                    foreach (var (propName, handler) in PropertyHandlers)
+                    {
+                        var originalValue = handler.GetValue(originalContext.Record);
+                        var winningValue = handler.GetValue(winningContext.Record);
+                        if (detailedRecord && LoggingSettings.ShouldLogProperty(propName, deepDiveRecord))
+                        {
+                            LogCollector.Add(propName, $"[{propName}] Original: {FormatForLogWithWarning(propName, handler, originalValue, "initial original", deepDiveRecord)}, Winning: {FormatForLogWithWarning(propName, handler, winningValue, "initial winning", deepDiveRecord)}");
+                        }
+                    }
+                    if (LogCollector.HasLogs())
+                    {
+                        LogCollector.PrintAll();
+                        LogCollector.Clear();
+                    }
+
+                    // Pass 1: Process from original to winning (for lists and unresolved properties)
+                    // Pass 1 is required for lists and flags
+                    // Check if we have any list properties to process. If not we can skip pass 1.
+                    if (!requiresPass1)
+                    {
+                        if (detailedRecord) Console.WriteLine("Skipping first pass: No list or flag properties to process");
                     }
                     else
                     {
-                        requiresPass1 = true;
-                    }
-                }
+                        if (detailedRecord) Console.WriteLine("Processing first pass");
 
-                // print original and winning values for all properties
-                foreach (var (propName, handler) in PropertyHandlers)
-                {
-                    var originalValue = handler.GetValue(originalContext.Record);
-                    var winningValue = handler.GetValue(winningContext.Record);
-                    LogCollector.Add(propName, $"[{propName}] Original: {handler.FormatValue(originalValue)}, Winning: {handler.FormatValue(winningValue)}");
-                }
-                LogCollector.PrintAll();
-                LogCollector.Clear();
-
-                // Pass 1: Process from original to winning (for lists and unresolved properties)
-                // Pass 1 is required for lists and flags
-                // Check if we have any list properties to process. If not we can skip pass 1.
-                if (!requiresPass1)
-                {
-                    Console.WriteLine("Skipping first pass: No list or flag properties to process");
-                }
-                else
-                {
-                    Console.WriteLine("Processing first pass");
-
-                    // iterate from original to winning
-                    foreach (var context in recordContexts.Reverse().Skip(1))
-                    {
-                        // bugfix, skip if context is output mod
-                        if (context.ModKey.ToString() == state.PatchMod.ModKey.ToString())
+                        // iterate from original to winning
+                        foreach (var context in recordContexts.Reverse().Skip(1))
                         {
-                            continue;
-                        }
-
-                        // Update the property contexts, skip if resolved
-                        foreach (var (propName, handler) in PropertyHandlers)
-                        {
-                            var propContext = PropertyContexts[propName];
-                            if (propContext.IsResolved) continue;
-
-                            var mod = state.LoadOrder[context.ModKey].Mod;
-                            LogCollector.Add(propName, $"[{propName}] Processing mod: {context.ModKey} with value: {handler.FormatValue(handler.GetValue(context.Record))} with masters: {(mod != null ? string.Join(", ", mod.MasterReferences.Select(m => m.Master.FileName)) : "")}");
-
-                            handler.UpdatePropertyContext(context, state, propContext);
-                        }
-                    }
-
-                    // Process properties after pass 1. Every property should be resolved after pass 1
-                    foreach (var (propName, handler) in PropertyHandlers)
-                    {
-                        var propContext = PropertyContexts[propName];
-
-                        // Mark as resolved if it is processed in pass 1
-                        propContext.IsResolved = true;
-                        LogCollector.Add(propName, $"[{propName}] {winningContext.ModKey}: Marked as resolved after pass 1");
-                    }
-                    LogCollector.PrintAll();
-                    LogCollector.Clear();
-                    Console.WriteLine("First pass complete");
-                }
-
-                // Pass 2: Process from winning to original (for any remaining unresolved properties)
-                // This will only run if there are no list or flag properties. It is more efficent than pass 1.
-                if (!allResolved)
-                {
-                    Console.WriteLine("Processing second pass");
-                    // reset prop handlers
-                    foreach (var (propName, handler) in PropertyHandlers)
-                    {
-                        if (!PropertyContexts[propName].IsResolved)
-                        {
-                            handler.InitializeContext(originalContext, winningContext, PropertyContexts[propName]);
-                        }
-                    }
-
-                    // iterate from winning towards original
-                    foreach (var context in recordContexts)
-                    {
-                        if (allResolved)
-                        {
-                            break;
-                        }
-
-                        // Skip if we've reached the original mod
-                        if (context == originalContext)
-                        {
-                            break;
-                        }
-
-                        // bugfix, skip if context is output mod
-                        if (context.ModKey.ToString() == state.PatchMod.ModKey.ToString())
-                        {
-                            continue;
-                        }
-
-                        foreach (var (propName, handler) in PropertyHandlers)
-                        {
-                            // if the property is resolved, skip it
-                            allResolved = true;
-                            var propertyContext = PropertyContexts[propName];
-                            if (propertyContext.IsResolved)
+                            // bugfix, skip if context is output mod
+                            if (context.ModKey.ToString() == state.PatchMod.ModKey.ToString())
                             {
                                 continue;
                             }
 
-                            // if the property is not resolved, update the property context
-                            allResolved = false;
-                            var mod = state.LoadOrder[context.ModKey].Mod;
-                            LogCollector.Add(propName, $"[{propName}] Processing mod: {context.ModKey} with value: {handler.FormatValue(handler.GetValue(context.Record))} with masters: {(mod != null ? string.Join(", ", mod.MasterReferences.Select(m => m.Master.FileName)) : "")}");
-                            handler.UpdatePropertyContext(context, state, propertyContext);
-
-                            // If property has changed, iterate back to check for valid reverts
-                            var forwardValue = handler.GetValue(context.Record);
-                            var originalValue = handler.GetValue(originalContext.Record);
-                            if (!handler.AreValuesEqual(forwardValue, originalValue))
+                            // Update the property contexts, skip if resolved
+                            foreach (var (propName, handler) in PropertyHandlers)
                             {
-                                // Find the index of current context
-                                var currentIndex = Array.IndexOf(recordContexts, context);
+                                var propContext = PropertyContexts[propName];
+                                if (propContext.IsResolved) continue;
 
-                                // Iterate back towards winning
-                                for (int i = currentIndex - 1; i >= 0; i--)
+                                var mod = state.LoadOrder[context.ModKey].Mod;
+                                if (detailedRecord && LoggingSettings.ShouldLogProperty(propName, deepDiveRecord))
                                 {
-                                    // bugfix, skip if context is output mod
-                                    if (recordContexts[i].ModKey.ToString() == state.PatchMod.ModKey.ToString())
-                                    {
-                                        continue;
-                                    }
-
-                                    handler.UpdatePropertyContext(recordContexts[i], state, propertyContext);
+                                    LogCollector.Add(propName, $"[{propName}] Processing mod: {context.ModKey} with value: {FormatForLogWithWarning(propName, handler, handler.GetValue(context.Record), "pass1 context value", deepDiveRecord)} with masters: {(mod != null ? string.Join(", ", mod.MasterReferences.Select(m => m.Master.FileName)) : "")}");
                                 }
 
-                                // Now we have the real final value, mark as resolved
-                                propertyContext.IsResolved = true;
+                                handler.UpdatePropertyContext(context, state, propContext);
                             }
                         }
-                    }
-                    LogCollector.PrintAll();
-                    LogCollector.Clear();
-                    Console.WriteLine("Second pass complete");
-                }
-                else
-                {
-                    Console.WriteLine("Skipping second pass: All properties resolved");
-                }
 
-                // Forward changes to the patcher
-                var propertiesToForward = PropertyContexts
-                    .Where(kvp =>
+                        // Process properties after pass 1. Every property should be resolved after pass 1
+                        foreach (var (propName, handler) in PropertyHandlers)
+                        {
+                            var propContext = PropertyContexts[propName];
+
+                            // Mark as resolved if it is processed in pass 1
+                            propContext.IsResolved = true;
+                            if (detailedRecord && LoggingSettings.ShouldLogProperty(propName, deepDiveRecord))
+                            {
+                                LogCollector.Add(propName, $"[{propName}] {winningContext.ModKey}: Marked as resolved after pass 1");
+                            }
+                        }
+                        if (LogCollector.HasLogs())
+                        {
+                            LogCollector.PrintAll();
+                            LogCollector.Clear();
+                        }
+                        if (detailedRecord) Console.WriteLine("First pass complete");
+                    }
+
+                    // Pass 2: Process from winning to original (for any remaining unresolved properties)
+                    // This will only run if there are no list or flag properties. It is more efficent than pass 1.
+                    if (!allResolved)
                     {
+                        if (detailedRecord) Console.WriteLine("Processing second pass");
+                        // reset prop handlers
+                        foreach (var (propName, handler) in PropertyHandlers)
+                        {
+                            if (!PropertyContexts[propName].IsResolved)
+                            {
+                                handler.InitializeContext(originalContext, winningContext, PropertyContexts[propName]);
+                            }
+                        }
+
+                        // iterate from winning towards original
+                        foreach (var context in recordContexts)
+                        {
+                            if (allResolved)
+                            {
+                                break;
+                            }
+
+                            // Skip if we've reached the original mod
+                            if (context == originalContext)
+                            {
+                                break;
+                            }
+
+                            // bugfix, skip if context is output mod
+                            if (context.ModKey.ToString() == state.PatchMod.ModKey.ToString())
+                            {
+                                continue;
+                            }
+
+                            foreach (var (propName, handler) in PropertyHandlers)
+                            {
+                                // if the property is resolved, skip it
+                                allResolved = true;
+                                var propertyContext = PropertyContexts[propName];
+                                if (propertyContext.IsResolved)
+                                {
+                                    continue;
+                                }
+
+                                // if the property is not resolved, update the property context
+                                allResolved = false;
+                                var mod = state.LoadOrder[context.ModKey].Mod;
+                                if (detailedRecord && LoggingSettings.ShouldLogProperty(propName, deepDiveRecord))
+                                {
+                                    LogCollector.Add(propName, $"[{propName}] Processing mod: {context.ModKey} with value: {FormatForLogWithWarning(propName, handler, handler.GetValue(context.Record), "pass2 context value", deepDiveRecord)} with masters: {(mod != null ? string.Join(", ", mod.MasterReferences.Select(m => m.Master.FileName)) : "")}");
+                                }
+                                handler.UpdatePropertyContext(context, state, propertyContext);
+
+                                // If property has changed, iterate back to check for valid reverts
+                                var forwardValue = handler.GetValue(context.Record);
+                                var originalValue = handler.GetValue(originalContext.Record);
+                                if (!handler.AreValuesEqual(forwardValue, originalValue))
+                                {
+                                    // Find the index of current context
+                                    var currentIndex = Array.IndexOf(recordContexts, context);
+
+                                    // Iterate back towards winning
+                                    for (int i = currentIndex - 1; i >= 0; i--)
+                                    {
+                                        // bugfix, skip if context is output mod
+                                        if (recordContexts[i].ModKey.ToString() == state.PatchMod.ModKey.ToString())
+                                        {
+                                            continue;
+                                        }
+
+                                        handler.UpdatePropertyContext(recordContexts[i], state, propertyContext);
+                                    }
+
+                                    // Now we have the real final value, mark as resolved
+                                    propertyContext.IsResolved = true;
+                                }
+                            }
+                        }
+                        if (LogCollector.HasLogs())
+                        {
+                            LogCollector.PrintAll();
+                            LogCollector.Clear();
+                        }
+                        if (detailedRecord) Console.WriteLine("Second pass complete");
+                    }
+                    else
+                    {
+                        if (detailedRecord) Console.WriteLine("Skipping second pass: All properties resolved");
+                    }
+
+                    // Forward changes to the patcher
+                    var propertiesToForward = new Dictionary<string, object?>();
+                    int unchangedDecisionCount = 0;
+
+                    foreach (var kvp in PropertyContexts)
+                    {
+                        var propertyName = kvp.Key;
                         var propertyContext = kvp.Value;
-                        var handler = PropertyHandlers[kvp.Key];
-                        if (propertyContext == null || handler == null) return false;
+
+                        if (propertyContext == null || !PropertyHandlers.TryGetValue(propertyName, out var handler) || handler == null)
+                        {
+                            continue;
+                        }
 
                         var originalValue = handler.GetValue(originalContext.Record);
                         var winningValue = handler.GetValue(winningContext.Record);
                         var forwardValue = propertyContext.GetForwardValue();
-
-                        // Show all values for comparison
-                        LogCollector.Add(kvp.Key, $"[{kvp.Key}] Final Decision:");
-                        LogCollector.Add(kvp.Key, $"[{kvp.Key}]   Original value: {handler.FormatValue(originalValue)}");
-                        LogCollector.Add(kvp.Key, $"[{kvp.Key}]   Winning value: {handler.FormatValue(winningValue)}");
-                        LogCollector.Add(kvp.Key, $"[{kvp.Key}]   Forward value: {handler.FormatValue(forwardValue)}");
-
                         var shouldForward = !handler.AreValuesEqual(forwardValue, winningValue);
-                        LogCollector.Add(kvp.Key, $"[{kvp.Key}]   Decision: {(shouldForward ? "Forward changes (different)" : "No changes (same)")}");
 
+                        if (shouldForward)
+                        {
+                            propertiesToForward[propertyName] = forwardValue;
+                        }
+                        else
+                        {
+                            unchangedDecisionCount++;
+                        }
+
+                        var shouldLogProperty = LoggingSettings.ShouldLogProperty(propertyName, deepDiveRecord);
+                        // Only emit Final Decision blocks in detailed or deep-dive mode.
+                        var shouldLogDecisionBlock = shouldLogProperty && (deepDiveRecord || (detailedRecord && (shouldForward || LoggingSettings.IncludeNoChangeDecisionsInDetailed)));
+                        if (!shouldLogDecisionBlock)
+                        {
+                            continue;
+                        }
+
+                        LogCollector.Add(propertyName, $"[{propertyName}] Final Decision:");
+                        LogCollector.Add(propertyName, $"[{propertyName}]   Original value: {FormatForLogWithWarning(propertyName, handler, originalValue, "final-decision original", deepDiveRecord)}");
+                        LogCollector.Add(propertyName, $"[{propertyName}]   Winning value: {FormatForLogWithWarning(propertyName, handler, winningValue, "final-decision winning", deepDiveRecord)}");
+                        LogCollector.Add(propertyName, $"[{propertyName}]   Forward value: {FormatForLogWithWarning(propertyName, handler, forwardValue, "final-decision forward", deepDiveRecord)}");
+                        LogCollector.Add(propertyName, $"[{propertyName}]   Decision: {(shouldForward ? "Forward changes (different)" : "No changes (same)")}");
+                    }
+
+                    if (LogCollector.HasLogs())
+                    {
                         LogCollector.PrintAll();
                         LogCollector.Clear();
+                    }
 
-                        return shouldForward;
-                    })
-                    .ToDictionary(kvp => kvp.Key, kvp =>
+                    Console.WriteLine($"Decision summary: forward {propertiesToForward.Count}, unchanged {unchangedDecisionCount}");
+
+                    if (detailedRecord) Console.WriteLine($"Properties to forward: {propertiesToForward.Count}");
+                    if (propertiesToForward.Count > 0)
                     {
-                        var propertyContext = kvp.Value;
-
-                        // Get the forward value (could be single value or list)
-                        return propertyContext.GetForwardValue();
-                    });
-
-                Console.WriteLine($"Properties to forward: {propertiesToForward.Count}");
-                if (propertiesToForward.Count > 0)
+                        var overrideRecord = GetOverrideRecord(winningContext, state);
+                        ApplyForwardedProperties(overrideRecord, propertiesToForward);
+                    }
+                }
+                catch (Exception ex)
                 {
-                    var overrideRecord = GetOverrideRecord(winningContext, state);
-                    ApplyForwardedProperties(overrideRecord, propertiesToForward);
+                    Console.WriteLine($"[Error] Skipping record {winningContext.Record.FormKey}: {ex.Message}");
+                    LogCollector.Clear();
                 }
             }
         }
@@ -336,7 +450,7 @@ namespace ForwardChanges.RecordHandlers.Abstracts
                 // Read current values from the record (which should be the winning values since we're applying to an override)
                 int currentMajorRecordFlagsRaw = record.MajorRecordFlagsRaw;
                 Mutagen.Bethesda.Skyrim.SkyrimMajorRecord.SkyrimMajorRecordFlag currentSkyrimMajorRecordFlags = 0;
-                
+
                 if (record is ISkyrimMajorRecord skyrimRecord)
                 {
                     currentSkyrimMajorRecordFlags = skyrimRecord.SkyrimMajorRecordFlags;
@@ -353,7 +467,7 @@ namespace ForwardChanges.RecordHandlers.Abstracts
 
                 // Set MajorRecordFlagsRaw first
                 record.MajorRecordFlagsRaw = newMajorRecordFlagsRaw;
-                if (PropertyHandlers.TryGetValue("MajorRecordFlagsRaw", out var majorRecordFlagsRawHandler))
+                if (LogCollector.IsDetailedMode && PropertyHandlers.TryGetValue("MajorRecordFlagsRaw", out var majorRecordFlagsRawHandler))
                 {
                     if (hasMajorRecordFlagsRaw)
                     {
@@ -370,7 +484,7 @@ namespace ForwardChanges.RecordHandlers.Abstracts
                 if (record is ISkyrimMajorRecord skyrimRecordForFlags)
                 {
                     skyrimRecordForFlags.SkyrimMajorRecordFlags = newSkyrimMajorRecordFlags;
-                    if (hasSkyrimMajorRecordFlags && PropertyHandlers.TryGetValue("SkyrimMajorRecordFlags", out var skyrimMajorRecordFlagsHandler))
+                    if (LogCollector.IsDetailedMode && hasSkyrimMajorRecordFlags && PropertyHandlers.TryGetValue("SkyrimMajorRecordFlags", out var skyrimMajorRecordFlagsHandler))
                     {
                         Console.WriteLine($"[SkyrimMajorRecordFlags] Applying value: {skyrimMajorRecordFlagsHandler.FormatValue(newSkyrimMajorRecordFlags)}");
                     }
@@ -379,7 +493,7 @@ namespace ForwardChanges.RecordHandlers.Abstracts
                     // (in case Mutagen's internal logic reconstructed the flags)
                     // This is critical even if MajorRecordFlagsRaw wasn't in propertiesToForward
                     int majorRecordFlagsRawAfterSkyrim = record.MajorRecordFlagsRaw;
-                    
+
                     if (majorRecordFlagsRawAfterSkyrim != newMajorRecordFlagsRaw)
                     {
                         // Mutagen may have set additional bits in MajorRecordFlagsRaw when we set SkyrimMajorRecordFlags
@@ -417,7 +531,7 @@ namespace ForwardChanges.RecordHandlers.Abstracts
                 {
                     try
                     {
-                        Console.WriteLine($"[{propertyName}] Applying value: {handler.FormatValue(value)}, Type: {value?.GetType()}");
+                        if (LogCollector.IsDetailedMode) Console.WriteLine($"[{propertyName}] Applying value: {FormatForLogWithWarning(propertyName, handler, value, "apply", deepDiveRecord: LogCollector.IsDeepDiveMode)}, Type: {value?.GetType()}");
                         handler.SetValue(record, value);
                     }
                     catch (Exception ex)

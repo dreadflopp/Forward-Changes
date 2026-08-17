@@ -1000,7 +1000,8 @@ namespace ForwardChanges.PropertyHandlers.Abstracts
             {
                 return false;
             }
-            return mod?.MasterReferences.Any(m => m.Master.ToString() == ownerMod) == true || mod?.ModKey.ToString() == ownerMod;
+            return mod?.MasterReferences.Any(m => string.Equals(m.Master.ToString(), ownerMod, StringComparison.OrdinalIgnoreCase)) == true
+                || string.Equals(mod?.ModKey.ToString(), ownerMod, StringComparison.OrdinalIgnoreCase);
         }
 
         /// <summary>

@@ -3,6 +3,7 @@ using Mutagen.Bethesda.Synthesis;
 using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Plugins.Cache;
+using Mutagen.Bethesda.Plugins;
 using ForwardChanges.PropertyHandlers.Static;
 using ForwardChanges.PropertyHandlers.General;
 using ForwardChanges.RecordHandlers.Abstracts;
@@ -19,9 +20,9 @@ namespace ForwardChanges.RecordHandlers
             { "MajorRecordFlagsRaw", new MajorRecordFlagsRawHandler() },
             { "SkyrimMajorRecordFlags", new SkyrimMajorRecordFlagsHandler() },
             { "ObjectBounds", new ObjectBoundsHandler() },
-            { "Model", new PropertyHandlers.Static.ModelHandler() },
-            { "MaxAngle", new MaxAngleHandler() },
-            { "Material", new MaterialHandler() },
+            { "Model", new ForwardChanges.PropertyHandlers.Static.ModelHandler() },
+            { "MaxAngle", new SimpleReflectionPropertyHandler<float, IStatic, IStaticGetter>("MaxAngle", 0.0001f) },
+            { "Material", new SimpleReflectionFormLinkPropertyHandler<IMaterialObjectGetter, IStatic, IStaticGetter>("Material") },
             { "Flags", new FlagsHandler() },
             { "Lod", new LodHandler() },
             { "MajorFlags", new MajorFlagsHandler() }

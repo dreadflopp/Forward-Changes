@@ -14,7 +14,7 @@ namespace ForwardChanges.PropertyHandlers.TextureSet
         {
             var tx = TryCastRecord<ITextureSet>(record, PropertyName);
             if (tx != null)
-                tx.NormalOrGloss = value == null ? null : new AssetLink<SkyrimTextureAssetType>(value.DataRelativePath);
+                tx.NormalOrGloss = value == null ? null : new AssetLink<SkyrimTextureAssetType>(ForwardChanges.PropertyHandlers.General.TexturePathHelper.Normalize(value));
         }
 
         public override AssetLinkGetter<SkyrimTextureAssetType>? GetValue(IMajorRecordGetter record)
@@ -27,10 +27,11 @@ namespace ForwardChanges.PropertyHandlers.TextureSet
         {
             if (value1 == null && value2 == null) return true;
             if (value1 == null || value2 == null) return false;
-            return value1.DataRelativePath == value2.DataRelativePath;
+            return ForwardChanges.PropertyHandlers.General.TexturePathHelper.Normalize(value1) == ForwardChanges.PropertyHandlers.General.TexturePathHelper.Normalize(value2);
         }
 
         public override string FormatValue(object? value) =>
-            value is AssetLinkGetter<SkyrimTextureAssetType> al ? al.DataRelativePath.ToString() : value?.ToString() ?? "null";
+            value is AssetLinkGetter<SkyrimTextureAssetType> al ? ForwardChanges.PropertyHandlers.General.TexturePathHelper.Normalize(al) : value?.ToString() ?? "null";
     }
 }
+

@@ -42,6 +42,15 @@ namespace ForwardChanges.PropertyHandlers.ArmorAddon
             return null;
         }
 
-
+        public override string FormatValue(object? value)
+        {
+            if (value is IGenderedItemGetter<IFormLinkNullableGetter<ITextureSetGetter>> gendered)
+            {
+                var maleStr = gendered.Male?.FormKey.IsNull == false ? gendered.Male.FormKey.ToString() : "Null";
+                var femaleStr = gendered.Female?.FormKey.IsNull == false ? gendered.Female.FormKey.ToString() : "Null";
+                return $"Male: {maleStr}, Female: {femaleStr}";
+            }
+            return value?.ToString() ?? "null";
+        }
     }
 }

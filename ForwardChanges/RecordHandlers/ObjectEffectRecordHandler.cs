@@ -3,6 +3,7 @@ using Mutagen.Bethesda.Synthesis;
 using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Plugins.Cache;
+using Mutagen.Bethesda.Plugins;
 using ForwardChanges.PropertyHandlers.ObjectEffect;
 using ForwardChanges.PropertyHandlers.General;
 using ForwardChanges.RecordHandlers.Abstracts;
@@ -21,13 +22,13 @@ namespace ForwardChanges.RecordHandlers
             { "Name", new NameHandler() },
             { "ObjectBounds", new ObjectBoundsHandler() },
             { "EnchantmentCost", new EnchantmentCostHandler() },
-            { "CastType", new CastTypeHandler() },
+            { "CastType", new SimpleReflectionPropertyHandler<CastType, IObjectEffect, IObjectEffectGetter>("CastType") },
             { "EnchantmentAmount", new EnchantmentAmountHandler() },
-            { "TargetType", new TargetTypeHandler() },
-            { "EnchantType", new EnchantTypeHandler() },
+            { "TargetType", new SimpleReflectionPropertyHandler<TargetType, IObjectEffect, IObjectEffectGetter>("TargetType") },
+            { "EnchantType", new SimpleReflectionPropertyHandler<ObjectEffect.EnchantTypeEnum, IObjectEffect, IObjectEffectGetter>("EnchantType") },
             { "ChargeTime", new ChargeTimeHandler() },
-            { "BaseEnchantment", new BaseEnchantmentHandler() },
-            { "WornRestrictions", new WornRestrictionsHandler() },
+            { "BaseEnchantment", new SimpleReflectionFormLinkPropertyHandler<IObjectEffectGetter, IObjectEffect, IObjectEffectGetter>("BaseEnchantment") },
+            { "WornRestrictions", new SimpleReflectionFormLinkPropertyHandler<IFormListGetter, IObjectEffect, IObjectEffectGetter>("WornRestrictions") },
             { "Effects", new EffectsHandler() },
             { "Flags", new FlagsHandler() }
         };

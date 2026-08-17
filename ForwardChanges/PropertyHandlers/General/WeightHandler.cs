@@ -17,6 +17,11 @@ namespace ForwardChanges.PropertyHandlers.General
             {
                 weightValue.Weight = value ?? 0f;
             }
+            else if (record is IWeapon weapon)
+            {
+                weapon.BasicStats ??= new WeaponBasicStats();
+                weapon.BasicStats.Weight = value ?? 0f;
+            }
             else
             {
                 Console.WriteLine($"Error: Record does not implement IWeightValue for {PropertyName}");
@@ -28,6 +33,14 @@ namespace ForwardChanges.PropertyHandlers.General
             if (record is IWeightValueGetter weightValue)
             {
                 return weightValue.Weight;
+            }
+            else if (record is IWeaponGetter weapon)
+            {
+                return weapon.BasicStats?.Weight;
+            }
+            else if (record is IContainerGetter container)
+            {
+                return container.Weight;
             }
             else
             {

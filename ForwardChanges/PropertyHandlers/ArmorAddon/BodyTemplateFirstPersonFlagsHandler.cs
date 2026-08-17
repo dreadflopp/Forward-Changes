@@ -1,8 +1,6 @@
 using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Plugins.Records;
-using Mutagen.Bethesda.Plugins.Cache;
 using ForwardChanges.PropertyHandlers.Abstracts;
-using ForwardChanges.PropertyHandlers.Interfaces;
 
 namespace ForwardChanges.PropertyHandlers.ArmorAddon
 {
@@ -12,41 +10,63 @@ namespace ForwardChanges.PropertyHandlers.ArmorAddon
 
         public override void SetValue(IMajorRecord record, BipedObjectFlag value)
         {
-            if (record is IArmorAddon armorAddonRecord && armorAddonRecord.BodyTemplate != null)
+            if (record is IArmorAddon armorAddon)
             {
-                armorAddonRecord.BodyTemplate.FirstPersonFlags = value;
+                // Ensure BodyTemplate exists before setting flags
+                if (armorAddon.BodyTemplate == null)
+                {
+                    armorAddon.BodyTemplate = new BodyTemplate();
+                }
+                armorAddon.BodyTemplate.FirstPersonFlags = value;
+            }
+            else
+            {
+                System.Console.WriteLine($"Error: Record does not implement IArmorAddon for {PropertyName}");
             }
         }
 
         public override BipedObjectFlag GetValue(IMajorRecordGetter record)
         {
-            if (record is IArmorAddonGetter armorAddonRecord && armorAddonRecord.BodyTemplate != null)
+            if (record is IArmorAddonGetter armorAddon)
             {
-                return armorAddonRecord.BodyTemplate.FirstPersonFlags;
+                // Return default if BodyTemplate is null
+                return armorAddon.BodyTemplate?.FirstPersonFlags ?? default(BipedObjectFlag);
             }
-            return BipedObjectFlag.Head;
+            else
+            {
+                System.Console.WriteLine($"Error: Record does not implement IArmorAddonGetter for {PropertyName}");
+            }
+            return default(BipedObjectFlag);
         }
 
         protected override BipedObjectFlag[] GetAllFlags()
         {
-            return Enum.GetValues<BipedObjectFlag>();
+            return System.Enum.GetValues<BipedObjectFlag>();
         }
 
         protected override bool IsFlagSet(BipedObjectFlag flags, BipedObjectFlag flag)
         {
-            return (flags & flag) == flag;
+            // Standard bitwise flag check - convert to underlying integer type for bitwise operations
+            var flagsInt = System.Convert.ToInt64(flags);
+            var flagInt = System.Convert.ToInt64(flag);
+            return (flagsInt & flagInt) == flagInt;
         }
 
         protected override BipedObjectFlag SetFlag(BipedObjectFlag flags, BipedObjectFlag flag, bool value)
         {
+            // Standard bitwise flag set/clear - convert to underlying integer type for bitwise operations
+            var flagsInt = System.Convert.ToInt64(flags);
+            var flagInt = System.Convert.ToInt64(flag);
+            long result;
             if (value)
             {
-                return flags | flag;
+                result = flagsInt | flagInt;
             }
             else
             {
-                return flags & ~flag;
+                result = flagsInt & ~flagInt;
             }
+            return (BipedObjectFlag)System.Enum.ToObject(typeof(BipedObjectFlag), result);
         }
     }
 }

@@ -1,11 +1,11 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using Mutagen.Bethesda;
 using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Plugins.Records;
+using Mutagen.Bethesda.Plugins;
 using Mutagen.Bethesda.Synthesis;
 using Mutagen.Bethesda.Plugins.Cache;
+using Mutagen.Bethesda.Strings;
 using ForwardChanges.PropertyHandlers.Abstracts;
 using ForwardChanges.PropertyHandlers.General;
 using ForwardChanges.PropertyHandlers.MagicEffect;
@@ -16,9 +16,56 @@ namespace ForwardChanges.RecordHandlers
 {
     public class MagicEffectRecordHandler : AbstractRecordHandler
     {
-        private readonly Dictionary<string, IPropertyHandler> _propertyHandlers;
-
-        public override Dictionary<string, IPropertyHandler> PropertyHandlers => _propertyHandlers;
+        public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()
+        {
+            { "EditorID", new EditorIDHandler() },
+            { "MajorRecordFlagsRaw", new MajorRecordFlagsRawHandler() },
+            { "SkyrimMajorRecordFlags", new SkyrimMajorRecordFlagsHandler() },
+            { "Name", new NameHandler() },
+            { "VirtualMachineAdapter", new VirtualMachineAdapterHandler() },
+            { "Description", new ComplexReflectionPropertyHandler<ITranslatedStringGetter, IMagicEffect, IMagicEffectGetter>("Description") },
+            { "BaseCost", new SimpleReflectionPropertyHandler<float, IMagicEffect, IMagicEffectGetter>("BaseCost") },
+            { "Flags", new FlagsHandler() },
+            { "CastType", new SimpleReflectionPropertyHandler<CastType, IMagicEffect, IMagicEffectGetter>("CastType") },
+            { "TargetType", new SimpleReflectionPropertyHandler<TargetType, IMagicEffect, IMagicEffectGetter>("TargetType") },
+            { "MagicSkill", new SimpleReflectionPropertyHandler<ActorValue, IMagicEffect, IMagicEffectGetter>("MagicSkill") },
+            { "ResistValue", new SimpleReflectionPropertyHandler<ActorValue, IMagicEffect, IMagicEffectGetter>("ResistValue") },
+            { "SecondActorValue", new SimpleReflectionPropertyHandler<ActorValue, IMagicEffect, IMagicEffectGetter>("SecondActorValue") },
+            { "CastingSoundLevel", new SimpleReflectionPropertyHandler<SoundLevel, IMagicEffect, IMagicEffectGetter>("CastingSoundLevel") },
+            { "MenuDisplayObject", new SimpleReflectionFormLinkPropertyHandler<IStaticGetter, IMagicEffect, IMagicEffectGetter>("MenuDisplayObject") },
+            { "Keywords", new KeywordListHandler() },
+            { "CastingLight", new SimpleReflectionFormLinkPropertyHandler<ILightGetter, IMagicEffect, IMagicEffectGetter>("CastingLight") },
+            { "HitShader", new SimpleReflectionFormLinkPropertyHandler<IEffectShaderGetter, IMagicEffect, IMagicEffectGetter>("HitShader") },
+            { "EnchantShader", new SimpleReflectionFormLinkPropertyHandler<IEffectShaderGetter, IMagicEffect, IMagicEffectGetter>("EnchantShader") },
+            { "Projectile", new SimpleReflectionFormLinkPropertyHandler<IProjectileGetter, IMagicEffect, IMagicEffectGetter>("Projectile") },
+            { "Explosion", new SimpleReflectionFormLinkPropertyHandler<IExplosionGetter, IMagicEffect, IMagicEffectGetter>("Explosion") },
+            { "CastingArt", new SimpleReflectionFormLinkPropertyHandler<IArtObjectGetter, IMagicEffect, IMagicEffectGetter>("CastingArt") },
+            { "HitEffectArt", new SimpleReflectionFormLinkPropertyHandler<IArtObjectGetter, IMagicEffect, IMagicEffectGetter>("HitEffectArt") },
+            { "ImpactData", new SimpleReflectionFormLinkPropertyHandler<IImpactDataSetGetter, IMagicEffect, IMagicEffectGetter>("ImpactData") },
+            { "DualCastArt", new SimpleReflectionFormLinkPropertyHandler<IDualCastDataGetter, IMagicEffect, IMagicEffectGetter>("DualCastArt") },
+            { "EnchantArt", new SimpleReflectionFormLinkPropertyHandler<IArtObjectGetter, IMagicEffect, IMagicEffectGetter>("EnchantArt") },
+            { "HitVisuals", new SimpleReflectionFormLinkPropertyHandler<IVisualEffectGetter, IMagicEffect, IMagicEffectGetter>("HitVisuals") },
+            { "EnchantVisuals", new SimpleReflectionFormLinkPropertyHandler<IVisualEffectGetter, IMagicEffect, IMagicEffectGetter>("EnchantVisuals") },
+            { "EquipAbility", new SimpleReflectionFormLinkPropertyHandler<ISpellGetter, IMagicEffect, IMagicEffectGetter>("EquipAbility") },
+            { "ImageSpaceModifier", new SimpleReflectionFormLinkPropertyHandler<IImageSpaceAdapterGetter, IMagicEffect, IMagicEffectGetter>("ImageSpaceModifier") },
+            { "PerkToApply", new SimpleReflectionFormLinkPropertyHandler<IPerkGetter, IMagicEffect, IMagicEffectGetter>("PerkToApply") },
+            { "Unknown1", new SimpleReflectionPropertyHandler<ushort, IMagicEffect, IMagicEffectGetter>("Unknown1") },
+            { "TaperWeight", new SimpleReflectionPropertyHandler<float, IMagicEffect, IMagicEffectGetter>("TaperWeight") },
+            { "MinimumSkillLevel", new SimpleReflectionPropertyHandler<uint, IMagicEffect, IMagicEffectGetter>("MinimumSkillLevel") },
+            { "SpellmakingArea", new SimpleReflectionPropertyHandler<uint, IMagicEffect, IMagicEffectGetter>("SpellmakingArea") },
+            { "SpellmakingCastingTime", new SimpleReflectionPropertyHandler<float, IMagicEffect, IMagicEffectGetter>("SpellmakingCastingTime") },
+            { "TaperCurve", new SimpleReflectionPropertyHandler<float, IMagicEffect, IMagicEffectGetter>("TaperCurve") },
+            { "TaperDuration", new SimpleReflectionPropertyHandler<float, IMagicEffect, IMagicEffectGetter>("TaperDuration") },
+            { "SecondActorValueWeight", new SimpleReflectionPropertyHandler<float, IMagicEffect, IMagicEffectGetter>("SecondActorValueWeight") },
+            { "SkillUsageMultiplier", new SimpleReflectionPropertyHandler<float, IMagicEffect, IMagicEffectGetter>("SkillUsageMultiplier") },
+            { "DualCastScale", new SimpleReflectionPropertyHandler<float, IMagicEffect, IMagicEffectGetter>("DualCastScale") },
+            { "ScriptEffectAIScore", new SimpleReflectionPropertyHandler<float, IMagicEffect, IMagicEffectGetter>("ScriptEffectAIScore") },
+            { "ScriptEffectAIDelayTime", new SimpleReflectionPropertyHandler<float, IMagicEffect, IMagicEffectGetter>("ScriptEffectAIDelayTime") },
+            { "CounterEffects", new SimpleReflectionListPropertyHandler<IFormLinkGetter<IMagicEffectGetter>, IMagicEffect, IMagicEffectGetter>("CounterEffects") },
+            { "Sounds", new SimpleReflectionListPropertyHandler<IMagicEffectSoundGetter, IMagicEffect, IMagicEffectGetter>("Sounds", ListOrdering.PreserveModOrder) },
+            { "Archetype", new ArchetypeHandler() },
+            { "Conditions", new ConditionsHandler() }
+        };
 
         public override IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter>[] GetRecordContexts(
             IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> winningContext,
@@ -35,73 +82,5 @@ namespace ForwardChanges.RecordHandlers
 
             return contexts;
         }
-
-        public MagicEffectRecordHandler()
-        {
-            _propertyHandlers = new Dictionary<string, IPropertyHandler>
-            {
-                // Base properties
-                { "EditorID", new EditorIDHandler() },
-                { "MajorRecordFlagsRaw", new MajorRecordFlagsRawHandler() },
-                { "SkyrimMajorRecordFlags", new SkyrimMajorRecordFlagsHandler() },
-                
-                // Essential Magic Effect properties
-                { "Name", new NameHandler() },
-                { "BaseCost", new BaseCostHandler() },
-                { "Flags", new FlagsHandler() },
-                { "CastType", new CastTypeHandler() },
-                { "TargetType", new TargetTypeHandler() },
-                { "MagicSkill", new MagicSkillHandler() },
-                { "ResistValue", new ResistValueHandler() },
-                { "SecondActorValue", new SecondActorValueHandler() },
-                { "CastingSoundLevel", new CastingSoundLevelHandler() },
-                
-                // FormLink properties
-                { "MenuDisplayObject", new MenuDisplayObjectHandler() },
-                { "Keywords", new KeywordsHandler() },
-                { "CastingLight", new CastingLightHandler() },
-                { "HitShader", new HitShaderHandler() },
-                { "EnchantShader", new EnchantShaderHandler() },
-                { "Projectile", new ProjectileHandler() },
-                { "Explosion", new ExplosionHandler() },
-                { "CastingArt", new CastingArtHandler() },
-                { "HitEffectArt", new HitEffectArtHandler() },
-                { "ImpactData", new ImpactDataHandler() },
-                { "DualCastArt", new DualCastArtHandler() },
-                { "EnchantArt", new EnchantArtHandler() },
-                { "HitVisuals", new HitVisualsHandler() },
-                { "EnchantVisuals", new EnchantVisualsHandler() },
-                { "EquipAbility", new EquipAbilityHandler() },
-                { "ImageSpaceModifier", new ImageSpaceModifierHandler() },
-                { "PerkToApply", new PerkToApplyHandler() },
-                
-                // Simple properties
-                { "Unknown1", new Unknown1Handler() },
-                { "TaperWeight", new TaperWeightHandler() },
-                { "MinimumSkillLevel", new MinimumSkillLevelHandler() },
-                { "SpellmakingArea", new SpellmakingAreaHandler() },
-                { "SpellmakingCastingTime", new SpellmakingCastingTimeHandler() },
-                { "TaperCurve", new TaperCurveHandler() },
-                { "TaperDuration", new TaperDurationHandler() },
-                { "SecondActorValueWeight", new SecondActorValueWeightHandler() },
-                { "SkillUsageMultiplier", new SkillUsageMultiplierHandler() },
-                { "DualCastScale", new DualCastScaleHandler() },
-                { "ScriptEffectAIScore", new ScriptEffectAIScoreHandler() },
-                { "ScriptEffectAIDelayTime", new ScriptEffectAIDelayTimeHandler() },
-                
-                // Complex properties
-                { "Description", new DescriptionHandler() },
-                { "CounterEffects", new CounterEffectsHandler() },
-                { "Sounds", new SoundsHandler() },
-                
-                // Complex properties
-                { "VirtualMachineAdapter", new VirtualMachineAdapterHandler() },
-                { "Archetype", new ArchetypeHandler() },
-                { "Conditions", new ConditionsHandler() }
-            };
-        }
-
-        // GetOverrideRecord and ApplyForwardedProperties are now handled by the base class
-        // The base class automatically handles flag property coordination
     }
 }

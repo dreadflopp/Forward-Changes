@@ -18,8 +18,7 @@ namespace ForwardChanges.PropertyHandlers.EffectShader
             {
                 if (value != null && !value.IsNull)
                 {
-                    // Use DataRelativePath to get the full path including "Data\" prefix
-                    effectShader.HolesTexture = new AssetLink<SkyrimTextureAssetType>(value.DataRelativePath);
+                    effectShader.HolesTexture = new AssetLink<SkyrimTextureAssetType>(EffectShaderTexturePathHelper.Normalize(value));
                 }
                 else
                 {
@@ -42,7 +41,7 @@ namespace ForwardChanges.PropertyHandlers.EffectShader
         {
             if (value1 == null && value2 == null) return true;
             if (value1 == null || value2 == null) return false;
-            return value1.DataRelativePath == value2.DataRelativePath;
+            return EffectShaderTexturePathHelper.Normalize(value1) == EffectShaderTexturePathHelper.Normalize(value2);
         }
 
         public override string FormatValue(object? value)
@@ -52,7 +51,7 @@ namespace ForwardChanges.PropertyHandlers.EffectShader
                 return value?.ToString() ?? "null";
             }
 
-            return assetLink.DataRelativePath.ToString();
+            return EffectShaderTexturePathHelper.Normalize(assetLink);
         }
     }
 }

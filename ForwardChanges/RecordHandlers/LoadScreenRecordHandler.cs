@@ -1,0 +1,57 @@
+using System;
+using System.Drawing;
+using Mutagen.Bethesda;
+using Mutagen.Bethesda.Synthesis;
+using Mutagen.Bethesda.Skyrim;
+using Mutagen.Bethesda.Skyrim.Assets;
+using Mutagen.Bethesda.Strings;
+using Mutagen.Bethesda.Plugins.Assets;
+using Mutagen.Bethesda.Plugins.Records;
+using Mutagen.Bethesda.Plugins.Cache;
+using ForwardChanges.PropertyHandlers.Abstracts;
+using ForwardChanges.PropertyHandlers.General;
+using ForwardChanges.PropertyHandlers.Interfaces;
+using ForwardChanges.RecordHandlers.Abstracts;
+using Noggog;
+
+namespace ForwardChanges.RecordHandlers
+{
+    // Migration note:
+    // - Generalized: icons, translated text, links, scalars, and conditions via reflection handlers.
+    // - Kept specialized: none.
+    // - Rationale: the record is a standard major record with common shared property shapes.
+    public class LoadScreenRecordHandler : AbstractRecordHandler
+    {
+        public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()
+        {
+            { "EditorID", new EditorIDHandler() },
+            { "MajorRecordFlagsRaw", new MajorRecordFlagsRawHandler() },
+            { "SkyrimMajorRecordFlags", new SkyrimMajorRecordFlagsHandler() },
+            { "Icons", new ComplexReflectionPropertyHandler<IIconsGetter, ILoadScreen, ILoadScreenGetter>("Icons") },
+            { "Description", new ComplexReflectionPropertyHandler<ITranslatedStringGetter, ILoadScreen, ILoadScreenGetter>("Description") },
+            { "Conditions", new SimpleReflectionListPropertyHandler<IConditionGetter, ILoadScreen, ILoadScreenGetter>("Conditions", ListOrdering.PreserveModOrder) },
+            { "LoadingScreenNif", new SimpleReflectionFormLinkPropertyHandler<IStaticGetter, ILoadScreen, ILoadScreenGetter>("LoadingScreenNif") },
+            { "InitialScale", new SimpleReflectionPropertyHandler<float?, ILoadScreen, ILoadScreenGetter>("InitialScale") },
+            { "InitialRotation", new SimpleReflectionPropertyHandler<P3Int16?, ILoadScreen, ILoadScreenGetter>("InitialRotation") },
+            { "RotationOffsetConstraints", new ComplexReflectionPropertyHandler<IInt16MinMaxGetter, ILoadScreen, ILoadScreenGetter>("RotationOffsetConstraints") },
+            { "InitialTranslationOffset", new SimpleReflectionPropertyHandler<P3Float?, ILoadScreen, ILoadScreenGetter>("InitialTranslationOffset") },
+            { "CameraPath", new SimpleReflectionPropertyHandler<AssetLinkGetter<SkyrimModelAssetType>?, ILoadScreen, ILoadScreenGetter>("CameraPath") },
+            { "MajorFlags", new SimpleReflectionFlagPropertyHandler<Mutagen.Bethesda.Skyrim.LoadScreen.MajorFlag, ILoadScreen, ILoadScreenGetter>("MajorFlags") }
+        };
+
+        public override IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter>[] GetRecordContexts(
+            IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> winningContext,
+            IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
+        {
+            if (winningContext.Record is not ILoadScreenGetter loadScreen)
+            {
+                throw new InvalidOperationException($"Expected ILoadScreenGetter but got {winningContext.Record.GetType()}");
+            }
+
+            return loadScreen
+                .ToLink<ILoadScreenGetter>()
+                .ResolveAllContexts<ISkyrimMod, ISkyrimModGetter, ILoadScreen, ILoadScreenGetter>(state.LinkCache)
+                .ToArray();
+        }
+    }
+}

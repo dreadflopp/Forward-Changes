@@ -32,7 +32,7 @@ namespace ForwardChanges.PropertyHandlers.General
             // Find the property on the getter interface
             _getterProperty = typeof(TRecordGetter).GetProperty(propertyName,
                 BindingFlags.Public | BindingFlags.Instance | BindingFlags.FlattenHierarchy);
-            
+
             // Find the property on the setter interface
             _setterProperty = typeof(TRecord).GetProperty(propertyName,
                 BindingFlags.Public | BindingFlags.Instance | BindingFlags.FlattenHierarchy);
@@ -62,7 +62,29 @@ namespace ForwardChanges.PropertyHandlers.General
             try
             {
                 var value = _getterProperty.GetValue(typedRecord);
-                return value as IFormLinkNullableGetter<TTarget>;
+                IFormLinkNullableGetter<TTarget>? castValue = null;
+
+                if (value is IFormLinkNullableGetter<TTarget> nullableValue)
+                {
+                    castValue = nullableValue.FormKey.IsNull ? null : nullableValue;
+                }
+                else if (value is IFormLinkGetter<TTarget> nonNullableValue)
+                {
+                    castValue = nonNullableValue.FormKey.IsNull
+                        ? null
+                        : new FormLinkNullable<TTarget>(nonNullableValue.FormKey);
+                }
+                else if (value != null)
+                {
+                    // Reflection fallback for edge cases where runtime type doesn't directly match generic interfaces.
+                    var formKeyProperty = value.GetType().GetProperty("FormKey", BindingFlags.Public | BindingFlags.Instance);
+                    if (formKeyProperty?.GetValue(value) is FormKey reflectedFormKey && !reflectedFormKey.IsNull)
+                    {
+                        castValue = new FormLinkNullable<TTarget>(reflectedFormKey);
+                    }
+                }
+
+                return castValue;
             }
             catch (Exception ex)
             {
@@ -87,37 +109,85 @@ namespace ForwardChanges.PropertyHandlers.General
 
             try
             {
+                var currentValue = _setterProperty.GetValue(typedRecord);
+
                 if (value != null && !value.FormKey.IsNull)
                 {
-                    // Create a new FormLinkNullable with the FormKey
-                    var formLinkNullableType = typeof(FormLinkNullable<>).MakeGenericType(typeof(TTarget));
-                    var constructor = formLinkNullableType.GetConstructor(new[] { typeof(FormKey) });
+                    // Prefer mutating existing link object (works for both FormLink and FormLinkNullable)
+                    if (currentValue != null)
+                    {
+                        var setToFormKey = currentValue.GetType().GetMethod("SetTo", new[] { typeof(FormKey) });
+                        if (setToFormKey != null)
+                        {
+                            setToFormKey.Invoke(currentValue, new object[] { value.FormKey });
+                            return;
+                        }
+                    }
+
+                    // Fallback: create a new link object matching property type (nullable or non-nullable)
+                    var propertyType = _setterProperty.PropertyType;
+                    var concreteLinkType = propertyType;
+                    if (propertyType.IsInterface || propertyType.IsAbstract)
+                    {
+                        concreteLinkType = typeof(FormLink<>).MakeGenericType(typeof(TTarget));
+                    }
+
+                    var constructor = concreteLinkType.GetConstructor(new[] { typeof(FormKey) });
+                    if (constructor == null)
+                    {
+                        var nullableType = typeof(FormLinkNullable<>).MakeGenericType(typeof(TTarget));
+                        constructor = nullableType.GetConstructor(new[] { typeof(FormKey) });
+                        if (constructor != null)
+                        {
+                            concreteLinkType = nullableType;
+                        }
+                    }
+
                     if (constructor != null)
                     {
                         var newFormLink = constructor.Invoke(new object[] { value.FormKey });
                         _setterProperty.SetValue(typedRecord, newFormLink);
+                        return;
                     }
-                    else
-                    {
-                        Console.WriteLine($"Error: Could not find constructor for FormLinkNullable<{typeof(TTarget).Name}>");
-                    }
+
+                    Console.WriteLine($"Error: Could not construct link value for property '{PropertyName}'");
                 }
                 else
                 {
-                    // Clear the FormLink - try to call Clear() method if available
-                    var currentValue = _setterProperty.GetValue(typedRecord);
+                    // Clear the FormLink - prefer SetTo(FormKey.Null), then Clear(), then null assignment.
                     if (currentValue != null)
                     {
+                        var setToFormKey = currentValue.GetType().GetMethod("SetTo", new[] { typeof(FormKey) });
+                        if (setToFormKey != null)
+                        {
+                            setToFormKey.Invoke(currentValue, new object[] { FormKey.Null });
+                            return;
+                        }
+
                         var clearMethod = currentValue.GetType().GetMethod("Clear");
                         if (clearMethod != null)
                         {
                             clearMethod.Invoke(currentValue, null);
+                            return;
                         }
-                        else
-                        {
-                            // Fallback: set to null if Clear() is not available
-                            _setterProperty.SetValue(typedRecord, null);
-                        }
+                    }
+
+                    // If property cannot be null, create a default null-form link instance.
+                    var propertyType = _setterProperty.PropertyType;
+                    var nullableType = typeof(FormLinkNullable<>).MakeGenericType(typeof(TTarget));
+                    var nonNullableType = typeof(FormLink<>).MakeGenericType(typeof(TTarget));
+
+                    if (propertyType == nonNullableType || (propertyType.IsInterface && propertyType.IsGenericType && propertyType.GetGenericTypeDefinition() == typeof(IFormLinkGetter<>)))
+                    {
+                        _setterProperty.SetValue(typedRecord, System.Activator.CreateInstance(nonNullableType, FormKey.Null));
+                    }
+                    else if (propertyType == nullableType || (propertyType.IsInterface && propertyType.IsGenericType && propertyType.GetGenericTypeDefinition() == typeof(IFormLinkNullableGetter<>)))
+                    {
+                        _setterProperty.SetValue(typedRecord, System.Activator.CreateInstance(nullableType));
+                    }
+                    else
+                    {
+                        _setterProperty.SetValue(typedRecord, null);
                     }
                 }
             }

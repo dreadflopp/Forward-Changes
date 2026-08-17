@@ -1,6 +1,7 @@
 using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Strings;
+using ForwardChanges;
 using ForwardChanges.PropertyHandlers.Abstracts;
 
 namespace ForwardChanges.PropertyHandlers.Weapon
@@ -43,7 +44,7 @@ namespace ForwardChanges.PropertyHandlers.Weapon
             if (value1 == null && value2 == null) return true;
             if (value1 == null || value2 == null) return false;
 
-            return value1.String == value2.String;
+            return StringComparisonHelper.EqualsNormalized(value1.String, value2.String);
         }
 
         public override string FormatValue(object? value)

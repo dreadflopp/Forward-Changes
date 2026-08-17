@@ -4,6 +4,7 @@ using Mutagen.Bethesda.Plugins.Cache;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Strings;
 using Mutagen.Bethesda.Synthesis;
+using ForwardChanges;
 using ForwardChanges.PropertyHandlers.Abstracts;
 using ForwardChanges.Contexts;
 using System.Linq;
@@ -148,7 +149,7 @@ namespace ForwardChanges.PropertyHandlers.Quest
         {
             if (text1 == null && text2 == null) return true;
             if (text1 == null || text2 == null) return false;
-            return text1.String == text2.String;
+            return StringComparisonHelper.EqualsNormalized(text1.String, text2.String);
         }
 
         private bool AreObjectiveTargetsEqual(IReadOnlyList<IQuestObjectiveTargetGetter> targets1, IReadOnlyList<IQuestObjectiveTargetGetter> targets2)

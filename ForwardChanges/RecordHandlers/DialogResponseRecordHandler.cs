@@ -1,8 +1,10 @@
 using Mutagen.Bethesda;
 using Mutagen.Bethesda.Synthesis;
 using Mutagen.Bethesda.Skyrim;
+using Mutagen.Bethesda.Plugins;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Plugins.Cache;
+using Mutagen.Bethesda.Strings;
 using ForwardChanges.PropertyHandlers.DialogResponse;
 using ForwardChanges.PropertyHandlers.General;
 using ForwardChanges.RecordHandlers.Abstracts;
@@ -21,19 +23,19 @@ namespace ForwardChanges.RecordHandlers
             { "VirtualMachineAdapter", new VirtualMachineAdapterHandler() },
             { "Flags", new FlagsHandler() },
             { "MajorFlags", new MajorFlagsHandler() },
-            { "ResetHours", new ResetHoursHandler() },
-            { "Topic", new TopicHandler() },
-            { "PreviousDialog", new PreviousDialogHandler() },
-            { "FavorLevel", new FavorLevelHandler() },
-            { "LinkTo", new LinkToHandler() },
-            { "ResponseData", new ResponseDataHandler() },
-            { "Responses", new ResponsesHandler() },
+            { "ResetHours", new SimpleReflectionPropertyHandler<float, IDialogResponses, IDialogResponsesGetter>("Flags.ResetHours") },
+            { "Topic", new SimpleReflectionFormLinkPropertyHandler<IDialogTopicGetter, IDialogResponses, IDialogResponsesGetter>("Topic") },
+            { "PreviousDialog", new SimpleReflectionFormLinkPropertyHandler<IDialogResponsesGetter, IDialogResponses, IDialogResponsesGetter>("PreviousDialog") },
+            { "FavorLevel", new SimpleReflectionPropertyHandler<FavorLevel?, IDialogResponses, IDialogResponsesGetter>("FavorLevel") },
+            { "LinkTo", new SimpleReflectionListPropertyHandler<IFormLinkGetter<IDialogGetter>, IDialogResponses, IDialogResponsesGetter>("LinkTo") },
+            { "ResponseData", new SimpleReflectionFormLinkPropertyHandler<IDialogResponsesGetter, IDialogResponses, IDialogResponsesGetter>("ResponseData") },
+            { "Responses", new ResponsesHandler(normalizeTrailingWhitespace: true) },
             { "Conditions", new ConditionsHandler() },
 
-            { "Prompt", new PromptHandler() },
-            { "Speaker", new SpeakerHandler() },
-            { "WalkAwayTopic", new WalkAwayTopicHandler() },
-            { "AudioOutputOverride", new AudioOutputOverrideHandler() }
+            { "Prompt", new ComplexReflectionPropertyHandler<ITranslatedStringGetter, IDialogResponses, IDialogResponsesGetter>("Prompt") },
+            { "Speaker", new SimpleReflectionFormLinkPropertyHandler<INpcGetter, IDialogResponses, IDialogResponsesGetter>("Speaker") },
+            { "WalkAwayTopic", new SimpleReflectionFormLinkPropertyHandler<IDialogTopicGetter, IDialogResponses, IDialogResponsesGetter>("WalkAwayTopic") },
+            { "AudioOutputOverride", new SimpleReflectionFormLinkPropertyHandler<ISoundOutputModelGetter, IDialogResponses, IDialogResponsesGetter>("AudioOutputOverride") }
         };
 
         public override IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter>[] GetRecordContexts(

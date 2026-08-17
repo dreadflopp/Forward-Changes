@@ -49,6 +49,14 @@ namespace ForwardChanges.PropertyHandlers.Cell
                    value1.LightFadeEnd == value2.LightFadeEnd &&
                    value1.Inherits == value2.Inherits;
         }
+
+        public override string FormatValue(object? value)
+        {
+            if (value is ICellLightingGetter l)
+            {
+                return $"Amb:{l.AmbientColor} Dir:{l.DirectionalColor} FogN:{l.FogNear:F1} FogF:{l.FogFar:F1}";
+            }
+            return base.FormatValue(value);
+        }
     }
 }
-

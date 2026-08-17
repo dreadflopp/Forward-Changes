@@ -2,6 +2,7 @@ using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Plugins.Cache;
 using Mutagen.Bethesda.Strings;
+using ForwardChanges;
 using ForwardChanges.PropertyHandlers.Abstracts;
 using ForwardChanges.PropertyHandlers.Interfaces;
 
@@ -54,8 +55,7 @@ namespace ForwardChanges.PropertyHandlers.Spell
             if (value1 == null && value2 == null) return true;
             if (value1 == null || value2 == null) return false;
 
-            // Compare the string values
-            return value1.String == value2.String;
+            return StringComparisonHelper.EqualsNormalized(value1.String, value2.String);
         }
 
         public override string FormatValue(object? value)

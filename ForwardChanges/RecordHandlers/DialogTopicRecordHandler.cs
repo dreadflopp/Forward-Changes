@@ -1,6 +1,7 @@
 using Mutagen.Bethesda;
 using Mutagen.Bethesda.Synthesis;
 using Mutagen.Bethesda.Skyrim;
+using Mutagen.Bethesda.Plugins;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Plugins.Cache;
 using ForwardChanges.PropertyHandlers.General;
@@ -19,13 +20,13 @@ namespace ForwardChanges.RecordHandlers
             { "MajorRecordFlagsRaw", new MajorRecordFlagsRawHandler() },
             { "SkyrimMajorRecordFlags", new SkyrimMajorRecordFlagsHandler() },
             { "Name", new NameHandler() },
-            { "Priority", new PriorityHandler() },
-            { "Branch", new BranchHandler() },
-            { "Quest", new QuestHandler() },
+            { "Priority", new SimpleReflectionPropertyHandler<float, IDialogTopic, IDialogTopicGetter>("Priority", 0.001f) },
+            { "Branch", new SimpleReflectionFormLinkPropertyHandler<IDialogBranchGetter, IDialogTopic, IDialogTopicGetter>("Branch") },
+            { "Quest", new SimpleReflectionFormLinkPropertyHandler<IQuestGetter, IDialogTopic, IDialogTopicGetter>("Quest") },
             { "TopicFlags", new TopicFlagsHandler() },
-            { "Category", new CategoryHandler() },
-            { "Subtype", new SubtypeHandler() },
-            { "SubtypeName", new SubtypeNameHandler() }
+            { "Category", new SimpleReflectionPropertyHandler<DialogTopic.CategoryEnum, IDialogTopic, IDialogTopicGetter>("Category") },
+            { "Subtype", new SimpleReflectionPropertyHandler<DialogTopic.SubtypeEnum, IDialogTopic, IDialogTopicGetter>("Subtype") },
+            { "SubtypeName", new SimpleReflectionPropertyHandler<RecordType, IDialogTopic, IDialogTopicGetter>("SubtypeName") }
         };
 
         public override IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter>[] GetRecordContexts(

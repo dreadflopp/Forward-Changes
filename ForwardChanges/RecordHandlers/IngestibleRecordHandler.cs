@@ -1,6 +1,7 @@
 using Mutagen.Bethesda;
 using Mutagen.Bethesda.Synthesis;
 using Mutagen.Bethesda.Skyrim;
+using Mutagen.Bethesda.Strings;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Plugins.Cache;
 using ForwardChanges.PropertyHandlers.Ingestible;
@@ -11,6 +12,10 @@ using System;
 
 namespace ForwardChanges.RecordHandlers
 {
+    // Migration note:
+    // - Generalized: Description, PickUpSound, PutDownSound, EquipmentType, Addiction, AddictionChance, ConsumeSound.
+    // - Kept specialized: Destructible, Icons, Effects, Flags, MajorFlags.
+    // - Rationale: generalized properties are direct reflection-safe reads/writes; kept handlers contain record-specific or flag-specific behavior.
     public class IngestibleRecordHandler : AbstractRecordHandler
     {
         public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()
@@ -19,19 +24,19 @@ namespace ForwardChanges.RecordHandlers
             { "MajorRecordFlagsRaw", new MajorRecordFlagsRawHandler() },
             { "SkyrimMajorRecordFlags", new SkyrimMajorRecordFlagsHandler() },
             { "Name", new NameHandler() },
-            { "Description", new DescriptionHandler() },
+            { "Description", new ComplexReflectionPropertyHandler<ITranslatedStringGetter, IIngestible, IIngestibleGetter>("Description") },
             { "Model", new ModelHandler() },
             { "Destructible", new DestructibleHandler() },
             { "Icons", new IconsHandler() },
-            { "PickUpSound", new PickUpSoundHandler() },
-            { "PutDownSound", new PutDownSoundHandler() },
-            { "EquipmentType", new EquipmentTypeHandler() },
+            { "PickUpSound", new SimpleReflectionFormLinkPropertyHandler<ISoundDescriptorGetter, IIngestible, IIngestibleGetter>("PickUpSound") },
+            { "PutDownSound", new SimpleReflectionFormLinkPropertyHandler<ISoundDescriptorGetter, IIngestible, IIngestibleGetter>("PutDownSound") },
+            { "EquipmentType", new SimpleReflectionFormLinkPropertyHandler<IEquipTypeGetter, IIngestible, IIngestibleGetter>("EquipmentType") },
             { "Weight", new WeightHandler() },
             { "Value", new ValueHandler() },
             { "Keywords", new KeywordListHandler() },
-            { "Addiction", new AddictionHandler() },
-            { "AddictionChance", new AddictionChanceHandler() },
-            { "ConsumeSound", new ConsumeSoundHandler() },
+            { "Addiction", new SimpleReflectionFormLinkPropertyHandler<ISkyrimMajorRecordGetter, IIngestible, IIngestibleGetter>("Addiction") },
+            { "AddictionChance", new SimpleReflectionPropertyHandler<float, IIngestible, IIngestibleGetter>("AddictionChance", 0.001f) },
+            { "ConsumeSound", new SimpleReflectionFormLinkPropertyHandler<ISoundDescriptorGetter, IIngestible, IIngestibleGetter>("ConsumeSound") },
             { "Effects", new EffectHandler() },
             { "Flags", new FlagsHandler() },
             { "MajorFlags", new MajorFlagsHandler() }

@@ -57,5 +57,14 @@ namespace ForwardChanges.PropertyHandlers.General
             // Compare the First and Second properties
             return value1.First.Equals(value2.First) && value1.Second.Equals(value2.Second);
         }
+
+        public override string FormatValue(object? value)
+        {
+            if (value is IObjectBoundsGetter bounds)
+            {
+                return $"ObjectBounds(First: {bounds.First}, Second: {bounds.Second})";
+            }
+            return value?.ToString() ?? "ObjectBounds()";
+        }
     }
 }

@@ -1,6 +1,7 @@
 using Mutagen.Bethesda;
 using Mutagen.Bethesda.Synthesis;
 using Mutagen.Bethesda.Skyrim;
+using Mutagen.Bethesda.Strings;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Plugins.Cache;
 using ForwardChanges.PropertyHandlers.Book;
@@ -23,18 +24,18 @@ namespace ForwardChanges.RecordHandlers
             { "Model", new ModelHandler() },
             { "Value", new ValueHandler() },
             { "Weight", new WeightHandler() },
-            { "Description", new DescriptionHandler() },
-            { "PickUpSound", new PickUpSoundHandler() },
-            { "PutDownSound", new PutDownSoundHandler() },
+            { "Description", new ComplexReflectionPropertyHandler<ITranslatedStringGetter, IBook, IBookGetter>("Description") },
+            { "PickUpSound", new SimpleReflectionFormLinkPropertyHandler<ISoundDescriptorGetter, IBook, IBookGetter>("PickUpSound") },
+            { "PutDownSound", new SimpleReflectionFormLinkPropertyHandler<ISoundDescriptorGetter, IBook, IBookGetter>("PutDownSound") },
             { "Keywords", new KeywordListHandler() },
-            { "BookText", new BookTextHandler() },
+            { "BookText", new ComplexReflectionPropertyHandler<ITranslatedStringGetter, IBook, IBookGetter>("BookText") },
             { "Destructible", new DestructibleHandler() },
-            { "Flags", new FlagsHandler() },
-            { "Type", new TypeHandler() },
-            { "Unused", new UnusedHandler() },
+            { "Flags", new SimpleReflectionFlagPropertyHandler<Mutagen.Bethesda.Skyrim.Book.Flag, IBook, IBookGetter>("Flags") },
+            { "Type", new SimpleReflectionPropertyHandler<Mutagen.Bethesda.Skyrim.Book.BookType, IBook, IBookGetter>("Type") },
+            { "Unused", new SimpleReflectionPropertyHandler<ushort, IBook, IBookGetter>("Unused") },
             { "Teaches", new TeachesHandler() },
-            { "InventoryArt", new InventoryArtHandler() },
-            { "VirtualMachineAdapter", new VirtualMachineAdapterHandler() },
+            { "InventoryArt", new SimpleReflectionFormLinkPropertyHandler<IStaticGetter, IBook, IBookGetter>("InventoryArt") },
+            { "VirtualMachineAdapter", new SimpleReflectionVirtualMachineAdapterHandler<IBook, IBookGetter>() },
             { "Icons", new IconsHandler() }
         };
 

@@ -6,6 +6,7 @@ using Noggog;
 using ForwardChanges.Contexts;
 using ForwardChanges.PropertyHandlers.Interfaces;
 using ForwardChanges.Contexts.Interfaces;
+using ForwardChanges;
 using System.Runtime.InteropServices;
 
 namespace ForwardChanges.PropertyHandlers.Abstracts
@@ -22,6 +23,12 @@ namespace ForwardChanges.PropertyHandlers.Abstracts
         {
             if (value1 == null && value2 == null) return true;
             if (value1 == null || value2 == null) return false;
+
+            if (value1 is string s1 && value2 is string s2)
+            {
+                return StringComparisonHelper.EqualsNormalized(s1, s2);
+            }
+
             return Equals(value1, value2);
         }
 
@@ -120,7 +127,7 @@ namespace ForwardChanges.PropertyHandlers.Abstracts
                      !AreValuesEqual(recordValue, forwardValue))
             {
                 var currentMod = state.LoadOrder[context.ModKey].Mod;
-                var canModify = currentMod?.MasterReferences.Any(m => m.Master.ToString() == simplePropertyContext.ForwardValueContext.OwnerMod) == true;
+                var canModify = currentMod?.MasterReferences.Any(m => string.Equals(m.Master.ToString(), simplePropertyContext.ForwardValueContext.OwnerMod, StringComparison.OrdinalIgnoreCase)) == true;
 
                 if (canModify)
                 {
@@ -151,7 +158,8 @@ namespace ForwardChanges.PropertyHandlers.Abstracts
                 throw new InvalidOperationException($"Property context is not a simple property context for {PropertyName}");
             }
             simplePropertyContext.OriginalValueContext = new SimplePropertyValueContext<T>(GetValue(originalContext.Record), originalContext.ModKey.ToString());
-            simplePropertyContext.ForwardValueContext = new SimplePropertyValueContext<T>(GetValue(winningContext.Record), winningContext.ModKey.ToString());
+            // Forward value starts as original; it is updated as we process mods from original toward winning (additions/reversions).
+            simplePropertyContext.ForwardValueContext = new SimplePropertyValueContext<T>(GetValue(originalContext.Record), originalContext.ModKey.ToString());
             simplePropertyContext.IsResolved = false;
         }
     }

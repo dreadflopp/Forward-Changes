@@ -64,21 +64,24 @@ namespace ForwardChanges.PropertyHandlers.Static
             if (value1 == null && value2 == null) return true;
             if (value1 == null || value2 == null) return false;
 
-            // Compare File
-            if (value1.File != value2.File) return false;
+            // Compare File - use DataRelativePath for value-based comparison (avoids reference equality from different overlays)
+            if (value1.File.DataRelativePath != value2.File.DataRelativePath) return false;
 
-            // Compare AlternateTextures
-            if (value1.AlternateTextures == null && value2.AlternateTextures == null) return true;
-            if (value1.AlternateTextures == null || value2.AlternateTextures == null) return false;
-            if (value1.AlternateTextures.Count != value2.AlternateTextures.Count) return false;
+            // Compare AlternateTextures - treat null and empty as equivalent
+            var alt1Count = value1.AlternateTextures?.Count ?? 0;
+            var alt2Count = value2.AlternateTextures?.Count ?? 0;
+            if (alt1Count != alt2Count) return false;
 
-            for (int i = 0; i < value1.AlternateTextures.Count; i++)
+            if (alt1Count > 0 && value1.AlternateTextures != null && value2.AlternateTextures != null)
             {
-                var alt1 = value1.AlternateTextures[i];
-                var alt2 = value2.AlternateTextures[i];
-                if (alt1.Name != alt2.Name || alt1.NewTexture != alt2.NewTexture || alt1.Index != alt2.Index)
+                for (int i = 0; i < alt1Count; i++)
                 {
-                    return false;
+                    var alt1 = value1.AlternateTextures[i];
+                    var alt2 = value2.AlternateTextures[i];
+                    if (alt1.Name != alt2.Name || alt1.NewTexture?.FormKey != alt2.NewTexture?.FormKey || alt1.Index != alt2.Index)
+                    {
+                        return false;
+                    }
                 }
             }
 
@@ -86,3 +89,4 @@ namespace ForwardChanges.PropertyHandlers.Static
         }
     }
 }
+
