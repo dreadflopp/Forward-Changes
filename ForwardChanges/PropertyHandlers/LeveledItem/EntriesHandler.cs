@@ -6,10 +6,10 @@ using Mutagen.Bethesda.Plugins.Cache;
 using Mutagen.Bethesda.Plugins;
 using Noggog;
 using ForwardChanges.PropertyHandlers.Abstracts;
+using ForwardChanges.PropertyHandlers.General;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 
 namespace ForwardChanges.PropertyHandlers.LeveledItem
 {
@@ -146,7 +146,7 @@ namespace ForwardChanges.PropertyHandlers.LeveledItem
             }
 
             // Compare Owner
-            if (!AreOwnersEqual(extraData1.Owner, extraData2.Owner))
+            if (!OwnerTargetUtility.AreEqual(extraData1.Owner, extraData2.Owner))
             {
                 return false;
             }
@@ -154,129 +154,14 @@ namespace ForwardChanges.PropertyHandlers.LeveledItem
             return true;
         }
 
-        private bool AreOwnersEqual(IOwnerTargetGetter? owner1, IOwnerTargetGetter? owner2)
-        {
-            if (owner1 == null && owner2 == null) return true;
-            if (owner1 == null || owner2 == null) return false;
-
-            var type1 = owner1.GetType();
-            var type2 = owner2.GetType();
-
-            // Different owner types are never equal
-            if (type1 != type2)
-            {
-                return false;
-            }
-
-            // Handle NoOwner - compare raw data fields
-            if (type1.Name == "NoOwner")
-            {
-                var rawOwnerData1Prop = type1.GetProperty("RawOwnerData");
-                var rawOwnerData2Prop = type2.GetProperty("RawOwnerData");
-                var rawVariableData1Prop = type1.GetProperty("RawVariableData");
-                var rawVariableData2Prop = type2.GetProperty("RawVariableData");
-
-                uint rawOwnerData1 = 0, rawOwnerData2 = 0;
-                uint rawVariableData1 = 0, rawVariableData2 = 0;
-
-                if (rawOwnerData1Prop != null) rawOwnerData1 = (uint)(rawOwnerData1Prop.GetValue(owner1) ?? 0);
-                if (rawOwnerData2Prop != null) rawOwnerData2 = (uint)(rawOwnerData2Prop.GetValue(owner2) ?? 0);
-                if (rawVariableData1Prop != null) rawVariableData1 = (uint)(rawVariableData1Prop.GetValue(owner1) ?? 0);
-                if (rawVariableData2Prop != null) rawVariableData2 = (uint)(rawVariableData2Prop.GetValue(owner2) ?? 0);
-
-                return rawOwnerData1 == rawOwnerData2 && rawVariableData1 == rawVariableData2;
-            }
-
-            // Handle FactionOwner
-            if (type1.Name == "FactionOwner")
-            {
-                var faction1 = (IFactionOwnerGetter)owner1;
-                var faction2 = (IFactionOwnerGetter)owner2;
-
-                return faction1.Faction.FormKey == faction2.Faction.FormKey &&
-                       faction1.RequiredRank == faction2.RequiredRank;
-            }
-
-            // Handle NpcOwner
-            if (type1.Name == "NpcOwner")
-            {
-                var npc1 = (INpcOwnerGetter)owner1;
-                var npc2 = (INpcOwnerGetter)owner2;
-
-                return npc1.Npc.FormKey == npc2.Npc.FormKey &&
-                       npc1.Global.FormKey == npc2.Global.FormKey;
-            }
-
-            // For unknown owner types, return false (conservative approach)
-            return false;
-        }
-
         private ExtraData DeepCopyExtraData(IExtraDataGetter extraData)
         {
             var newExtraData = new ExtraData
             {
                 ItemCondition = extraData.ItemCondition,
-                Owner = DeepCopyOwner(extraData.Owner)
+                Owner = OwnerTargetUtility.DeepCopy(extraData.Owner)
             };
             return newExtraData;
-        }
-
-        private OwnerTarget DeepCopyOwner(IOwnerTargetGetter owner)
-        {
-            OwnerTarget? copiedOwner = null;
-
-            if (owner is IFactionOwnerGetter factionOwner)
-            {
-                copiedOwner = new FactionOwner
-                {
-                    Faction = new FormLink<IFactionGetter>(factionOwner.Faction.FormKey),
-                    RequiredRank = factionOwner.RequiredRank
-                };
-            }
-            else if (owner is INpcOwnerGetter npcOwner)
-            {
-                copiedOwner = new NpcOwner
-                {
-                    Npc = new FormLink<INpcGetter>(npcOwner.Npc.FormKey),
-                    Global = new FormLink<IGlobalGetter>(npcOwner.Global.FormKey)
-                };
-            }
-            else if (owner is INoOwnerGetter)
-            {
-                copiedOwner = new NoOwner();
-            }
-            else
-            {
-                // Unknown type - use NoOwner as safe default
-                copiedOwner = new NoOwner();
-            }
-
-            // Preserve raw data fields if they exist
-            if (copiedOwner != null)
-            {
-                var originalOwnerType = owner.GetType();
-                var rawOwnerDataProp = originalOwnerType.GetProperty("RawOwnerData");
-                var rawVariableDataProp = originalOwnerType.GetProperty("RawVariableData");
-
-                if (rawOwnerDataProp != null && rawVariableDataProp != null)
-                {
-                    var copiedOwnerType = copiedOwner.GetType();
-                    var copiedRawOwnerDataProp = copiedOwnerType.GetProperty("RawOwnerData");
-                    var copiedRawVariableDataProp = copiedOwnerType.GetProperty("RawVariableData");
-
-                    if (copiedRawOwnerDataProp != null && copiedRawVariableDataProp != null &&
-                        copiedRawOwnerDataProp.CanWrite && copiedRawVariableDataProp.CanWrite)
-                    {
-                        uint rawOwnerData = (uint)(rawOwnerDataProp.GetValue(owner) ?? 0);
-                        uint rawVariableData = (uint)(rawVariableDataProp.GetValue(owner) ?? 0);
-
-                        copiedRawOwnerDataProp.SetValue(copiedOwner, rawOwnerData);
-                        copiedRawVariableDataProp.SetValue(copiedOwner, rawVariableData);
-                    }
-                }
-            }
-
-            return copiedOwner ?? new NoOwner();
         }
 
         private string GetReferenceSortKey(ILeveledItemEntryGetter entry)

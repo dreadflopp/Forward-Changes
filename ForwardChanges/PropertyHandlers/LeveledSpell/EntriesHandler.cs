@@ -8,6 +8,7 @@ using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Skyrim;
 using Noggog;
 using ForwardChanges.PropertyHandlers.Abstracts;
+using ForwardChanges.PropertyHandlers.General;
 
 namespace ForwardChanges.PropertyHandlers.LeveledSpell
 {
@@ -128,7 +129,8 @@ namespace ForwardChanges.PropertyHandlers.LeveledSpell
         {
             if (extraData1 == null && extraData2 == null) return true;
             if (extraData1 == null || extraData2 == null) return false;
-            return Math.Abs(extraData1.ItemCondition - extraData2.ItemCondition) <= 0.0001f;
+            return Math.Abs(extraData1.ItemCondition - extraData2.ItemCondition) <= 0.0001f &&
+                   OwnerTargetUtility.AreEqual(extraData1.Owner, extraData2.Owner);
         }
 
         private ExtraData DeepCopyExtraData(IExtraDataGetter extraData)
@@ -136,31 +138,8 @@ namespace ForwardChanges.PropertyHandlers.LeveledSpell
             return new ExtraData
             {
                 ItemCondition = extraData.ItemCondition,
-                Owner = extraData.Owner == null ? new NoOwner() : DeepCopyOwner(extraData.Owner)
+                Owner = OwnerTargetUtility.DeepCopy(extraData.Owner)
             };
-        }
-
-        private OwnerTarget DeepCopyOwner(IOwnerTargetGetter owner)
-        {
-            if (owner is INpcOwnerGetter npcOwner)
-            {
-                return new NpcOwner
-                {
-                    Npc = new FormLink<INpcGetter>(npcOwner.Npc.FormKey),
-                    Global = new FormLink<IGlobalGetter>(npcOwner.Global.FormKey)
-                };
-            }
-
-            if (owner is IFactionOwnerGetter factionOwner)
-            {
-                return new FactionOwner
-                {
-                    Faction = new FormLink<IFactionGetter>(factionOwner.Faction.FormKey),
-                    RequiredRank = factionOwner.RequiredRank
-                };
-            }
-
-            return new NoOwner();
         }
 
         private string GetReferenceSortKey(ILeveledSpellEntryGetter entry)

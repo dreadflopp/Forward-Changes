@@ -12,6 +12,10 @@ using ForwardChanges.PropertyHandlers.Interfaces;
 
 namespace ForwardChanges.RecordHandlers
 {
+    // Migration note:
+    // - Generalized: Mutagen 0.54.4 Location Added/Static/Removed collections use the shared reflection list handlers.
+    // - Specialized: none; flags, names, keywords, links, and scalar values retain their project-approved shared handlers.
+    // - Rationale: only Mutagen's renamed collection surface changed; existing handler behavior remains appropriate.
     public class LocationRecordHandler : AbstractRecordHandler
     {
         public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()
@@ -21,22 +25,22 @@ namespace ForwardChanges.RecordHandlers
             { "SkyrimMajorRecordFlags", new SkyrimMajorRecordFlagsHandler() },
             { "Name", new NameHandler() },
             { "Keywords", new KeywordListHandler() },
-            { "ActorCellPersistentReferences", new SimpleReflectionListPropertyHandler<ILocationReferenceGetter, ILocation, ILocationGetter>("ActorCellPersistentReferences") },
-            { "LocationCellPersistentReferences", new SimpleReflectionListPropertyHandler<ILocationReferenceGetter, ILocation, ILocationGetter>("LocationCellPersistentReferences") },
-            { "ReferenceCellPersistentReferences", new SimpleReflectionListPropertyHandler<IFormLinkGetter<IPlacedSimpleGetter>, ILocation, ILocationGetter>("ReferenceCellPersistentReferences") },
-            { "ActorCellUniques", new SimpleReflectionListPropertyHandler<ILocationCellUniqueGetter, ILocation, ILocationGetter>("ActorCellUniques") },
-            { "LocationCellUniques", new SimpleReflectionListPropertyHandler<ILocationCellUniqueGetter, ILocation, ILocationGetter>("LocationCellUniques") },
-            { "ReferenceCellUnique", new SimpleReflectionListPropertyHandler<IFormLinkGetter<INpcGetter>, ILocation, ILocationGetter>("ReferenceCellUnique") },
-            { "ActorCellStaticReferences", new SimpleReflectionListPropertyHandler<ILocationCellStaticReferenceGetter, ILocation, ILocationGetter>("ActorCellStaticReferences") },
-            { "LocationCellStaticReferences", new SimpleReflectionListPropertyHandler<ILocationCellStaticReferenceGetter, ILocation, ILocationGetter>("LocationCellStaticReferences") },
-            { "ReferenceCellStaticReferences", new SimpleReflectionListPropertyHandler<IFormLinkGetter<IPlacedSimpleGetter>, ILocation, ILocationGetter>("ReferenceCellStaticReferences") },
-            { "ActorCellEncounterCell", new SimpleReflectionListPropertyHandler<ILocationCoordinateGetter, ILocation, ILocationGetter>("ActorCellEncounterCell") },
-            { "LocationCellEncounterCell", new SimpleReflectionListPropertyHandler<ILocationCoordinateGetter, ILocation, ILocationGetter>("LocationCellEncounterCell") },
-            { "ReferenceCellEncounterCell", new SimpleReflectionListPropertyHandler<ILocationCoordinateGetter, ILocation, ILocationGetter>("ReferenceCellEncounterCell") },
-            { "ActorCellMarkerReference", new SimpleReflectionListPropertyHandler<IFormLinkGetter<IPlacedGetter>, ILocation, ILocationGetter>("ActorCellMarkerReference") },
-            { "LocationCellMarkerReference", new SimpleReflectionListPropertyHandler<IFormLinkGetter<IPlacedGetter>, ILocation, ILocationGetter>("LocationCellMarkerReference") },
-            { "ActorCellEnablePoint", new SimpleReflectionListPropertyHandler<ILocationCellEnablePointGetter, ILocation, ILocationGetter>("ActorCellEnablePoint") },
-            { "LocationCellEnablePoint", new SimpleReflectionListPropertyHandler<ILocationCellEnablePointGetter, ILocation, ILocationGetter>("LocationCellEnablePoint") },
+            { "PersistentActorReferencesAdded", new SimpleReflectionListPropertyHandler<IPersistentActorReferenceGetter, ILocation, ILocationGetter>("PersistentActorReferencesAdded", canBeNull: true) },
+            { "PersistentActorReferencesStatic", new SimpleReflectionListPropertyHandler<IPersistentActorReferenceGetter, ILocation, ILocationGetter>("PersistentActorReferencesStatic", canBeNull: true) },
+            { "PersistentActorReferencesRemoved", new SimpleReflectionListPropertyHandler<IFormLinkGetter<IPlacedSimpleGetter>, ILocation, ILocationGetter>("PersistentActorReferencesRemoved", canBeNull: true) },
+            { "UniqueActorReferencesAdded", new SimpleReflectionListPropertyHandler<IUniqueActorReferenceGetter, ILocation, ILocationGetter>("UniqueActorReferencesAdded", canBeNull: true) },
+            { "UniqueActorReferencesStatic", new SimpleReflectionListPropertyHandler<IUniqueActorReferenceGetter, ILocation, ILocationGetter>("UniqueActorReferencesStatic", canBeNull: true) },
+            { "UniqueActorReferencesRemoved", new SimpleReflectionListPropertyHandler<IFormLinkGetter<INpcGetter>, ILocation, ILocationGetter>("UniqueActorReferencesRemoved", canBeNull: true) },
+            { "LocationRefTypeReferencesAdded", new SimpleReflectionListPropertyHandler<ILocationRefTypeReferenceGetter, ILocation, ILocationGetter>("LocationRefTypeReferencesAdded", canBeNull: true) },
+            { "LocationRefTypeReferencesStatic", new SimpleReflectionListPropertyHandler<ILocationRefTypeReferenceGetter, ILocation, ILocationGetter>("LocationRefTypeReferencesStatic", canBeNull: true) },
+            { "LocationRefTypeReferencesRemoved", new SimpleReflectionListPropertyHandler<IFormLinkGetter<IPlacedSimpleGetter>, ILocation, ILocationGetter>("LocationRefTypeReferencesRemoved", canBeNull: true) },
+            { "WorldspaceCellsAdded", new SimpleReflectionListPropertyHandler<ILocationCoordinateGetter, ILocation, ILocationGetter>("WorldspaceCellsAdded") },
+            { "WorldspaceCellsStatic", new SimpleReflectionListPropertyHandler<ILocationCoordinateGetter, ILocation, ILocationGetter>("WorldspaceCellsStatic") },
+            { "WorldspaceCellsRemoved", new SimpleReflectionListPropertyHandler<ILocationCoordinateGetter, ILocation, ILocationGetter>("WorldspaceCellsRemoved") },
+            { "InitiallyDisabledReferencesAdded", new SimpleReflectionListPropertyHandler<IFormLinkGetter<IPlacedGetter>, ILocation, ILocationGetter>("InitiallyDisabledReferencesAdded", canBeNull: true) },
+            { "InitiallyDisabledReferencesStatic", new SimpleReflectionListPropertyHandler<IFormLinkGetter<IPlacedGetter>, ILocation, ILocationGetter>("InitiallyDisabledReferencesStatic", canBeNull: true) },
+            { "EnableParentReferencesAdded", new SimpleReflectionListPropertyHandler<IEnableParentReferenceGetter, ILocation, ILocationGetter>("EnableParentReferencesAdded", canBeNull: true) },
+            { "EnableParentReferencesStatic", new SimpleReflectionListPropertyHandler<IEnableParentReferenceGetter, ILocation, ILocationGetter>("EnableParentReferencesStatic", canBeNull: true) },
             { "ParentLocation", new SimpleReflectionFormLinkPropertyHandler<ILocationGetter, ILocation, ILocationGetter>("ParentLocation") },
             { "Music", new SimpleReflectionFormLinkPropertyHandler<IMusicTypeGetter, ILocation, ILocationGetter>("Music") },
             { "UnreportedCrimeFaction", new SimpleReflectionFormLinkPropertyHandler<IFactionGetter, ILocation, ILocationGetter>("UnreportedCrimeFaction") },

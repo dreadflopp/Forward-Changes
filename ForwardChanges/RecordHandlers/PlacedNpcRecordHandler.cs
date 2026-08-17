@@ -13,6 +13,10 @@ using System;
 
 namespace ForwardChanges.RecordHandlers
 {
+    // Migration note:
+    // - Generalized: placed-NPC location links continue to use the shared reflection form-link handler.
+    // - Specialized: NPC placement/list behavior remains specialized; Mutagen 0.54.4 now exposes LocationReference as ILocationGetter.
+    // - Rationale: only the generated link target changed, so no record-specific behavior needed replacement.
     public class PlacedNpcRecordHandler : AbstractRecordHandler
     {
         public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()
@@ -33,7 +37,7 @@ namespace ForwardChanges.RecordHandlers
             { "ActivateParents", new ComplexReflectionPropertyHandler<IActivateParentsGetter, IPlacedNpc, IPlacedNpcGetter>("ActivateParents") },
             { "LinkedReferenceColor", new ComplexReflectionPropertyHandler<ILinkedReferenceColorGetter, IPlacedNpc, IPlacedNpcGetter>("LinkedReferenceColor") },
             { "PersistentLocation", new SimpleReflectionFormLinkPropertyHandler<ILocationGetter, IPlacedNpc, IPlacedNpcGetter>("PersistentLocation") },
-            { "LocationReference", new SimpleReflectionFormLinkPropertyHandler<ILocationRecordGetter, IPlacedNpc, IPlacedNpcGetter>("LocationReference") },
+            { "LocationReference", new SimpleReflectionFormLinkPropertyHandler<ILocationGetter, IPlacedNpc, IPlacedNpcGetter>("LocationReference") },
             { "IsIgnoredBySandbox", new SimpleReflectionPropertyHandler<bool, IPlacedNpc, IPlacedNpcGetter>("IsIgnoredBySandbox") },
             { "LocationRefTypes", new SimpleReflectionListPropertyHandler<IFormLinkGetter<ILocationReferenceTypeGetter>, IPlacedNpc, IPlacedNpcGetter>("LocationRefTypes", ListOrdering.PreserveModOrder, canBeNull: true) },
             { "HeadTrackingWeight", new SimpleReflectionPropertyHandler<float?, IPlacedNpc, IPlacedNpcGetter>("HeadTrackingWeight") },
@@ -43,7 +47,7 @@ namespace ForwardChanges.RecordHandlers
             { "Owner", new SimpleReflectionFormLinkPropertyHandler<IOwnerGetter, IPlacedNpc, IPlacedNpcGetter>("Owner") },
             { "FactionRank", new SimpleReflectionPropertyHandler<int?, IPlacedNpc, IPlacedNpcGetter>("FactionRank") },
             { "Emittance", new SimpleReflectionFormLinkPropertyHandler<IEmittanceGetter, IPlacedNpc, IPlacedNpcGetter>("Emittance") },
-            { "MultiboundReference", new SimpleReflectionFormLinkPropertyHandler<IPlacedObjectGetter, IPlacedNpc, IPlacedNpcGetter>("MultiboundReference") },
+            { "MultiBoundReference", new SimpleReflectionFormLinkPropertyHandler<IPlacedObjectGetter, IPlacedNpc, IPlacedNpcGetter>("MultiBoundReference") },
             { "IsIgnoredBySandbox2", new SimpleReflectionPropertyHandler<bool, IPlacedNpc, IPlacedNpcGetter>("IsIgnoredBySandbox2") },
             { "Scale", new SimpleReflectionPropertyHandler<float?, IPlacedNpc, IPlacedNpcGetter>("Scale") },
             { "Placement", new ComplexReflectionPropertyHandler<IPlacementGetter, IPlacedNpc, IPlacedNpcGetter>("Placement") },

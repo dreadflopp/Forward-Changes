@@ -92,11 +92,9 @@ namespace ForwardChanges.PropertyHandlers.General
 
                 // Handle nullable MemorySlice<byte>?
                 Type? underlyingType = null;
-                bool isNullable = false;
                 if (propertyType.IsGenericType && propertyType.GetGenericTypeDefinition() == typeof(Nullable<>))
                 {
                     underlyingType = propertyType.GetGenericArguments()[0];
-                    isNullable = true;
                 }
                 else
                 {

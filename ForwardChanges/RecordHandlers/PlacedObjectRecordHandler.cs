@@ -15,6 +15,10 @@ using Noggog;
 
 namespace ForwardChanges.RecordHandlers
 {
+    // Migration note:
+    // - Generalized: placed-object location links continue to use the shared reflection form-link handler.
+    // - Specialized: placed-object complex/list behavior remains specialized; Mutagen 0.54.4 now exposes LocationReference as ILocationGetter.
+    // - Rationale: only the generated link target changed, so no record-specific behavior needed replacement.
     public class PlacedObjectRecordHandler : AbstractRecordHandler
     {
         public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()
@@ -25,7 +29,7 @@ namespace ForwardChanges.RecordHandlers
             { "Base", new SimpleReflectionFormLinkPropertyHandler<IPlaceableObjectGetter, IPlacedObject, IPlacedObjectGetter>("Base") },
             { "Owner", new SimpleReflectionFormLinkPropertyHandler<IOwnerGetter, IPlacedObject, IPlacedObjectGetter>("Owner") },
             { "Scale", new SimpleReflectionPropertyHandler<float?, IPlacedObject, IPlacedObjectGetter>("Scale") },
-            { "LocationReference", new SimpleReflectionFormLinkPropertyHandler<ILocationRecordGetter, IPlacedObject, IPlacedObjectGetter>("LocationReference") },
+            { "LocationReference", new SimpleReflectionFormLinkPropertyHandler<ILocationGetter, IPlacedObject, IPlacedObjectGetter>("LocationReference") },
             { "Placement.Position", new SimpleReflectionPropertyHandler<P3Float?, IPlacedObject, IPlacedObjectGetter>("Placement.Position", P3FloatComparison.PositionEpsilon) },
             { "Placement.Rotation", new SimpleReflectionPropertyHandler<P3Float?, IPlacedObject, IPlacedObjectGetter>("Placement.Rotation", P3FloatComparison.RotationEpsilon) },
             { "LinkedReferences", new SimpleReflectionListPropertyHandler<ILinkedReferencesGetter, IPlacedObject, IPlacedObjectGetter>("LinkedReferences", ListOrdering.PreserveModOrder) },
@@ -43,7 +47,7 @@ namespace ForwardChanges.RecordHandlers
             { "LitWater", new SimpleReflectionListPropertyHandler<IFormLinkGetter<IPlacedObjectGetter>, IPlacedObject, IPlacedObjectGetter>("LitWater", ListOrdering.None) },
             { "Emittance", new SimpleReflectionFormLinkPropertyHandler<IEmittanceGetter, IPlacedObject, IPlacedObjectGetter>("Emittance") },
             { "TeleportMessageBox", new SimpleReflectionFormLinkPropertyHandler<IMessageGetter, IPlacedObject, IPlacedObjectGetter>("TeleportMessageBox") },
-            { "MultiboundReference", new SimpleReflectionFormLinkPropertyHandler<IPlacedObjectGetter, IPlacedObject, IPlacedObjectGetter>("MultiboundReference") },
+            { "MultiBoundReference", new SimpleReflectionFormLinkPropertyHandler<IPlacedObjectGetter, IPlacedObject, IPlacedObjectGetter>("MultiBoundReference") },
             { "SpawnContainer", new SimpleReflectionFormLinkPropertyHandler<IPlacedObjectGetter, IPlacedObject, IPlacedObjectGetter>("SpawnContainer") },
             { "LeveledItemBaseObject", new SimpleReflectionFormLinkPropertyHandler<ILeveledItemGetter, IPlacedObject, IPlacedObjectGetter>("LeveledItemBaseObject") },
             { "PersistentLocation", new SimpleReflectionFormLinkPropertyHandler<ILocationGetter, IPlacedObject, IPlacedObjectGetter>("PersistentLocation") },

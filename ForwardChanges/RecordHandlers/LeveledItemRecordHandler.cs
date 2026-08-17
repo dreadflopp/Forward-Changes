@@ -12,6 +12,10 @@ using System;
 
 namespace ForwardChanges.RecordHandlers
 {
+    // Migration note:
+    // - Generalized: entry owner copying/equality now uses Mutagen's OwnerTarget implementation, including UntypedOwner.
+    // - Specialized: leveled-item entry sorting and data comparison remain record-specific; Flags stays on the approved flag handler.
+    // - Rationale: generated union behavior replaces obsolete raw reflection without changing list or flag policy.
     public class LeveledItemRecordHandler : AbstractRecordHandler
     {
         public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()

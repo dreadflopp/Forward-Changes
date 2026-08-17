@@ -14,6 +14,10 @@ using System;
 
 namespace ForwardChanges.RecordHandlers
 {
+    // Migration note:
+    // - Generalized: item owner copying/equality now uses Mutagen's OwnerTarget implementation, including UntypedOwner.
+    // - Specialized: NPC item matching, permission checks, and owner change formatting remain record-specific.
+    // - Rationale: Mutagen owns union copying/equality; patcher policy and diagnostics remain application behavior.
     public class NpcRecordHandler : AbstractRecordHandler
     {
         public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()
