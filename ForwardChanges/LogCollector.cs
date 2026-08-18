@@ -25,6 +25,25 @@ namespace ForwardChanges
                 return;
             }
 
+            AddCore(identifier, line);
+        }
+
+        /// <summary>
+        /// Adds a compact final-decision audit line. These lines are allowed in
+        /// ContextChanges mode without enabling verbose property-handler tracing.
+        /// </summary>
+        public static void AddDecisionAudit(string identifier, string line)
+        {
+            if (_currentDeepDiveRecord && !LoggingSettings.ShouldLogProperty(identifier, deepDiveRecord: true))
+            {
+                return;
+            }
+
+            AddCore(identifier, line);
+        }
+
+        private static void AddCore(string identifier, string line)
+        {
             if (!_logsByIdentifier.ContainsKey(identifier))
             {
                 _logsByIdentifier[identifier] = [];

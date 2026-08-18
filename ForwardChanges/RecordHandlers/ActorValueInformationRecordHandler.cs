@@ -5,17 +5,18 @@ using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Strings;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Plugins.Cache;
+using ForwardChanges.PropertyHandlers.ActorValueInformation;
 using ForwardChanges.PropertyHandlers.General;
 using ForwardChanges.PropertyHandlers.Interfaces;
 using ForwardChanges.RecordHandlers.Abstracts;
-using Noggog;
 
 namespace ForwardChanges.RecordHandlers
 {
     // Migration note:
-    // - Generalized: Description, Abbreviation, CNAM, Skill, PerkTree via reflection handlers.
-    // - Kept specialized: Name via existing shared name handler.
-    // - Rationale: aligns with existing translated-string handling while keeping AVIF fields centralized.
+    // - Generalized: Description, Abbreviation, Skill via reflection handlers; CNAM via the shared binary-data handler.
+    // - Kept specialized: Name via the shared name handler; PerkTree via a record-specific structural handler.
+    // - Rationale: PerkTree is a get-only mutable collection whose nested binary and list data require Mutagen's
+    //   generated deep-copy and equality semantics.
     public class ActorValueInformationRecordHandler : AbstractRecordHandler
     {
         public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()
@@ -26,9 +27,9 @@ namespace ForwardChanges.RecordHandlers
             { "Name", new NameHandler() },
             { "Description", new ComplexReflectionPropertyHandler<ITranslatedStringGetter, IActorValueInformation, IActorValueInformationGetter>("Description") },
             { "Abbreviation", new SimpleReflectionPropertyHandler<string, IActorValueInformation, IActorValueInformationGetter>("Abbreviation") },
-            { "CNAM", new SimpleReflectionPropertyHandler<ReadOnlyMemorySlice<byte>?, IActorValueInformation, IActorValueInformationGetter>("CNAM") },
+            { "CNAM", new SimpleReflectionBinaryDataPropertyHandler<IActorValueInformation, IActorValueInformationGetter>("CNAM") },
             { "Skill", new ComplexReflectionPropertyHandler<IActorValueSkillGetter, IActorValueInformation, IActorValueInformationGetter>("Skill") },
-            { "PerkTree", new ComplexReflectionPropertyHandler<IReadOnlyList<IActorValuePerkNodeGetter>, IActorValueInformation, IActorValueInformationGetter>("PerkTree") }
+            { "PerkTree", new PerkTreeHandler() }
         };
 
         public override IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter>[] GetRecordContexts(

@@ -111,6 +111,7 @@ namespace ForwardChanges.RecordHandlers.Abstracts
                 {
                     var deepDiveRecord = LoggingSettings.IsDeepDiveRecord(winningContext);
                     var detailedRecord = deepDiveRecord || LoggingSettings.Verbosity == PatcherLogVerbosity.Detailed;
+                    var auditContextChanges = deepDiveRecord || LoggingSettings.Verbosity != PatcherLogVerbosity.Summary;
                     LogCollector.SetRecordLoggingContext(deepDiveRecord, detailedRecord);
 
                     Console.WriteLine(new string('-', 80));
@@ -343,6 +344,9 @@ namespace ForwardChanges.RecordHandlers.Abstracts
                     // Forward changes to the patcher
                     var propertiesToForward = new Dictionary<string, object?>();
                     int unchangedDecisionCount = 0;
+                    var decisionAuditContexts = recordContexts
+                        .Where(context => context.ModKey.ToString() != state.PatchMod.ModKey.ToString())
+                        .ToArray();
 
                     foreach (var kvp in PropertyContexts)
                     {
@@ -369,18 +373,41 @@ namespace ForwardChanges.RecordHandlers.Abstracts
                         }
 
                         var shouldLogProperty = LoggingSettings.ShouldLogProperty(propertyName, deepDiveRecord);
-                        // Only emit Final Decision blocks in detailed or deep-dive mode.
-                        var shouldLogDecisionBlock = shouldLogProperty && (deepDiveRecord || (detailedRecord && (shouldForward || LoggingSettings.IncludeNoChangeDecisionsInDetailed)));
+                        if (!auditContextChanges || !shouldLogProperty)
+                        {
+                            continue;
+                        }
+
+                        var contextValues = decisionAuditContexts
+                            .Select(context => (Context: context, Value: handler.GetValue(context.Record)))
+                            .ToArray();
+                        var hasContextChanges = contextValues.Length > 1
+                            && contextValues.Skip(1).Any(entry => !handler.AreValuesEqual(contextValues[0].Value, entry.Value));
+
+                        // ContextChanges mode omits properties which are identical throughout the
+                        // chain and are not forwarded. Detailed/deep-dive mode can include them all.
+                        var includeStableProperty = deepDiveRecord
+                            || (detailedRecord && LoggingSettings.IncludeNoChangeDecisionsInDetailed);
+                        var shouldLogDecisionBlock = shouldForward || hasContextChanges || includeStableProperty;
                         if (!shouldLogDecisionBlock)
                         {
                             continue;
                         }
 
-                        LogCollector.Add(propertyName, $"[{propertyName}] Final Decision:");
-                        LogCollector.Add(propertyName, $"[{propertyName}]   Original value: {FormatForLogWithWarning(propertyName, handler, originalValue, "final-decision original", deepDiveRecord)}");
-                        LogCollector.Add(propertyName, $"[{propertyName}]   Winning value: {FormatForLogWithWarning(propertyName, handler, winningValue, "final-decision winning", deepDiveRecord)}");
-                        LogCollector.Add(propertyName, $"[{propertyName}]   Forward value: {FormatForLogWithWarning(propertyName, handler, forwardValue, "final-decision forward", deepDiveRecord)}");
-                        LogCollector.Add(propertyName, $"[{propertyName}]   Decision: {(shouldForward ? "Forward changes (different)" : "No changes (same)")}");
+                        LogCollector.AddDecisionAudit(propertyName, $"[{propertyName}] Decision audit:");
+                        LogCollector.AddDecisionAudit(propertyName, $"[{propertyName}]   Context values (winning -> original):");
+                        foreach (var (context, value) in contextValues)
+                        {
+                            LogCollector.AddDecisionAudit(
+                                propertyName,
+                                $"[{propertyName}]     {context.ModKey}: {FormatForLogWithWarning(propertyName, handler, value, $"context {context.ModKey}", deepDiveRecord)}");
+                        }
+                        LogCollector.AddDecisionAudit(propertyName, $"[{propertyName}]   Original value: {FormatForLogWithWarning(propertyName, handler, originalValue, "final-decision original", deepDiveRecord)}");
+                        LogCollector.AddDecisionAudit(propertyName, $"[{propertyName}]   Winning value: {FormatForLogWithWarning(propertyName, handler, winningValue, "final-decision winning", deepDiveRecord)}");
+                        LogCollector.AddDecisionAudit(propertyName, $"[{propertyName}]   Computed value: {FormatForLogWithWarning(propertyName, handler, forwardValue, "final-decision forward", deepDiveRecord)}");
+                        LogCollector.AddDecisionAudit(
+                            propertyName,
+                            $"[{propertyName}]   Decision: {(shouldForward ? "FORWARD (computed value differs from winning)" : "KEEP WINNING (computed value equals winning)")}");
                     }
 
                     if (LogCollector.HasLogs())

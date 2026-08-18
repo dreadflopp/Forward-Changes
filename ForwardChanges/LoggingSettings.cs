@@ -13,13 +13,16 @@ namespace ForwardChanges
     public enum PatcherLogVerbosity
     {
         Summary,
+        ContextChanges,
         Detailed
     }
 
     public static class LoggingSettings
     {
         // Global verbosity for regular runs.
-        public const PatcherLogVerbosity Verbosity = PatcherLogVerbosity.Summary;
+        // ContextChanges is intended for normal troubleshooting: it shows the
+        // complete override chain only for properties which vary or are forwarded.
+        public const PatcherLogVerbosity Verbosity = PatcherLogVerbosity.ContextChanges;
 
         // Enables startup type dumps and other one-off diagnostics.
         public static readonly bool EnableStartupDiagnostics = false;
@@ -34,16 +37,11 @@ namespace ForwardChanges
         // Add interface names like "IQuestGetter" to dive into that record family.
         public static readonly HashSet<string> DeepDiveRecordTypes = new(StringComparer.OrdinalIgnoreCase)
         {
-            "IQuestGetter",
         };
 
         // Add exact FormKey strings like "050CED:Skyrim.esm".
         public static readonly HashSet<string> DeepDiveFormKeys = new(StringComparer.OrdinalIgnoreCase)
         {
-            "03372B:Skyrim.esm",
-            "000D74:Skyrim.esm",
-            "0E3096:Skyrim.esm",
-            "0E3098:Skyrim.esm",            
         };
 
         // Add property names like "Responses" or "Conditions".
