@@ -12,6 +12,10 @@ using ForwardChanges.PropertyHandlers.Interfaces;
 
 namespace ForwardChanges.RecordHandlers;
 
+// Migration note:
+// - Generalized: PHZD metadata and Hazard link use shared semantic handlers.
+// - Kept specialized: none.
+// - Rationale: the exposed record surface contains no coupled aggregate or list properties.
 public class PlacedHazardRecordHandler : AbstractRecordHandler
 {
     public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()

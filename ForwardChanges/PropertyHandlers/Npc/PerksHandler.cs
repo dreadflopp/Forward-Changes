@@ -16,9 +16,32 @@ namespace ForwardChanges.PropertyHandlers.Npc
     public class PerksHandler : AbstractListPropertyHandler<IPerkPlacementGetter>
     {
         public override string PropertyName => "Perks";
+        public override ListSemantics Semantics => ListSemantics.SortedKeyed;
+
+        protected override IReadOnlyList<object?> GetSortKey(IPerkPlacementGetter item) => [item.Perk.FormKey];
+
+        protected override bool IsItemIdentityEqual(IPerkPlacementGetter? left, IPerkPlacementGetter? right) =>
+            IsPerkReferenceEqual(left, right);
 
         public PerksHandler()
         {
+        }
+
+        public override bool AreValuesEqual(List<IPerkPlacementGetter>? value1, List<IPerkPlacementGetter>? value2)
+        {
+            if (value1 == null && value2 == null) return true;
+            if (value1 == null || value2 == null || value1.Count != value2.Count) return false;
+
+            var unmatched = value2.ToList();
+            foreach (var item1 in value1)
+            {
+                var matchIndex = unmatched.FindIndex(item2 =>
+                    IsPerkReferenceEqual(item1, item2) && IsRankEqual(item1, item2));
+                if (matchIndex < 0) return false;
+                unmatched.RemoveAt(matchIndex);
+            }
+
+            return true;
         }
 
         /// <summary>
@@ -150,7 +173,7 @@ namespace ForwardChanges.PropertyHandlers.Npc
                 if (matchingRecordItem != null && !IsRankEqual(matchingRecordItem, forwardItem.Value))
                 {
                     // Rank has changed, check if we can update it
-                    var canModify = recordMod.MasterReferences.Any(m => m.Master.ToString() == forwardItem.OwnerMod);
+                    var canModify = HasPermissionsToModify(recordMod, forwardItem.OwnerMod);
                     if (canModify)
                     {
                         // Create new item with updated rank

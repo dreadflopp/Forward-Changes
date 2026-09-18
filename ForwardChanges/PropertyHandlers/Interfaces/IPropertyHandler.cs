@@ -1,5 +1,6 @@
 using System;
 using Mutagen.Bethesda.Plugins.Records;
+using ForwardChanges.PropertyHandlers.Formatting;
 using Mutagen.Bethesda.Plugins.Cache;
 using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Synthesis;
@@ -31,7 +32,7 @@ namespace ForwardChanges.PropertyHandlers.Interfaces
             IPropertyContext propertyContext);
 
         // Default implementation for formatting values
-        string FormatValue(object? value) => value?.ToString() ?? "null";
+        string FormatValue(object? value) => DiagnosticValueFormatter.Format(value);
     }
 
     /// <summary>
@@ -44,5 +45,15 @@ namespace ForwardChanges.PropertyHandlers.Interfaces
         void SetValue(IMajorRecord record, T? value);
         new T? GetValue(IMajorRecordGetter record);
         bool AreValuesEqual(T? value1, T? value2);
+    }
+
+    /// <summary>
+    /// Optional compact, difference-oriented diagnostics for large atomic values.
+    /// Used only for deep-dive logs; it never participates in forwarding decisions.
+    /// </summary>
+    public interface IDiagnosticDiffPropertyHandler
+    {
+        string FormatIdentity(object? value);
+        string FormatDifference(object? olderValue, object? newerValue);
     }
 }

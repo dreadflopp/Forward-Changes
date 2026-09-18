@@ -70,8 +70,10 @@ namespace ForwardChanges.PropertyHandlers.General
 
             for (int i = 0; i < path.Length; i++)
             {
-                property = currentType.GetProperty(path[i],
-                    BindingFlags.Public | BindingFlags.Instance | BindingFlags.FlattenHierarchy);
+                property = ReflectionPropertyResolver.Find(
+                    currentType,
+                    path[i],
+                    i < path.Length - 1 ? path[i + 1] : null);
 
                 if (property == null)
                 {
@@ -99,8 +101,7 @@ namespace ForwardChanges.PropertyHandlers.General
 
             for (int i = 0; i < path.Length - 1; i++)
             {
-                var property = currentType.GetProperty(path[i],
-                    BindingFlags.Public | BindingFlags.Instance | BindingFlags.FlattenHierarchy);
+                var property = ReflectionPropertyResolver.Find(currentType, path[i], path[i + 1]);
 
                 if (property == null)
                 {

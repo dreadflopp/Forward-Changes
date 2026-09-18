@@ -19,29 +19,81 @@ namespace ForwardChanges.PropertyHandlers.General
         where TRecordGetter : class, IMajorRecordGetter
     {
         private readonly string _propertyName;
+        private readonly string[] _propertyPath;
         private readonly PropertyInfo? _getterProperty;
         private readonly PropertyInfo? _setterProperty;
+        private readonly PropertyInfo[]? _getterPathProperties;
+        private readonly PropertyInfo[]? _setterPathProperties;
+        private readonly Type[]? _setterPathTypes;
 
         public SimpleReflectionBinaryDataPropertyHandler(string propertyName)
         {
             _propertyName = propertyName;
+            _propertyPath = propertyName.Split('.');
 
             // Find the property on the getter interface
-            _getterProperty = typeof(TRecordGetter).GetProperty(propertyName,
-                BindingFlags.Public | BindingFlags.Instance | BindingFlags.FlattenHierarchy);
+            _getterProperty = FindProperty(typeof(TRecordGetter), _propertyPath);
 
             // Find the property on the setter interface
-            _setterProperty = typeof(TRecord).GetProperty(propertyName,
-                BindingFlags.Public | BindingFlags.Instance | BindingFlags.FlattenHierarchy);
+            _setterProperty = FindProperty(typeof(TRecord), _propertyPath);
 
             if (_getterProperty == null)
             {
                 throw new ArgumentException(
                     $"Property '{propertyName}' not found on {typeof(TRecordGetter).Name}");
             }
+
+            if (_propertyPath.Length > 1)
+            {
+                _getterPathProperties = BuildPropertyPath(typeof(TRecordGetter), _propertyPath, out _);
+                _setterPathProperties = BuildPropertyPath(typeof(TRecord), _propertyPath, out _setterPathTypes);
+            }
         }
 
         public override string PropertyName => _propertyName;
+
+        private static PropertyInfo? FindProperty(Type type, string[] path)
+        {
+            var currentType = type;
+            PropertyInfo? property = null;
+
+            for (var i = 0; i < path.Length; i++)
+            {
+                property = ReflectionPropertyResolver.Find(
+                    currentType,
+                    path[i],
+                    i < path.Length - 1 ? path[i + 1] : null);
+                if (property == null)
+                {
+                    return null;
+                }
+
+                if (i < path.Length - 1)
+                {
+                    currentType = Nullable.GetUnderlyingType(property.PropertyType) ?? property.PropertyType;
+                }
+            }
+
+            return property;
+        }
+
+        private static PropertyInfo[] BuildPropertyPath(Type startType, string[] path, out Type[] pathTypes)
+        {
+            var properties = new PropertyInfo[path.Length - 1];
+            pathTypes = new Type[path.Length - 1];
+            var currentType = startType;
+
+            for (var i = 0; i < path.Length - 1; i++)
+            {
+                var property = ReflectionPropertyResolver.Find(currentType, path[i], path[i + 1])
+                    ?? throw new ArgumentException($"Property '{path[i]}' not found in path '{string.Join('.', path)}'");
+                properties[i] = property;
+                currentType = Nullable.GetUnderlyingType(property.PropertyType) ?? property.PropertyType;
+                pathTypes[i] = currentType;
+            }
+
+            return properties;
+        }
 
         public override ReadOnlyMemorySlice<byte>? GetValue(IMajorRecordGetter record)
         {
@@ -58,7 +110,26 @@ namespace ForwardChanges.PropertyHandlers.General
 
             try
             {
-                var value = _getterProperty.GetValue(typedRecord);
+                object? currentObject = typedRecord;
+                if (_getterPathProperties != null)
+                {
+                    foreach (var pathProperty in _getterPathProperties)
+                    {
+                        if (currentObject == null)
+                        {
+                            return null;
+                        }
+
+                        currentObject = pathProperty.GetValue(currentObject);
+                    }
+                }
+
+                if (currentObject == null)
+                {
+                    return null;
+                }
+
+                var value = _getterProperty.GetValue(currentObject);
                 if (value is ReadOnlyMemorySlice<byte> slice)
                 {
                     return slice;
@@ -88,6 +159,39 @@ namespace ForwardChanges.PropertyHandlers.General
 
             try
             {
+                object? currentObject = typedRecord;
+                if (_setterPathProperties != null && _setterPathTypes != null)
+                {
+                    for (var i = 0; i < _setterPathProperties.Length; i++)
+                    {
+                        var pathProperty = _setterPathProperties[i];
+                        var intermediateValue = pathProperty.GetValue(currentObject);
+                        if (intermediateValue == null && value != null)
+                        {
+                            var newInstance = System.Activator.CreateInstance(_setterPathTypes[i]);
+                            if (newInstance == null)
+                            {
+                                Console.WriteLine($"Error: Could not create instance of {_setterPathTypes[i].Name} for property path '{PropertyName}'");
+                                return;
+                            }
+
+                            pathProperty.SetValue(currentObject, newInstance);
+                            intermediateValue = newInstance;
+                        }
+
+                        currentObject = intermediateValue;
+                        if (currentObject == null)
+                        {
+                            return;
+                        }
+                    }
+                }
+
+                if (currentObject == null)
+                {
+                    return;
+                }
+
                 var propertyType = _setterProperty.PropertyType;
 
                 // Handle nullable MemorySlice<byte>?
@@ -172,7 +276,7 @@ namespace ForwardChanges.PropertyHandlers.General
                     valueToSet = value.Value.ToArray();
                 }
 
-                _setterProperty.SetValue(typedRecord, valueToSet);
+                _setterProperty.SetValue(currentObject, valueToSet);
             }
             catch (Exception ex)
             {

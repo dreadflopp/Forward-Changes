@@ -15,8 +15,14 @@ using ForwardChanges.RecordHandlers.Abstracts;
 namespace ForwardChanges.RecordHandlers;
 
 // Migration note:
-// - Generalized: PACK scalar, list, binary, links, nested structures, and Data dictionary.
-// - Kept specialized: none.
+// - Generalized: PACK scalar, flag, list, binary, link, and nested properties, including the corrected InterruptFlags path.
+// - Temporarily disabled: PackageTemplateGraph would atomically own the template reference, version, indexed data,
+//   marker, and ordered procedure tree. Mutagen 0.54.4 sorts PACK data values by UNAM key while writing, which changes
+//   their physical xEdit row order. Keep the registration commented out until an order-preserving writer is available.
+// - Kept specialized: Conditions uses the shared polymorphic condition handler.
+// - Intentionally excluded: Unknown* fields are outside the semantic conflict surface.
+// - Rationale: procedure branches refer to package data indexes, so splitting the graph can invent invalid combinations;
+//   abstract Condition values still need typed copying, and InterruptFlags is a normal flag field.
 public class PackageRecordHandler : AbstractRecordHandler
 {
     public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()
@@ -29,26 +35,19 @@ public class PackageRecordHandler : AbstractRecordHandler
         { "Type", new SimpleReflectionPropertyHandler<Package.Types, IPackage, IPackageGetter>("Type") },
         { "InterruptOverride", new SimpleReflectionPropertyHandler<Package.Interrupt, IPackage, IPackageGetter>("InterruptOverride") },
         { "PreferredSpeed", new SimpleReflectionPropertyHandler<Package.Speed, IPackage, IPackageGetter>("PreferredSpeed") },
-        { "Unknown", new SimpleReflectionPropertyHandler<byte, IPackage, IPackageGetter>("Unknown") },
-        { "InteruptFlags", new SimpleReflectionFlagPropertyHandler<Package.InterruptFlag, IPackage, IPackageGetter>("InteruptFlags") },
-        { "Unknown2", new SimpleReflectionPropertyHandler<ushort, IPackage, IPackageGetter>("Unknown2") },
+        { "InterruptFlags", new SimpleReflectionFlagPropertyHandler<Package.InterruptFlag, IPackage, IPackageGetter>("InterruptFlags", preserveUnknownBits: true) },
         { "ScheduleMonth", new SimpleReflectionPropertyHandler<sbyte, IPackage, IPackageGetter>("ScheduleMonth") },
         { "ScheduleDayOfWeek", new SimpleReflectionFlagPropertyHandler<Package.DayOfWeek, IPackage, IPackageGetter>("ScheduleDayOfWeek") },
         { "ScheduleDate", new SimpleReflectionPropertyHandler<byte, IPackage, IPackageGetter>("ScheduleDate") },
         { "ScheduleHour", new SimpleReflectionPropertyHandler<sbyte, IPackage, IPackageGetter>("ScheduleHour") },
         { "ScheduleMinute", new SimpleReflectionPropertyHandler<sbyte, IPackage, IPackageGetter>("ScheduleMinute") },
-        { "Unknown3", new SimpleReflectionBinaryDataPropertyHandler<IPackage, IPackageGetter>("Unknown3") },
         { "ScheduleDurationInMinutes", new SimpleReflectionPropertyHandler<int, IPackage, IPackageGetter>("ScheduleDurationInMinutes") },
-        { "Conditions", new SimpleReflectionListPropertyHandler<IConditionGetter, IPackage, IPackageGetter>("Conditions", ListOrdering.None) },
-        { "Unknown4", new SimpleReflectionPropertyHandler<int?, IPackage, IPackageGetter>("Unknown4") },
+        { "Conditions", new ConditionsHandler<IPackage, IPackageGetter>(record => record.Conditions, record => record.Conditions) },
         { "IdleAnimations", new ComplexReflectionPropertyHandler<IPackageIdlesGetter, IPackage, IPackageGetter>("IdleAnimations") },
         { "CombatStyle", new SimpleReflectionFormLinkPropertyHandler<ICombatStyleGetter, IPackage, IPackageGetter>("CombatStyle") },
         { "OwnerQuest", new SimpleReflectionFormLinkPropertyHandler<IQuestGetter, IPackage, IPackageGetter>("OwnerQuest") },
-        { "PackageTemplate", new SimpleReflectionFormLinkPropertyHandler<IPackageGetter, IPackage, IPackageGetter>("PackageTemplate") },
-        { "DataInputVersion", new SimpleReflectionPropertyHandler<int, IPackage, IPackageGetter>("DataInputVersion") },
-        { "Data", new PackageDataDictionaryHandler() },
-        { "XnamMarker", new SimpleReflectionBinaryDataPropertyHandler<IPackage, IPackageGetter>("XnamMarker") },
-        { "ProcedureTree", new SimpleReflectionListPropertyHandler<IPackageBranchGetter, IPackage, IPackageGetter>("ProcedureTree", ListOrdering.None) },
+        // TEMPORARILY DISABLED: Mutagen's PACK writer reorders package data by UNAM key.
+        // { "PackageTemplateGraph", new PackageTemplateGraphHandler() },
         { "OnBegin", new ComplexReflectionPropertyHandler<IPackageEventGetter, IPackage, IPackageGetter>("OnBegin") },
         { "OnEnd", new ComplexReflectionPropertyHandler<IPackageEventGetter, IPackage, IPackageGetter>("OnEnd") },
         { "OnChange", new ComplexReflectionPropertyHandler<IPackageEventGetter, IPackage, IPackageGetter>("OnChange") }

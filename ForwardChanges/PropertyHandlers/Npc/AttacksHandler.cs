@@ -11,6 +11,12 @@ namespace ForwardChanges.PropertyHandlers.Npc
     public class AttacksHandler : AbstractListPropertyHandler<IAttackGetter>
     {
         public override string PropertyName => "Attacks";
+        public override ListSemantics Semantics => ListSemantics.SortedKeyed;
+
+        protected override bool IsItemIdentityEqual(IAttackGetter? left, IAttackGetter? right) =>
+            string.Equals(left?.AttackEvent, right?.AttackEvent, StringComparison.OrdinalIgnoreCase);
+
+        protected override IReadOnlyList<object?> GetSortKey(IAttackGetter item) => [item.AttackEvent];
 
         public override List<IAttackGetter>? GetValue(IMajorRecordGetter record)
         {

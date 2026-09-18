@@ -2,13 +2,9 @@ using System;
 using System.Linq;
 using System.Reflection;
 using Mutagen.Bethesda;
-using Mutagen.Bethesda.Synthesis;
 using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Plugins.Records;
-using Mutagen.Bethesda.Plugins.Cache;
 using ForwardChanges.PropertyHandlers.Abstracts;
-using ForwardChanges.PropertyHandlers.Interfaces;
-using ForwardChanges.Contexts.Interfaces;
 
 namespace ForwardChanges.PropertyHandlers.General
 {
@@ -31,12 +27,20 @@ namespace ForwardChanges.PropertyHandlers.General
         private readonly string[] _propertyPath;
         private readonly PropertyInfo? _getterProperty;
         private readonly PropertyInfo? _setterProperty;
-        private readonly PropertyInfo[]? _pathProperties;
-        private readonly Type[]? _pathTypes;
+        private readonly PropertyInfo[]? _getterPathProperties;
+        private readonly PropertyInfo[]? _setterPathProperties;
+        private readonly Type[]? _setterPathTypes;
+        private readonly bool _preserveUnknownBits;
+        private readonly bool _includeUnnamedBits;
 
-        public SimpleReflectionFlagPropertyHandler(string propertyName)
+        public SimpleReflectionFlagPropertyHandler(
+            string propertyName,
+            bool preserveUnknownBits = false,
+            bool includeUnnamedBits = false)
         {
             _propertyName = propertyName;
+            _preserveUnknownBits = preserveUnknownBits;
+            _includeUnnamedBits = includeUnnamedBits;
             _propertyPath = propertyName.Split('.');
 
             // Find the property on the getter interface
@@ -54,9 +58,8 @@ namespace ForwardChanges.PropertyHandlers.General
             // Build path for nested properties
             if (_propertyPath.Length > 1)
             {
-                _pathProperties = new PropertyInfo[_propertyPath.Length - 1];
-                _pathTypes = new Type[_propertyPath.Length - 1];
-                BuildPropertyPath(typeof(TRecordGetter), _propertyPath, _pathProperties, _pathTypes);
+                _getterPathProperties = BuildPropertyPath(typeof(TRecordGetter), _propertyPath, out _);
+                _setterPathProperties = BuildPropertyPath(typeof(TRecord), _propertyPath, out _setterPathTypes);
             }
         }
 
@@ -69,8 +72,10 @@ namespace ForwardChanges.PropertyHandlers.General
 
             for (int i = 0; i < path.Length; i++)
             {
-                property = currentType.GetProperty(path[i],
-                    BindingFlags.Public | BindingFlags.Instance | BindingFlags.FlattenHierarchy);
+                property = ReflectionPropertyResolver.Find(
+                    currentType,
+                    path[i],
+                    i < path.Length - 1 ? path[i + 1] : null);
 
                 if (property == null)
                 {
@@ -92,14 +97,15 @@ namespace ForwardChanges.PropertyHandlers.General
             return property;
         }
 
-        private void BuildPropertyPath(Type startType, string[] path, PropertyInfo[] pathProperties, Type[] pathTypes)
+        private PropertyInfo[] BuildPropertyPath(Type startType, string[] path, out Type[] pathTypes)
         {
+            var pathProperties = new PropertyInfo[path.Length - 1];
+            pathTypes = new Type[path.Length - 1];
             Type currentType = startType;
 
             for (int i = 0; i < path.Length - 1; i++)
             {
-                var property = currentType.GetProperty(path[i],
-                    BindingFlags.Public | BindingFlags.Instance | BindingFlags.FlattenHierarchy);
+                var property = ReflectionPropertyResolver.Find(currentType, path[i], path[i + 1]);
 
                 if (property == null)
                 {
@@ -118,6 +124,8 @@ namespace ForwardChanges.PropertyHandlers.General
                 pathTypes[i] = propType;
                 currentType = propType;
             }
+
+            return pathProperties;
         }
 
         public override TFlag GetValue(IMajorRecordGetter record)
@@ -138,19 +146,19 @@ namespace ForwardChanges.PropertyHandlers.General
                 object? currentObject = typedRecord;
 
                 // Navigate through nested properties
-                if (_pathProperties != null && _pathTypes != null)
+                if (_getterPathProperties != null)
                 {
-                    for (int i = 0; i < _pathProperties.Length; i++)
+                    for (int i = 0; i < _getterPathProperties.Length; i++)
                     {
                         if (currentObject == null)
                         {
                             return default;
                         }
 
-                        currentObject = _pathProperties[i].GetValue(currentObject);
+                        currentObject = _getterPathProperties[i].GetValue(currentObject);
 
                         // If we got a null value and there are more properties to navigate, return default
-                        if (currentObject == null && i < _pathProperties.Length - 1)
+                        if (currentObject == null && i < _getterPathProperties.Length - 1)
                         {
                             return default;
                         }
@@ -198,12 +206,12 @@ namespace ForwardChanges.PropertyHandlers.General
                 object? currentObject = typedRecord;
 
                 // Navigate through nested properties, creating intermediate objects if needed
-                if (_pathProperties != null && _pathTypes != null)
+                if (_setterPathProperties != null && _setterPathTypes != null)
                 {
-                    for (int i = 0; i < _pathProperties.Length; i++)
+                    for (int i = 0; i < _setterPathProperties.Length; i++)
                     {
-                        var pathProperty = _pathProperties[i];
-                        var pathType = _pathTypes[i];
+                        var pathProperty = _setterPathProperties[i];
+                        var pathType = _setterPathTypes[i];
 
                         // Get the current value of the intermediate property
                         var intermediateValue = pathProperty.GetValue(currentObject);
@@ -244,6 +252,24 @@ namespace ForwardChanges.PropertyHandlers.General
                 var propertyType = _setterProperty.PropertyType;
                 object? valueToSet = value;
 
+                if (_preserveUnknownBits)
+                {
+                    var currentValue = _setterProperty.GetValue(currentObject);
+                    if (currentValue is TFlag currentFlags)
+                    {
+                        long knownMask = 0;
+                        foreach (var flag in GetAllFlags())
+                        {
+                            knownMask |= Convert.ToInt64(flag);
+                        }
+
+                        var currentBits = Convert.ToInt64(currentFlags);
+                        var requestedBits = Convert.ToInt64(value);
+                        var mergedBits = (currentBits & ~knownMask) | (requestedBits & knownMask);
+                        valueToSet = (TFlag)Enum.ToObject(typeof(TFlag), mergedBits);
+                    }
+                }
+
                 if (propertyType.IsGenericType && propertyType.GetGenericTypeDefinition() == typeof(Nullable<>))
                 {
                     // Property is nullable, so we can set it directly (value is a struct)
@@ -260,7 +286,15 @@ namespace ForwardChanges.PropertyHandlers.General
 
         protected override TFlag[] GetAllFlags()
         {
-            return Enum.GetValues<TFlag>();
+            if (!_includeUnnamedBits)
+            {
+                return Enum.GetValues<TFlag>();
+            }
+
+            var bitCount = System.Runtime.InteropServices.Marshal.SizeOf(Enum.GetUnderlyingType(typeof(TFlag))) * 8;
+            return Enumerable.Range(0, bitCount)
+                .Select(bit => (TFlag)Enum.ToObject(typeof(TFlag), 1UL << bit))
+                .ToArray();
         }
 
         protected override bool IsFlagSet(TFlag flags, TFlag flag)
@@ -301,65 +335,5 @@ namespace ForwardChanges.PropertyHandlers.General
             return setFlags.Count > 0 ? string.Join(", ", setFlags) : flags.ToString();
         }
 
-        public override void InitializeContext(
-            IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> originalContext,
-            IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> winningContext,
-            IPropertyContext propertyContext)
-        {
-            // Add debug logging for BodyTemplateFlags
-            if (_propertyName == "BodyTemplate.Flags" || _propertyName.Contains("BodyTemplate"))
-            {
-                var originalValue = GetValue(originalContext.Record);
-                var winningValue = GetValue(winningContext.Record);
-                Console.WriteLine($"[DEBUG {PropertyName}] InitializeContext called");
-                Console.WriteLine($"[DEBUG {PropertyName}]   Original record BodyTemplate is null: {IsBodyTemplateNull(originalContext.Record)}");
-                Console.WriteLine($"[DEBUG {PropertyName}]   Winning record BodyTemplate is null: {IsBodyTemplateNull(winningContext.Record)}");
-                Console.WriteLine($"[DEBUG {PropertyName}]   Original value: {FormatValue(originalValue)} ({Convert.ToInt64(originalValue)})");
-                Console.WriteLine($"[DEBUG {PropertyName}]   Winning value: {FormatValue(winningValue)} ({Convert.ToInt64(winningValue)})");
-            }
-
-            base.InitializeContext(originalContext, winningContext, propertyContext);
-
-            // Debug logging after initialization
-            if (_propertyName == "BodyTemplate.Flags" || _propertyName.Contains("BodyTemplate"))
-            {
-                if (propertyContext is ForwardChanges.Contexts.FlagPropertyContext<TFlag> flagContext)
-                {
-                    Console.WriteLine($"[DEBUG {PropertyName}] After InitializeContext:");
-                    Console.WriteLine($"[DEBUG {PropertyName}]   OriginalFlagContexts count: {flagContext.OriginalFlagContexts.Count}");
-                    Console.WriteLine($"[DEBUG {PropertyName}]   ForwardFlagContexts count: {flagContext.ForwardFlagContexts.Count}");
-                    Console.WriteLine($"[DEBUG {PropertyName}]   ForwardFlagContexts with IsSet=true: {flagContext.ForwardFlagContexts.Count(fc => fc.IsSet)}");
-                    var forwardValue = flagContext.GetForwardValue();
-                    Console.WriteLine($"[DEBUG {PropertyName}]   GetForwardValue() result: {FormatValue(forwardValue)} ({Convert.ToInt64(forwardValue)})");
-                }
-            }
-        }
-
-        private bool IsBodyTemplateNull(IMajorRecordGetter record)
-        {
-            if (record is not TRecordGetter typedRecord)
-                return true;
-
-            try
-            {
-                object? currentObject = typedRecord;
-                if (_pathProperties != null && _pathTypes != null)
-                {
-                    for (int i = 0; i < _pathProperties.Length; i++)
-                    {
-                        if (currentObject == null)
-                            return true;
-                        currentObject = _pathProperties[i].GetValue(currentObject);
-                        if (currentObject == null)
-                            return true;
-                    }
-                }
-                return currentObject == null;
-            }
-            catch
-            {
-                return true;
-            }
-        }
     }
 }

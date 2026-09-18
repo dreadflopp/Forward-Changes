@@ -16,7 +16,14 @@ namespace ForwardChanges.PropertyHandlers.LeveledNpc
     {
         public override string PropertyName => "Entries";
 
-        protected override ListOrdering Ordering => ListOrdering.None;
+        public override ListSemantics Semantics => ListSemantics.SortedKeyed;
+
+        protected override IReadOnlyList<object?> GetSortKey(ILeveledNpcEntryGetter item)
+            => [item.Data?.Level ?? 0, item.Data?.Reference.FormKey ?? FormKey.Null];
+
+        protected override bool IsItemIdentityEqual(ILeveledNpcEntryGetter? left, ILeveledNpcEntryGetter? right) =>
+            left?.Data?.Level == right?.Data?.Level
+            && left?.Data?.Reference.FormKey == right?.Data?.Reference.FormKey;
 
         private static TRecord? TryCastRecord<TRecord>(IMajorRecord record, string propertyName) where TRecord : class
         {

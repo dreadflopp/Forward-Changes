@@ -1,21 +1,22 @@
 using System;
-using Noggog;
 using Mutagen.Bethesda;
 using Mutagen.Bethesda.Plugins.Cache;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Synthesis;
-using ForwardChanges.PropertyHandlers.Abstracts;
+using Noggog;
 using ForwardChanges.PropertyHandlers.General;
+using ForwardChanges.PropertyHandlers.ImageSpaceAdapter;
 using ForwardChanges.PropertyHandlers.Interfaces;
 using ForwardChanges.RecordHandlers.Abstracts;
 
 namespace ForwardChanges.RecordHandlers
 {
     // Migration note:
-    // - Generalized: all scalar and list properties via shared reflection/list handlers.
-    // - Kept specialized: none.
-    // - Rationale: keyframe/colorframe collections map cleanly to generic list handlers.
+    // - Generalized: record metadata via shared handlers.
+    // - Kept specialized: ordered curves, radial blur, depth of field, and Mult/Add pairs are atomic units.
+    // - Intentionally excluded: Unknown* keyframe collections are outside the semantic conflict surface.
+    // - Rationale: merging individual keyframes can invent curves and invalidates the DNAM-derived counts.
     public class ImageSpaceAdapterRecordHandler : AbstractRecordHandler
     {
         public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()
@@ -23,68 +24,46 @@ namespace ForwardChanges.RecordHandlers
             { "EditorID", new EditorIDHandler() },
             { "MajorRecordFlagsRaw", new MajorRecordFlagsRawHandler() },
             { "SkyrimMajorRecordFlags", new SkyrimMajorRecordFlagsHandler() },
-            { "Animatable", new SimpleReflectionPropertyHandler<bool, IImageSpaceAdapter, IImageSpaceAdapterGetter>("Animatable") },
-            { "Duration", new SimpleReflectionPropertyHandler<float, IImageSpaceAdapter, IImageSpaceAdapterGetter>("Duration", 0.001f) },
-            { "RadialBlurUseTarget", new SimpleReflectionPropertyHandler<bool, IImageSpaceAdapter, IImageSpaceAdapterGetter>("RadialBlurUseTarget") },
-            { "RadialBlurCenter", new SimpleReflectionPropertyHandler<P2Float, IImageSpaceAdapter, IImageSpaceAdapterGetter>("RadialBlurCenter") },
-            { "DepthOfFieldFlags", new SimpleReflectionFlagPropertyHandler<Mutagen.Bethesda.Skyrim.ImageSpaceAdapter.DepthOfFieldFlag, IImageSpaceAdapter, IImageSpaceAdapterGetter>("DepthOfFieldFlags") },
-
-            { "BlurRadius", new SimpleReflectionListPropertyHandler<IKeyFrameGetter, IImageSpaceAdapter, IImageSpaceAdapterGetter>("BlurRadius", ListOrdering.None, true) },
-            { "DoubleVisionStrength", new SimpleReflectionListPropertyHandler<IKeyFrameGetter, IImageSpaceAdapter, IImageSpaceAdapterGetter>("DoubleVisionStrength", ListOrdering.None, true) },
-            { "TintColor", new SimpleReflectionListPropertyHandler<IColorFrameGetter, IImageSpaceAdapter, IImageSpaceAdapterGetter>("TintColor", ListOrdering.None, true) },
-            { "FadeColor", new SimpleReflectionListPropertyHandler<IColorFrameGetter, IImageSpaceAdapter, IImageSpaceAdapterGetter>("FadeColor", ListOrdering.None, true) },
-            { "RadialBlurStrength", new SimpleReflectionListPropertyHandler<IKeyFrameGetter, IImageSpaceAdapter, IImageSpaceAdapterGetter>("RadialBlurStrength", ListOrdering.None, true) },
-            { "RadialBlurRampUp", new SimpleReflectionListPropertyHandler<IKeyFrameGetter, IImageSpaceAdapter, IImageSpaceAdapterGetter>("RadialBlurRampUp", ListOrdering.None, true) },
-            { "RadialBlurStart", new SimpleReflectionListPropertyHandler<IKeyFrameGetter, IImageSpaceAdapter, IImageSpaceAdapterGetter>("RadialBlurStart", ListOrdering.None, true) },
-            { "RadialBlurRampDown", new SimpleReflectionListPropertyHandler<IKeyFrameGetter, IImageSpaceAdapter, IImageSpaceAdapterGetter>("RadialBlurRampDown", ListOrdering.None, true) },
-            { "RadialBlurDownStart", new SimpleReflectionListPropertyHandler<IKeyFrameGetter, IImageSpaceAdapter, IImageSpaceAdapterGetter>("RadialBlurDownStart", ListOrdering.None, true) },
-            { "DepthOfFieldStrength", new SimpleReflectionListPropertyHandler<IKeyFrameGetter, IImageSpaceAdapter, IImageSpaceAdapterGetter>("DepthOfFieldStrength", ListOrdering.None, true) },
-            { "DepthOfFieldDistance", new SimpleReflectionListPropertyHandler<IKeyFrameGetter, IImageSpaceAdapter, IImageSpaceAdapterGetter>("DepthOfFieldDistance", ListOrdering.None, true) },
-            { "DepthOfFieldRange", new SimpleReflectionListPropertyHandler<IKeyFrameGetter, IImageSpaceAdapter, IImageSpaceAdapterGetter>("DepthOfFieldRange", ListOrdering.None, true) },
-            { "MotionBlurStrength", new SimpleReflectionListPropertyHandler<IKeyFrameGetter, IImageSpaceAdapter, IImageSpaceAdapterGetter>("MotionBlurStrength", ListOrdering.None, true) },
-            { "HdrEyeAdaptSpeedMult", new SimpleReflectionListPropertyHandler<IKeyFrameGetter, IImageSpaceAdapter, IImageSpaceAdapterGetter>("HdrEyeAdaptSpeedMult", ListOrdering.None, true) },
-            { "HdrEyeAdaptSpeedAdd", new SimpleReflectionListPropertyHandler<IKeyFrameGetter, IImageSpaceAdapter, IImageSpaceAdapterGetter>("HdrEyeAdaptSpeedAdd", ListOrdering.None, true) },
-            { "HdrBloomBlurRadiusMult", new SimpleReflectionListPropertyHandler<IKeyFrameGetter, IImageSpaceAdapter, IImageSpaceAdapterGetter>("HdrBloomBlurRadiusMult", ListOrdering.None, true) },
-            { "HdrBloomBlurRadiusAdd", new SimpleReflectionListPropertyHandler<IKeyFrameGetter, IImageSpaceAdapter, IImageSpaceAdapterGetter>("HdrBloomBlurRadiusAdd", ListOrdering.None, true) },
-            { "HdrBloomThresholdMult", new SimpleReflectionListPropertyHandler<IKeyFrameGetter, IImageSpaceAdapter, IImageSpaceAdapterGetter>("HdrBloomThresholdMult", ListOrdering.None, true) },
-            { "HdrBloomThresholdAdd", new SimpleReflectionListPropertyHandler<IKeyFrameGetter, IImageSpaceAdapter, IImageSpaceAdapterGetter>("HdrBloomThresholdAdd", ListOrdering.None, true) },
-            { "HdrBloomScaleMult", new SimpleReflectionListPropertyHandler<IKeyFrameGetter, IImageSpaceAdapter, IImageSpaceAdapterGetter>("HdrBloomScaleMult", ListOrdering.None, true) },
-            { "HdrBloomScaleAdd", new SimpleReflectionListPropertyHandler<IKeyFrameGetter, IImageSpaceAdapter, IImageSpaceAdapterGetter>("HdrBloomScaleAdd", ListOrdering.None, true) },
-            { "HdrTargetLumMinMult", new SimpleReflectionListPropertyHandler<IKeyFrameGetter, IImageSpaceAdapter, IImageSpaceAdapterGetter>("HdrTargetLumMinMult", ListOrdering.None, true) },
-            { "HdrTargetLumMinAdd", new SimpleReflectionListPropertyHandler<IKeyFrameGetter, IImageSpaceAdapter, IImageSpaceAdapterGetter>("HdrTargetLumMinAdd", ListOrdering.None, true) },
-            { "HdrTargetLumMaxMult", new SimpleReflectionListPropertyHandler<IKeyFrameGetter, IImageSpaceAdapter, IImageSpaceAdapterGetter>("HdrTargetLumMaxMult", ListOrdering.None, true) },
-            { "HdrTargetLumMaxAdd", new SimpleReflectionListPropertyHandler<IKeyFrameGetter, IImageSpaceAdapter, IImageSpaceAdapterGetter>("HdrTargetLumMaxAdd", ListOrdering.None, true) },
-            { "HdrSunlightScaleMult", new SimpleReflectionListPropertyHandler<IKeyFrameGetter, IImageSpaceAdapter, IImageSpaceAdapterGetter>("HdrSunlightScaleMult", ListOrdering.None, true) },
-            { "HdrSunlightScaleAdd", new SimpleReflectionListPropertyHandler<IKeyFrameGetter, IImageSpaceAdapter, IImageSpaceAdapterGetter>("HdrSunlightScaleAdd", ListOrdering.None, true) },
-            { "HdrSkyScaleMult", new SimpleReflectionListPropertyHandler<IKeyFrameGetter, IImageSpaceAdapter, IImageSpaceAdapterGetter>("HdrSkyScaleMult", ListOrdering.None, true) },
-            { "HdrSkyScaleAdd", new SimpleReflectionListPropertyHandler<IKeyFrameGetter, IImageSpaceAdapter, IImageSpaceAdapterGetter>("HdrSkyScaleAdd", ListOrdering.None, true) },
-            { "Unknown08", new SimpleReflectionListPropertyHandler<IKeyFrameGetter, IImageSpaceAdapter, IImageSpaceAdapterGetter>("Unknown08", ListOrdering.None, true) },
-            { "Unknown48", new SimpleReflectionListPropertyHandler<IKeyFrameGetter, IImageSpaceAdapter, IImageSpaceAdapterGetter>("Unknown48", ListOrdering.None, true) },
-            { "Unknown09", new SimpleReflectionListPropertyHandler<IKeyFrameGetter, IImageSpaceAdapter, IImageSpaceAdapterGetter>("Unknown09", ListOrdering.None, true) },
-            { "Unknown49", new SimpleReflectionListPropertyHandler<IKeyFrameGetter, IImageSpaceAdapter, IImageSpaceAdapterGetter>("Unknown49", ListOrdering.None, true) },
-            { "Unknown0A", new SimpleReflectionListPropertyHandler<IKeyFrameGetter, IImageSpaceAdapter, IImageSpaceAdapterGetter>("Unknown0A", ListOrdering.None, true) },
-            { "Unknown4A", new SimpleReflectionListPropertyHandler<IKeyFrameGetter, IImageSpaceAdapter, IImageSpaceAdapterGetter>("Unknown4A", ListOrdering.None, true) },
-            { "Unknown0B", new SimpleReflectionListPropertyHandler<IKeyFrameGetter, IImageSpaceAdapter, IImageSpaceAdapterGetter>("Unknown0B", ListOrdering.None, true) },
-            { "Unknown4B", new SimpleReflectionListPropertyHandler<IKeyFrameGetter, IImageSpaceAdapter, IImageSpaceAdapterGetter>("Unknown4B", ListOrdering.None, true) },
-            { "Unknown0C", new SimpleReflectionListPropertyHandler<IKeyFrameGetter, IImageSpaceAdapter, IImageSpaceAdapterGetter>("Unknown0C", ListOrdering.None, true) },
-            { "Unknown4C", new SimpleReflectionListPropertyHandler<IKeyFrameGetter, IImageSpaceAdapter, IImageSpaceAdapterGetter>("Unknown4C", ListOrdering.None, true) },
-            { "Unknown0D", new SimpleReflectionListPropertyHandler<IKeyFrameGetter, IImageSpaceAdapter, IImageSpaceAdapterGetter>("Unknown0D", ListOrdering.None, true) },
-            { "Unknown4D", new SimpleReflectionListPropertyHandler<IKeyFrameGetter, IImageSpaceAdapter, IImageSpaceAdapterGetter>("Unknown4D", ListOrdering.None, true) },
-            { "Unknown0E", new SimpleReflectionListPropertyHandler<IKeyFrameGetter, IImageSpaceAdapter, IImageSpaceAdapterGetter>("Unknown0E", ListOrdering.None, true) },
-            { "Unknown4E", new SimpleReflectionListPropertyHandler<IKeyFrameGetter, IImageSpaceAdapter, IImageSpaceAdapterGetter>("Unknown4E", ListOrdering.None, true) },
-            { "Unknown0F", new SimpleReflectionListPropertyHandler<IKeyFrameGetter, IImageSpaceAdapter, IImageSpaceAdapterGetter>("Unknown0F", ListOrdering.None, true) },
-            { "Unknown4F", new SimpleReflectionListPropertyHandler<IKeyFrameGetter, IImageSpaceAdapter, IImageSpaceAdapterGetter>("Unknown4F", ListOrdering.None, true) },
-            { "Unknown10", new SimpleReflectionListPropertyHandler<IKeyFrameGetter, IImageSpaceAdapter, IImageSpaceAdapterGetter>("Unknown10", ListOrdering.None, true) },
-            { "Unknown50", new SimpleReflectionListPropertyHandler<IKeyFrameGetter, IImageSpaceAdapter, IImageSpaceAdapterGetter>("Unknown50", ListOrdering.None, true) },
-            { "CinematicSaturationMult", new SimpleReflectionListPropertyHandler<IKeyFrameGetter, IImageSpaceAdapter, IImageSpaceAdapterGetter>("CinematicSaturationMult", ListOrdering.None, true) },
-            { "CinematicSaturationAdd", new SimpleReflectionListPropertyHandler<IKeyFrameGetter, IImageSpaceAdapter, IImageSpaceAdapterGetter>("CinematicSaturationAdd", ListOrdering.None, true) },
-            { "CinematicBrightnessMult", new SimpleReflectionListPropertyHandler<IKeyFrameGetter, IImageSpaceAdapter, IImageSpaceAdapterGetter>("CinematicBrightnessMult", ListOrdering.None, true) },
-            { "CinematicBrightnessAdd", new SimpleReflectionListPropertyHandler<IKeyFrameGetter, IImageSpaceAdapter, IImageSpaceAdapterGetter>("CinematicBrightnessAdd", ListOrdering.None, true) },
-            { "CinematicContrastMult", new SimpleReflectionListPropertyHandler<IKeyFrameGetter, IImageSpaceAdapter, IImageSpaceAdapterGetter>("CinematicContrastMult", ListOrdering.None, true) },
-            { "CinematicContrastAdd", new SimpleReflectionListPropertyHandler<IKeyFrameGetter, IImageSpaceAdapter, IImageSpaceAdapterGetter>("CinematicContrastAdd", ListOrdering.None, true) },
-            { "Unknown14", new SimpleReflectionListPropertyHandler<IKeyFrameGetter, IImageSpaceAdapter, IImageSpaceAdapterGetter>("Unknown14", ListOrdering.None, true) },
-            { "Unknown54", new SimpleReflectionListPropertyHandler<IKeyFrameGetter, IImageSpaceAdapter, IImageSpaceAdapterGetter>("Unknown54", ListOrdering.None, true) }
+            { "AnimationSettings", new AnimationSettingsHandler() },
+            { "BlurRadius", KeyFrameCurve("BlurRadius", a => a.BlurRadius, (a, v) => a.BlurRadius = v) },
+            { "DoubleVisionStrength", KeyFrameCurve("DoubleVisionStrength", a => a.DoubleVisionStrength, (a, v) => a.DoubleVisionStrength = v) },
+            { "TintColor", ColorFrameCurve("TintColor", a => a.TintColor, (a, v) => a.TintColor = v) },
+            { "FadeColor", ColorFrameCurve("FadeColor", a => a.FadeColor, (a, v) => a.FadeColor = v) },
+            { "RadialBlur", new RadialBlurHandler() },
+            { "DepthOfField", new DepthOfFieldHandler() },
+            { "MotionBlurStrength", KeyFrameCurve("MotionBlurStrength", a => a.MotionBlurStrength, (a, v) => a.MotionBlurStrength = v) },
+            { "HdrEyeAdaptSpeed", KeyFramePair("HdrEyeAdaptSpeed", a => a.HdrEyeAdaptSpeedMult, a => a.HdrEyeAdaptSpeedAdd, (a, v) => a.HdrEyeAdaptSpeedMult = v, (a, v) => a.HdrEyeAdaptSpeedAdd = v) },
+            { "HdrBloomBlurRadius", KeyFramePair("HdrBloomBlurRadius", a => a.HdrBloomBlurRadiusMult, a => a.HdrBloomBlurRadiusAdd, (a, v) => a.HdrBloomBlurRadiusMult = v, (a, v) => a.HdrBloomBlurRadiusAdd = v) },
+            { "HdrBloomThreshold", KeyFramePair("HdrBloomThreshold", a => a.HdrBloomThresholdMult, a => a.HdrBloomThresholdAdd, (a, v) => a.HdrBloomThresholdMult = v, (a, v) => a.HdrBloomThresholdAdd = v) },
+            { "HdrBloomScale", KeyFramePair("HdrBloomScale", a => a.HdrBloomScaleMult, a => a.HdrBloomScaleAdd, (a, v) => a.HdrBloomScaleMult = v, (a, v) => a.HdrBloomScaleAdd = v) },
+            { "HdrTargetLumMin", KeyFramePair("HdrTargetLumMin", a => a.HdrTargetLumMinMult, a => a.HdrTargetLumMinAdd, (a, v) => a.HdrTargetLumMinMult = v, (a, v) => a.HdrTargetLumMinAdd = v) },
+            { "HdrTargetLumMax", KeyFramePair("HdrTargetLumMax", a => a.HdrTargetLumMaxMult, a => a.HdrTargetLumMaxAdd, (a, v) => a.HdrTargetLumMaxMult = v, (a, v) => a.HdrTargetLumMaxAdd = v) },
+            { "HdrSunlightScale", KeyFramePair("HdrSunlightScale", a => a.HdrSunlightScaleMult, a => a.HdrSunlightScaleAdd, (a, v) => a.HdrSunlightScaleMult = v, (a, v) => a.HdrSunlightScaleAdd = v) },
+            { "HdrSkyScale", KeyFramePair("HdrSkyScale", a => a.HdrSkyScaleMult, a => a.HdrSkyScaleAdd, (a, v) => a.HdrSkyScaleMult = v, (a, v) => a.HdrSkyScaleAdd = v) },
+            { "CinematicSaturation", KeyFramePair("CinematicSaturation", a => a.CinematicSaturationMult, a => a.CinematicSaturationAdd, (a, v) => a.CinematicSaturationMult = v, (a, v) => a.CinematicSaturationAdd = v) },
+            { "CinematicBrightness", KeyFramePair("CinematicBrightness", a => a.CinematicBrightnessMult, a => a.CinematicBrightnessAdd, (a, v) => a.CinematicBrightnessMult = v, (a, v) => a.CinematicBrightnessAdd = v) },
+            { "CinematicContrast", KeyFramePair("CinematicContrast", a => a.CinematicContrastMult, a => a.CinematicContrastAdd, (a, v) => a.CinematicContrastMult = v, (a, v) => a.CinematicContrastAdd = v) },
         };
+
+        private static AtomicKeyFrameCurveHandler KeyFrameCurve(
+            string propertyName,
+            Func<IImageSpaceAdapterGetter, IReadOnlyList<IKeyFrameGetter>?> getter,
+            Action<IImageSpaceAdapter, ExtendedList<KeyFrame>?> setter) =>
+            new(propertyName, getter, setter);
+
+        private static AtomicColorFrameCurveHandler ColorFrameCurve(
+            string propertyName,
+            Func<IImageSpaceAdapterGetter, IReadOnlyList<IColorFrameGetter>?> getter,
+            Action<IImageSpaceAdapter, ExtendedList<ColorFrame>?> setter) =>
+            new(propertyName, getter, setter);
+
+        private static KeyFrameCurvePairHandler KeyFramePair(
+            string propertyName,
+            Func<IImageSpaceAdapterGetter, IReadOnlyList<IKeyFrameGetter>?> multGetter,
+            Func<IImageSpaceAdapterGetter, IReadOnlyList<IKeyFrameGetter>?> addGetter,
+            Action<IImageSpaceAdapter, ExtendedList<KeyFrame>?> multSetter,
+            Action<IImageSpaceAdapter, ExtendedList<KeyFrame>?> addSetter) =>
+            new(propertyName, multGetter, addGetter, multSetter, addSetter);
 
         public override IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter>[] GetRecordContexts(
             IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> winningContext,

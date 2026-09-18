@@ -25,7 +25,7 @@ public class MoveableStaticRecordHandler : AbstractRecordHandler
         { "ObjectBounds", new ObjectBoundsHandler() },
         { "Name", new NameHandler() },
         { "Model", new ModelHandler() },
-        { "Destructible", new ComplexReflectionPropertyHandler<IDestructibleGetter, IMoveableStatic, IMoveableStaticGetter>("Destructible") },
+        { "Destructible", new GeneratedCopyReflectionPropertyHandler<IDestructibleGetter, Destructible, IMoveableStatic, IMoveableStaticGetter>("Destructible", value => value.DeepCopy(), DestructibleMixIn.Equals) },
         { "Flags", new SimpleReflectionFlagPropertyHandler<MoveableStatic.Flag, IMoveableStatic, IMoveableStaticGetter>("Flags") },
         { "LoopingSound", new SimpleReflectionFormLinkPropertyHandler<ISoundDescriptorGetter, IMoveableStatic, IMoveableStaticGetter>("LoopingSound") },
         { "MajorFlags", new SimpleReflectionFlagPropertyHandler<MoveableStatic.MajorFlag, IMoveableStatic, IMoveableStaticGetter>("MajorFlags") }

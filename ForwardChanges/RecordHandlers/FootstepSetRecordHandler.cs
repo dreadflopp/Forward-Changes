@@ -8,14 +8,13 @@ using Mutagen.Bethesda.Synthesis;
 using ForwardChanges.PropertyHandlers.General;
 using ForwardChanges.PropertyHandlers.Interfaces;
 using ForwardChanges.RecordHandlers.Abstracts;
-using ForwardChanges.PropertyHandlers.Abstracts;
 
 namespace ForwardChanges.RecordHandlers
 {
     // Migration note:
-    // - Generalized: all footstep list properties with shared list reflection handlers.
+    // - Generalized: all footstep lists use the shared atomic form-link-list handler.
     // - Kept specialized: none.
-    // - Rationale: homogeneous formlink lists fit existing generic list handling.
+    // - Rationale: each logical list is an ordered value with meaningful duplicates; Mutagen derives XCNT and DATA during serialization.
     public class FootstepSetRecordHandler : AbstractRecordHandler
     {
         public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()
@@ -23,11 +22,11 @@ namespace ForwardChanges.RecordHandlers
             { "EditorID", new EditorIDHandler() },
             { "MajorRecordFlagsRaw", new MajorRecordFlagsRawHandler() },
             { "SkyrimMajorRecordFlags", new SkyrimMajorRecordFlagsHandler() },
-            { "WalkForwardFootsteps", new SimpleReflectionListPropertyHandler<IFormLinkGetter<IFootstepGetter>, IFootstepSet, IFootstepSetGetter>("WalkForwardFootsteps", ListOrdering.None) },
-            { "RunForwardFootsteps", new SimpleReflectionListPropertyHandler<IFormLinkGetter<IFootstepGetter>, IFootstepSet, IFootstepSetGetter>("RunForwardFootsteps", ListOrdering.None) },
-            { "WalkForwardAlternateFootsteps", new SimpleReflectionListPropertyHandler<IFormLinkGetter<IFootstepGetter>, IFootstepSet, IFootstepSetGetter>("WalkForwardAlternateFootsteps", ListOrdering.None) },
-            { "RunForwardAlternateFootsteps", new SimpleReflectionListPropertyHandler<IFormLinkGetter<IFootstepGetter>, IFootstepSet, IFootstepSetGetter>("RunForwardAlternateFootsteps", ListOrdering.None) },
-            { "WalkForwardAlternateFootsteps2", new SimpleReflectionListPropertyHandler<IFormLinkGetter<IFootstepGetter>, IFootstepSet, IFootstepSetGetter>("WalkForwardAlternateFootsteps2", ListOrdering.None) }
+            { "WalkForwardFootsteps", new AtomicFormLinkListPropertyHandler<IFootstepGetter, IFootstepSet, IFootstepSetGetter>("WalkForwardFootsteps") },
+            { "RunForwardFootsteps", new AtomicFormLinkListPropertyHandler<IFootstepGetter, IFootstepSet, IFootstepSetGetter>("RunForwardFootsteps") },
+            { "WalkForwardAlternateFootsteps", new AtomicFormLinkListPropertyHandler<IFootstepGetter, IFootstepSet, IFootstepSetGetter>("WalkForwardAlternateFootsteps") },
+            { "RunForwardAlternateFootsteps", new AtomicFormLinkListPropertyHandler<IFootstepGetter, IFootstepSet, IFootstepSetGetter>("RunForwardAlternateFootsteps") },
+            { "WalkForwardAlternateFootsteps2", new AtomicFormLinkListPropertyHandler<IFootstepGetter, IFootstepSet, IFootstepSetGetter>("WalkForwardAlternateFootsteps2") }
         };
 
         public override IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter>[] GetRecordContexts(

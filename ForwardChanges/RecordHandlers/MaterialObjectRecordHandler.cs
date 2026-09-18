@@ -14,6 +14,11 @@ using ForwardChanges.PropertyHandlers.Interfaces;
 
 namespace ForwardChanges.RecordHandlers;
 
+// Migration note:
+// - Generalized: MATO scalar, vector, color, model, and list fields use existing handlers.
+// - Kept specialized: none.
+// - Intentionally excluded: DATADataTypeState is Mutagen serialization state, not an xEdit field.
+// - Rationale: semantic fields are forwarded while the winning record retains its binary DATA layout.
 public class MaterialObjectRecordHandler : AbstractRecordHandler
 {
     public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()
@@ -32,7 +37,6 @@ public class MaterialObjectRecordHandler : AbstractRecordHandler
         { "SinglePassColor", new SimpleReflectionPropertyHandler<System.Drawing.Color, IMaterialObject, IMaterialObjectGetter>("SinglePassColor") },
         { "Flags", new SimpleReflectionFlagPropertyHandler<MaterialObject.Flag, IMaterialObject, IMaterialObjectGetter>("Flags") },
         { "HasSnow", new SimpleReflectionPropertyHandler<bool, IMaterialObject, IMaterialObjectGetter>("HasSnow") },
-        { "DATADataTypeState", new SimpleReflectionPropertyHandler<MaterialObject.DATADataType, IMaterialObject, IMaterialObjectGetter>("DATADataTypeState") }
     };
 
     public override IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter>[] GetRecordContexts(

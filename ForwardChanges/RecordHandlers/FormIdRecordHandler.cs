@@ -11,11 +11,18 @@ using System;
 
 namespace ForwardChanges.RecordHandlers
 {
+    // Migration note:
+    // - Generalized: inherited FormList record-header flags use the project-standard coordinated flag handlers.
+    // - Kept specialized: Items retains FormList ownership merging and progressive aligned-slot ordering.
+    // - Rationale: FormLists are mergeable collections whose order can be observed through indexed access;
+    //   Mutagen also exposes both flag views on IFormList/IFormListGetter, so generic reflection is not used for flags.
     public class FormIdRecordHandler : AbstractRecordHandler
     {
         public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()
         {
             { "EditorID", new EditorIDHandler() },
+            { "MajorRecordFlagsRaw", new MajorRecordFlagsRawHandler() },
+            { "SkyrimMajorRecordFlags", new SkyrimMajorRecordFlagsHandler() },
             { "Items", new FormIdsHandler() }
         };
 
@@ -37,7 +44,5 @@ namespace ForwardChanges.RecordHandlers
 
         // GetOverrideRecord and ApplyForwardedProperties are now handled by the base class
         // The base class automatically handles flag property coordination
-        // Note: FormIdRecordHandler doesn't have MajorRecordFlagsRaw or SkyrimMajorRecordFlags handlers
-        // as FormList records may not support these flags
     }
 }

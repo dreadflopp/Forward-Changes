@@ -13,6 +13,10 @@ using ForwardChanges.PropertyHandlers.Interfaces;
 
 namespace ForwardChanges.RecordHandlers;
 
+// Migration note:
+// - Generalized: SNCT name, parent link, volume scalars, and metadata use shared semantic handlers.
+// - Kept specialized: none; Flags remains on the project-approved flag handler path.
+// - Rationale: all semantic fields are independent scalar or link values.
 public class SoundCategoryRecordHandler : AbstractRecordHandler
 {
     public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()

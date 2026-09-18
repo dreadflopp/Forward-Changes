@@ -12,6 +12,9 @@ namespace ForwardChanges.PropertyHandlers.General
     public class KeywordListHandler : AbstractListPropertyHandler<IFormLinkGetter<IKeywordGetter>>
     {
         public override string PropertyName => "Keywords";
+        public override ListSemantics Semantics => ListSemantics.SortedKeyed;
+
+        protected override IReadOnlyList<object?> GetSortKey(IFormLinkGetter<IKeywordGetter> item) => [item.FormKey];
 
         public override void SetValue(IMajorRecord record, List<IFormLinkGetter<IKeywordGetter>>? value)
         {

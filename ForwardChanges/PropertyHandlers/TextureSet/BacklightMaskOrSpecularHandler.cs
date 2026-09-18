@@ -27,7 +27,7 @@ namespace ForwardChanges.PropertyHandlers.TextureSet
         {
             if (value1 == null && value2 == null) return true;
             if (value1 == null || value2 == null) return false;
-            return ForwardChanges.PropertyHandlers.General.TexturePathHelper.Normalize(value1) == ForwardChanges.PropertyHandlers.General.TexturePathHelper.Normalize(value2);
+            return ForwardChanges.PropertyHandlers.General.TexturePathHelper.AreEqual(value1, value2);
         }
 
         public override string FormatValue(object? value) =>

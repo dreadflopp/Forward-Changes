@@ -13,7 +13,8 @@ namespace ForwardChanges.RecordHandlers
     // Migration note:
     // - Generalized: Camera shot scalar/form-link fields and flags via reflection handlers.
     // - Kept specialized: Model via shared model handler.
-    // - Rationale: mirrors pattern used by other modeled records with mostly scalar fields.
+    // - Intentionally excluded: DATADataTypeState is Mutagen serialization state, not an xEdit field.
+    // - Rationale: semantic fields are forwarded while the winning record retains its binary DATA layout.
     public class CameraShotRecordHandler : AbstractRecordHandler
     {
         public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()
@@ -34,7 +35,6 @@ namespace ForwardChanges.RecordHandlers
             { "TargetPercentBetweenActors", new SimpleReflectionPropertyHandler<float, ICameraShot, ICameraShotGetter>("TargetPercentBetweenActors") },
             { "NearTargetDistance", new SimpleReflectionPropertyHandler<float, ICameraShot, ICameraShotGetter>("NearTargetDistance") },
             { "ImageSpaceModifier", new SimpleReflectionFormLinkPropertyHandler<IImageSpaceAdapterGetter, ICameraShot, ICameraShotGetter>("ImageSpaceModifier") },
-            { "DATADataTypeState", new SimpleReflectionPropertyHandler<Mutagen.Bethesda.Skyrim.CameraShot.DATADataType, ICameraShot, ICameraShotGetter>("DATADataTypeState") }
         };
 
         public override IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter>[] GetRecordContexts(

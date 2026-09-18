@@ -28,6 +28,10 @@ namespace ForwardChanges.PropertyHandlers.General
                     named.Name = null;
                 }
             }
+            else if (record is INamedRequired namedRequired)
+            {
+                namedRequired.Name = value ?? string.Empty;
+            }
             else
             {
                 Console.WriteLine($"Error: Record does not implement INamed for {PropertyName}");
@@ -39,6 +43,10 @@ namespace ForwardChanges.PropertyHandlers.General
             if (record is INamedGetter named)
             {
                 return named.Name;
+            }
+            else if (record is INamedRequiredGetter namedRequired)
+            {
+                return namedRequired.Name;
             }
             else
             {

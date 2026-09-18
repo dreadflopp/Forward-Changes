@@ -29,7 +29,7 @@ namespace ForwardChanges.RecordHandlers
             { "HavokFriction", new SimpleReflectionPropertyHandler<byte, ILandscapeTexture, ILandscapeTextureGetter>("HavokFriction") },
             { "HavokRestitution", new SimpleReflectionPropertyHandler<byte, ILandscapeTexture, ILandscapeTextureGetter>("HavokRestitution") },
             { "TextureSpecularExponent", new SimpleReflectionPropertyHandler<byte, ILandscapeTexture, ILandscapeTextureGetter>("TextureSpecularExponent") },
-            { "Grasses", new SimpleReflectionListPropertyHandler<IFormLinkGetter<IGrassGetter>, ILandscapeTexture, ILandscapeTextureGetter>("Grasses", ListOrdering.PreserveModOrder) },
+            { "Grasses", new SimpleReflectionListPropertyHandler<IFormLinkGetter<IGrassGetter>, ILandscapeTexture, ILandscapeTextureGetter>("Grasses", ListSemantics.SortedKeyed) },
             { "Flags", new SimpleReflectionFlagPropertyHandler<Mutagen.Bethesda.Skyrim.LandscapeTexture.Flag, ILandscapeTexture, ILandscapeTextureGetter>("Flags") }
         };
 

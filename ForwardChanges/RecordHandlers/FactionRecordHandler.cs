@@ -6,6 +6,7 @@ using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Plugins.Cache;
 using ForwardChanges.PropertyHandlers.Faction;
 using ForwardChanges.PropertyHandlers.General;
+using ForwardChanges.PropertyHandlers.Abstracts;
 using ForwardChanges.RecordHandlers.Abstracts;
 using ForwardChanges.PropertyHandlers.Interfaces;
 using System;
@@ -24,8 +25,8 @@ namespace ForwardChanges.RecordHandlers
             { "MajorRecordFlagsRaw", new MajorRecordFlagsRawHandler() },
             { "SkyrimMajorRecordFlags", new SkyrimMajorRecordFlagsHandler() },
             { "Name", new NameHandler() },
-            { "Relations", new SimpleReflectionListPropertyHandler<IRelationGetter, IFaction, IFactionGetter>("Relations") },
-            { "Ranks", new SimpleReflectionListPropertyHandler<IRankGetter, IFaction, IFactionGetter>("Ranks") },
+            { "Relations", new SimpleReflectionListPropertyHandler<IRelationGetter, IFaction, IFactionGetter>("Relations", ListSemantics.SortedKeyed, keySelector: relation => relation.Target.FormKey) },
+            { "Ranks", new SimpleReflectionListPropertyHandler<IRankGetter, IFaction, IFactionGetter>("Ranks", ListSemantics.SortedKeyed, keySelector: rank => rank.Number) },
             { "Conditions", new ConditionsHandler() },
             { "Flags", new FlagsHandler() },
             { "ExteriorJailMarker", new SimpleReflectionFormLinkPropertyHandler<IPlacedObjectGetter, IFaction, IFactionGetter>("ExteriorJailMarker") },

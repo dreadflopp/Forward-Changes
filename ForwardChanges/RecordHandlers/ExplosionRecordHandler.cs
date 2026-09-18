@@ -13,7 +13,8 @@ namespace ForwardChanges.RecordHandlers
     // Migration note:
     // - Generalized: all properties via shared reflection and common handlers.
     // - Kept specialized: none.
-    // - Rationale: interface surface is reflection-safe links/scalars with no custom list semantics.
+    // - Intentionally excluded: DATADataTypeState is Mutagen serialization state, not an xEdit field.
+    // - Rationale: semantic fields are forwarded while the winning record retains its binary DATA layout.
     public class ExplosionRecordHandler : AbstractRecordHandler
     {
         public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()
@@ -40,7 +41,6 @@ namespace ForwardChanges.RecordHandlers
             { "VerticalOffsetMult", new SimpleReflectionPropertyHandler<float, IExplosion, IExplosionGetter>("VerticalOffsetMult", 0.001f) },
             { "Flags", new SimpleReflectionFlagPropertyHandler<Mutagen.Bethesda.Skyrim.Explosion.Flag, IExplosion, IExplosionGetter>("Flags") },
             { "SoundLevel", new SimpleReflectionPropertyHandler<SoundLevel, IExplosion, IExplosionGetter>("SoundLevel") },
-            { "DATADataTypeState", new SimpleReflectionPropertyHandler<Mutagen.Bethesda.Skyrim.Explosion.DATADataType, IExplosion, IExplosionGetter>("DATADataTypeState") }
         };
 
         public override IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter>[] GetRecordContexts(

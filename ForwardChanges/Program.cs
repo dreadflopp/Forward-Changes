@@ -20,6 +20,15 @@ namespace ForwardChanges
 {
     public class Program
     {
+        public static readonly IReadOnlyDictionary<Type, string> ExcludedRecordTypes =
+            new Dictionary<Type, string>
+            {
+                [typeof(IDefaultObjectManagerGetter)] = "Default object mappings are merged by the Skyrim runtime.",
+                [typeof(ILandscapeTextureGetter)] = "Landscape texture records are excluded by the runtime-field forwarding policy.",
+                [typeof(ILandscapeGetter)] = "Landscape records are excluded by the runtime-field forwarding policy.",
+                [typeof(IImageSpaceAdapterGetter)] = "Image Space Adapter records are disabled because Mutagen does not preserve missing DNAM subrecords and writes zero-valued DNAM data instead."
+            };
+
         public static readonly Type[] SupportedRecordTypes = new[]
             {
                 typeof(INpcGetter),
@@ -79,7 +88,6 @@ namespace ForwardChanges
                 typeof(IDebrisGetter),
                 typeof(IDialogBranchGetter),
                 typeof(IDialogViewGetter),
-                typeof(IDefaultObjectManagerGetter),
                 typeof(IDoorGetter),
                 typeof(IDualCastDataGetter),
                 typeof(IEquipTypeGetter),
@@ -104,15 +112,12 @@ namespace ForwardChanges
                 typeof(IIdleMarkerGetter),
                 typeof(ILightingTemplateGetter),
                 typeof(ILoadScreenGetter),
-                typeof(ILandscapeTextureGetter),
                 typeof(ILeveledNpcGetter),
                 typeof(ILeveledSpellGetter),
                 typeof(IMoveableStaticGetter),
                 typeof(IMovementTypeGetter),
                 typeof(IMusicTypeGetter),
                 typeof(IMusicTrackGetter),
-                // Navigation mesh info map is a singleton in Skyrim and not overridden in practice.
-                // Intentionally not patched.
                 typeof(INavigationMeshGetter),
                 typeof(IOutfitGetter),
                 typeof(IPlacedHazardGetter),
@@ -139,12 +144,10 @@ namespace ForwardChanges
                 typeof(IMaterialTypeGetter),
                 typeof(IMessageGetter),
                 typeof(IKeywordGetter),
-                typeof(ILandscapeGetter),
                 typeof(ILocationReferenceTypeGetter),
                 typeof(IImageSpaceGetter),
                 typeof(IImpactGetter),
-                typeof(IImpactDataSetGetter),
-                typeof(IImageSpaceAdapterGetter)
+                typeof(IImpactDataSetGetter)
             };
 
         /// <summary>
@@ -216,6 +219,29 @@ namespace ForwardChanges
             }
 
             return loaded;
+        }
+
+        private static IModContext<ISkyrimMod, ISkyrimModGetter, TDerivedSetter, TDerivedGetter>[] NarrowContexts<
+            TBaseSetter,
+            TBaseGetter,
+            TDerivedSetter,
+            TDerivedGetter>(
+            IEnumerable<IModContext<ISkyrimMod, ISkyrimModGetter, TBaseSetter, TBaseGetter>> contexts)
+            where TBaseSetter : class, IMajorRecordQueryable, TBaseGetter
+            where TBaseGetter : class, IMajorRecordQueryableGetter
+            where TDerivedSetter : class, TBaseSetter, TDerivedGetter
+            where TDerivedGetter : class, TBaseGetter
+        {
+            return contexts
+                .Where(context => context.Record is TDerivedGetter)
+                .Select(context => context.AsType<
+                    ISkyrimMod,
+                    ISkyrimModGetter,
+                    TBaseSetter,
+                    TBaseGetter,
+                    TDerivedSetter,
+                    TDerivedGetter>())
+                .ToArray();
         }
 
 
@@ -410,9 +436,6 @@ namespace ForwardChanges
             var dialogViewContexts = LoadContextsSafely(
                 state.LoadOrder.PriorityOrder.WinningContextOverrides<ISkyrimMod, ISkyrimModGetter, IDialogView, IDialogViewGetter>(state.LinkCache),
                 "dialogViewContexts");
-            var defaultObjectManagerContexts = LoadContextsSafely(
-                state.LoadOrder.PriorityOrder.WinningContextOverrides<ISkyrimMod, ISkyrimModGetter, IDefaultObjectManager, IDefaultObjectManagerGetter>(state.LinkCache),
-                "defaultObjectManagerContexts");
             var doorContexts = LoadContextsSafely(
                 state.LoadOrder.PriorityOrder.WinningContextOverrides<ISkyrimMod, ISkyrimModGetter, IDoor, IDoorGetter>(state.LinkCache),
                 "doorContexts");
@@ -440,30 +463,25 @@ namespace ForwardChanges
             var furnitureContexts = LoadContextsSafely(
                 state.LoadOrder.PriorityOrder.WinningContextOverrides<ISkyrimMod, ISkyrimModGetter, IFurniture, IFurnitureGetter>(state.LinkCache),
                 "furnitureContexts");
-            var globalIntContexts = LoadContextsSafely(
-                state.LoadOrder.PriorityOrder.WinningContextOverrides<ISkyrimMod, ISkyrimModGetter, IGlobalInt, IGlobalIntGetter>(state.LinkCache),
-                "globalIntContexts");
-            var globalShortContexts = LoadContextsSafely(
-                state.LoadOrder.PriorityOrder.WinningContextOverrides<ISkyrimMod, ISkyrimModGetter, IGlobalShort, IGlobalShortGetter>(state.LinkCache),
-                "globalShortContexts");
-            var globalFloatContexts = LoadContextsSafely(
-                state.LoadOrder.PriorityOrder.WinningContextOverrides<ISkyrimMod, ISkyrimModGetter, IGlobalFloat, IGlobalFloatGetter>(state.LinkCache),
-                "globalFloatContexts");
-            var globalUnknownContexts = LoadContextsSafely(
-                state.LoadOrder.PriorityOrder.WinningContextOverrides<ISkyrimMod, ISkyrimModGetter, IGlobalUnknown, IGlobalUnknownGetter>(state.LinkCache),
-                "globalUnknownContexts");
-            var gameSettingIntContexts = LoadContextsSafely(
-                state.LoadOrder.PriorityOrder.WinningContextOverrides<ISkyrimMod, ISkyrimModGetter, IGameSettingInt, IGameSettingIntGetter>(state.LinkCache),
-                "gameSettingIntContexts");
-            var gameSettingFloatContexts = LoadContextsSafely(
-                state.LoadOrder.PriorityOrder.WinningContextOverrides<ISkyrimMod, ISkyrimModGetter, IGameSettingFloat, IGameSettingFloatGetter>(state.LinkCache),
-                "gameSettingFloatContexts");
-            var gameSettingStringContexts = LoadContextsSafely(
-                state.LoadOrder.PriorityOrder.WinningContextOverrides<ISkyrimMod, ISkyrimModGetter, IGameSettingString, IGameSettingStringGetter>(state.LinkCache),
-                "gameSettingStringContexts");
-            var gameSettingBoolContexts = LoadContextsSafely(
-                state.LoadOrder.PriorityOrder.WinningContextOverrides<ISkyrimMod, ISkyrimModGetter, IGameSettingBool, IGameSettingBoolGetter>(state.LinkCache),
-                "gameSettingBoolContexts");
+            // Global and GameSetting subtypes share a single Mutagen registration.
+            // Querying a concrete subtype directly can make the generated enumerator cast a
+            // sibling overlay before it has a chance to filter it. Query the common base once,
+            // then narrow only contexts whose runtime record implements the requested subtype.
+            var globalContexts = LoadContextsSafely(
+                state.LoadOrder.PriorityOrder.WinningContextOverrides<ISkyrimMod, ISkyrimModGetter, IGlobal, IGlobalGetter>(state.LinkCache),
+                "globalContexts");
+            var globalIntContexts = NarrowContexts<IGlobal, IGlobalGetter, IGlobalInt, IGlobalIntGetter>(globalContexts);
+            var globalShortContexts = NarrowContexts<IGlobal, IGlobalGetter, IGlobalShort, IGlobalShortGetter>(globalContexts);
+            var globalFloatContexts = NarrowContexts<IGlobal, IGlobalGetter, IGlobalFloat, IGlobalFloatGetter>(globalContexts);
+            var globalUnknownContexts = NarrowContexts<IGlobal, IGlobalGetter, IGlobalUnknown, IGlobalUnknownGetter>(globalContexts);
+
+            var gameSettingContexts = LoadContextsSafely(
+                state.LoadOrder.PriorityOrder.WinningContextOverrides<ISkyrimMod, ISkyrimModGetter, IGameSetting, IGameSettingGetter>(state.LinkCache),
+                "gameSettingContexts");
+            var gameSettingIntContexts = NarrowContexts<IGameSetting, IGameSettingGetter, IGameSettingInt, IGameSettingIntGetter>(gameSettingContexts);
+            var gameSettingFloatContexts = NarrowContexts<IGameSetting, IGameSettingGetter, IGameSettingFloat, IGameSettingFloatGetter>(gameSettingContexts);
+            var gameSettingStringContexts = NarrowContexts<IGameSetting, IGameSettingGetter, IGameSettingString, IGameSettingStringGetter>(gameSettingContexts);
+            var gameSettingBoolContexts = NarrowContexts<IGameSetting, IGameSettingGetter, IGameSettingBool, IGameSettingBoolGetter>(gameSettingContexts);
             var grassContexts = LoadContextsSafely(
                 state.LoadOrder.PriorityOrder.WinningContextOverrides<ISkyrimMod, ISkyrimModGetter, IGrass, IGrassGetter>(state.LinkCache),
                 "grassContexts");
@@ -485,9 +503,6 @@ namespace ForwardChanges
             var loadScreenContexts = LoadContextsSafely(
                 state.LoadOrder.PriorityOrder.WinningContextOverrides<ISkyrimMod, ISkyrimModGetter, ILoadScreen, ILoadScreenGetter>(state.LinkCache),
                 "loadScreenContexts");
-            var landscapeTextureContexts = LoadContextsSafely(
-                state.LoadOrder.PriorityOrder.WinningContextOverrides<ISkyrimMod, ISkyrimModGetter, ILandscapeTexture, ILandscapeTextureGetter>(state.LinkCache),
-                "landscapeTextureContexts");
             var leveledNpcContexts = LoadContextsSafely(
                 state.LoadOrder.PriorityOrder.WinningContextOverrides<ISkyrimMod, ISkyrimModGetter, ILeveledNpc, ILeveledNpcGetter>(state.LinkCache),
                 "leveledNpcContexts");
@@ -512,9 +527,12 @@ namespace ForwardChanges
             var outfitContexts = LoadContextsSafely(
                 state.LoadOrder.PriorityOrder.WinningContextOverrides<ISkyrimMod, ISkyrimModGetter, IOutfit, IOutfitGetter>(state.LinkCache),
                 "outfitContexts");
-            var placedHazardContexts = LoadContextsSafely(
-                state.LoadOrder.PriorityOrder.WinningContextOverrides<ISkyrimMod, ISkyrimModGetter, IPlacedHazard, IPlacedHazardGetter>(state.LinkCache),
-                "placedHazardContexts");
+            // PlacedHazard shares APlacedTrap's registration with several sibling placed
+            // projectile types, so use the same base-query-then-narrow pattern here.
+            var placedTrapContexts = LoadContextsSafely(
+                state.LoadOrder.PriorityOrder.WinningContextOverrides<ISkyrimMod, ISkyrimModGetter, IAPlacedTrap, IAPlacedTrapGetter>(state.LinkCache),
+                "placedTrapContexts");
+            var placedHazardContexts = NarrowContexts<IAPlacedTrap, IAPlacedTrapGetter, IPlacedHazard, IPlacedHazardGetter>(placedTrapContexts);
             var soundCategoryContexts = LoadContextsSafely(
                 state.LoadOrder.PriorityOrder.WinningContextOverrides<ISkyrimMod, ISkyrimModGetter, ISoundCategory, ISoundCategoryGetter>(state.LinkCache),
                 "soundCategoryContexts");
@@ -584,9 +602,6 @@ namespace ForwardChanges
             var keywordContexts = LoadContextsSafely(
                 state.LoadOrder.PriorityOrder.WinningContextOverrides<ISkyrimMod, ISkyrimModGetter, IKeyword, IKeywordGetter>(state.LinkCache),
                 "keywordContexts");
-            var landscapeContexts = LoadContextsSafely(
-                state.LoadOrder.PriorityOrder.WinningContextOverrides<ISkyrimMod, ISkyrimModGetter, ILandscape, ILandscapeGetter>(state.LinkCache),
-                "landscapeContexts");
             var locationReferenceTypeContexts = LoadContextsSafely(
                 state.LoadOrder.PriorityOrder.WinningContextOverrides<ISkyrimMod, ISkyrimModGetter, ILocationReferenceType, ILocationReferenceTypeGetter>(state.LinkCache),
                 "locationReferenceTypeContexts");
@@ -599,9 +614,6 @@ namespace ForwardChanges
             var impactDataSetContexts = LoadContextsSafely(
                 state.LoadOrder.PriorityOrder.WinningContextOverrides<ISkyrimMod, ISkyrimModGetter, IImpactDataSet, IImpactDataSetGetter>(state.LinkCache),
                 "impactDataSetContexts");
-            var imageSpaceAdapterContexts = LoadContextsSafely(
-                state.LoadOrder.PriorityOrder.WinningContextOverrides<ISkyrimMod, ISkyrimModGetter, IImageSpaceAdapter, IImageSpaceAdapterGetter>(state.LinkCache),
-                "imageSpaceAdapterContexts");
             var talkingActivatorContexts = LoadContextsSafely(
                 state.LoadOrder.PriorityOrder.WinningContextOverrides<ISkyrimMod, ISkyrimModGetter, ITalkingActivator, ITalkingActivatorGetter>(state.LinkCache),
                 "talkingActivatorContexts");
@@ -779,9 +791,6 @@ namespace ForwardChanges
             Console.WriteLine("Filtering Dialog Views...");
             var filteredDialogViewContexts = dialogViewContexts.Where(context => !ShouldBreakEarly(context, state)).ToArray();
             Console.WriteLine($"Dialog View contexts: {dialogViewContexts.Length} -> {filteredDialogViewContexts.Length} (filtered: {dialogViewContexts.Length - filteredDialogViewContexts.Length})");
-            Console.WriteLine("Filtering Default Object Managers...");
-            var filteredDefaultObjectManagerContexts = defaultObjectManagerContexts.Where(context => !ShouldBreakEarly(context, state)).ToArray();
-            Console.WriteLine($"Default Object Manager contexts: {defaultObjectManagerContexts.Length} -> {filteredDefaultObjectManagerContexts.Length} (filtered: {defaultObjectManagerContexts.Length - filteredDefaultObjectManagerContexts.Length})");
             Console.WriteLine("Filtering Doors...");
             var filteredDoorContexts = doorContexts.Where(context => !ShouldBreakEarly(context, state)).ToArray();
             Console.WriteLine($"Door contexts: {doorContexts.Length} -> {filteredDoorContexts.Length} (filtered: {doorContexts.Length - filteredDoorContexts.Length})");
@@ -854,9 +863,6 @@ namespace ForwardChanges
             Console.WriteLine("Filtering Load Screens...");
             var filteredLoadScreenContexts = loadScreenContexts.Where(context => !ShouldBreakEarly(context, state)).ToArray();
             Console.WriteLine($"Load Screen contexts: {loadScreenContexts.Length} -> {filteredLoadScreenContexts.Length} (filtered: {loadScreenContexts.Length - filteredLoadScreenContexts.Length})");
-            Console.WriteLine("Filtering Landscape Textures...");
-            var filteredLandscapeTextureContexts = landscapeTextureContexts.Where(context => !ShouldBreakEarly(context, state)).ToArray();
-            Console.WriteLine($"Landscape Texture contexts: {landscapeTextureContexts.Length} -> {filteredLandscapeTextureContexts.Length} (filtered: {landscapeTextureContexts.Length - filteredLandscapeTextureContexts.Length})");
             Console.WriteLine("Filtering Leveled NPCs...");
             var filteredLeveledNpcContexts = leveledNpcContexts.Where(context => !ShouldBreakEarly(context, state)).ToArray();
             Console.WriteLine($"Leveled NPC contexts: {leveledNpcContexts.Length} -> {filteredLeveledNpcContexts.Length} (filtered: {leveledNpcContexts.Length - filteredLeveledNpcContexts.Length})");
@@ -953,9 +959,6 @@ namespace ForwardChanges
             Console.WriteLine("Filtering Keywords...");
             var filteredKeywordContexts = keywordContexts.Where(context => !ShouldBreakEarly(context, state)).ToArray();
             Console.WriteLine($"Keyword contexts: {keywordContexts.Length} -> {filteredKeywordContexts.Length} (filtered: {keywordContexts.Length - filteredKeywordContexts.Length})");
-            Console.WriteLine("Filtering Landscapes...");
-            var filteredLandscapeContexts = landscapeContexts.Where(context => !ShouldBreakEarly(context, state)).ToArray();
-            Console.WriteLine($"Landscape contexts: {landscapeContexts.Length} -> {filteredLandscapeContexts.Length} (filtered: {landscapeContexts.Length - filteredLandscapeContexts.Length})");
             Console.WriteLine("Filtering Location Reference Types...");
             var filteredLocationReferenceTypeContexts = locationReferenceTypeContexts.Where(context => !ShouldBreakEarly(context, state)).ToArray();
             Console.WriteLine($"Location Reference Type contexts: {locationReferenceTypeContexts.Length} -> {filteredLocationReferenceTypeContexts.Length} (filtered: {locationReferenceTypeContexts.Length - filteredLocationReferenceTypeContexts.Length})");
@@ -968,9 +971,6 @@ namespace ForwardChanges
             Console.WriteLine("Filtering Impact Data Sets...");
             var filteredImpactDataSetContexts = impactDataSetContexts.Where(context => !ShouldBreakEarly(context, state)).ToArray();
             Console.WriteLine($"Impact Data Set contexts: {impactDataSetContexts.Length} -> {filteredImpactDataSetContexts.Length} (filtered: {impactDataSetContexts.Length - filteredImpactDataSetContexts.Length})");
-            Console.WriteLine("Filtering Image Space Modifiers...");
-            var filteredImageSpaceAdapterContexts = imageSpaceAdapterContexts.Where(context => !ShouldBreakEarly(context, state)).ToArray();
-            Console.WriteLine($"Image Space Adapter contexts: {imageSpaceAdapterContexts.Length} -> {filteredImageSpaceAdapterContexts.Length} (filtered: {imageSpaceAdapterContexts.Length - filteredImageSpaceAdapterContexts.Length})");
             Console.WriteLine("Filtering Talking Activators...");
             var filteredTalkingActivatorContexts = talkingActivatorContexts.Where(context => !ShouldBreakEarly(context, state)).ToArray();
             Console.WriteLine($"Talking Activator contexts: {talkingActivatorContexts.Length} -> {filteredTalkingActivatorContexts.Length} (filtered: {talkingActivatorContexts.Length - filteredTalkingActivatorContexts.Length})");
@@ -1216,10 +1216,6 @@ namespace ForwardChanges
                             var dialogViewHandler = new DialogViewRecordHandler();
                             dialogViewHandler.Process(state, filteredDialogViewContexts);
                             break;
-                        case Type t when t == typeof(IDefaultObjectManagerGetter):
-                            var defaultObjectManagerHandler = new DefaultObjectManagerRecordHandler();
-                            defaultObjectManagerHandler.Process(state, filteredDefaultObjectManagerContexts);
-                            break;
                         case Type t when t == typeof(IDoorGetter):
                             var doorHandler = new DoorRecordHandler();
                             doorHandler.Process(state, filteredDoorContexts);
@@ -1315,10 +1311,6 @@ namespace ForwardChanges
                         case Type t when t == typeof(ILoadScreenGetter):
                             var loadScreenHandler = new LoadScreenRecordHandler();
                             loadScreenHandler.Process(state, filteredLoadScreenContexts);
-                            break;
-                        case Type t when t == typeof(ILandscapeTextureGetter):
-                            var landscapeTextureHandler = new LandscapeTextureRecordHandler();
-                            landscapeTextureHandler.Process(state, filteredLandscapeTextureContexts);
                             break;
                         case Type t when t == typeof(ILeveledNpcGetter):
                             var leveledNpcHandler = new LeveledNpcRecordHandler();
@@ -1448,10 +1440,6 @@ namespace ForwardChanges
                             var keywordHandler = new KeywordRecordHandler();
                             keywordHandler.Process(state, filteredKeywordContexts);
                             break;
-                        case Type t when t == typeof(ILandscapeGetter):
-                            var landscapeHandler = new LandscapeRecordHandler();
-                            landscapeHandler.Process(state, filteredLandscapeContexts);
-                            break;
                         case Type t when t == typeof(ILocationReferenceTypeGetter):
                             var locationReferenceTypeHandler = new LocationReferenceTypeRecordHandler();
                             locationReferenceTypeHandler.Process(state, filteredLocationReferenceTypeContexts);
@@ -1467,10 +1455,6 @@ namespace ForwardChanges
                         case Type t when t == typeof(IImpactDataSetGetter):
                             var impactDataSetHandler = new ImpactDataSetRecordHandler();
                             impactDataSetHandler.Process(state, filteredImpactDataSetContexts);
-                            break;
-                        case Type t when t == typeof(IImageSpaceAdapterGetter):
-                            var imageSpaceAdapterHandler = new ImageSpaceAdapterRecordHandler();
-                            imageSpaceAdapterHandler.Process(state, filteredImageSpaceAdapterContexts);
                             break;
                         case Type t when t == typeof(ITalkingActivatorGetter):
                             var talkingActivatorHandler = new TalkingActivatorRecordHandler();

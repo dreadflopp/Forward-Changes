@@ -1,7 +1,6 @@
 using System;
 using Mutagen.Bethesda;
 using Mutagen.Bethesda.Plugins;
-using Mutagen.Bethesda.Plugins.Assets;
 using Mutagen.Bethesda.Plugins.Cache;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Skyrim;
@@ -17,8 +16,8 @@ namespace ForwardChanges.RecordHandlers
 {
     // Migration note:
     // - Generalized: most scalar/asset/list properties via shared handlers.
-    // - Kept specialized: Conditions via dedicated conditions handler.
-    // - Rationale: conditions require list-order semantics and deep-copy behavior.
+    // - Kept specialized: Conditions via the shared condition implementation and a record adapter.
+    // - Rationale: conditions require aligned list ordering, deep copies, and semantic CTDA comparison.
     public class IdleAnimationRecordHandler : AbstractRecordHandler
     {
         public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()
@@ -27,9 +26,11 @@ namespace ForwardChanges.RecordHandlers
             { "MajorRecordFlagsRaw", new MajorRecordFlagsRawHandler() },
             { "SkyrimMajorRecordFlags", new SkyrimMajorRecordFlagsHandler() },
             { "Conditions", new ConditionsHandler() },
-            { "Filename", new SimpleReflectionPropertyHandler<AssetLinkGetter<SkyrimBehaviorAssetType>?, IIdleAnimation, IIdleAnimationGetter>("Filename") },
+            { "Filename", new SimpleReflectionAssetLinkPropertyHandler<SkyrimBehaviorAssetType, IIdleAnimation, IIdleAnimationGetter>("Filename") },
             { "AnimationEvent", new SimpleReflectionPropertyHandler<string?, IIdleAnimation, IIdleAnimationGetter>("AnimationEvent") },
-            { "RelatedIdles", new SimpleReflectionListPropertyHandler<IFormLinkGetter<IIdleRelationGetter>, IIdleAnimation, IIdleAnimationGetter>("RelatedIdles", ListOrdering.None) },
+            /* RelatedIdles is intentionally excluded from forwarding. This data is sorted out at runtime.
+            { "RelatedIdles", new AtomicReflectionListPropertyHandler<IFormLinkGetter<IIdleRelationGetter>, IIdleAnimation, IIdleAnimationGetter>("RelatedIdles") },
+            */
             { "LoopingSecondsMin", new SimpleReflectionPropertyHandler<byte, IIdleAnimation, IIdleAnimationGetter>("LoopingSecondsMin") },
             { "LoopingSecondsMax", new SimpleReflectionPropertyHandler<byte, IIdleAnimation, IIdleAnimationGetter>("LoopingSecondsMax") },
             { "Flags", new SimpleReflectionFlagPropertyHandler<Mutagen.Bethesda.Skyrim.IdleAnimation.Flag, IIdleAnimation, IIdleAnimationGetter>("Flags") },

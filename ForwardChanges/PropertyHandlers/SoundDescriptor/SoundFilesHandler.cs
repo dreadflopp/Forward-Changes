@@ -4,14 +4,16 @@ using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Plugins.Assets;
 using Mutagen.Bethesda.Skyrim.Assets;
 using ForwardChanges.PropertyHandlers.Abstracts;
-using ForwardChanges.Contexts;
-using System.Linq;
+using ForwardChanges.PropertyHandlers.General;
 
 namespace ForwardChanges.PropertyHandlers.SoundDescriptor
 {
     public class SoundFilesHandler : AbstractListPropertyHandler<IAssetLinkGetter<SkyrimSoundAssetType>>
     {
         public override string PropertyName => "SoundFiles";
+        // xEdit defines these repeated ANAM strings as an indexed, non-sorted wbRArray.
+        // Each numbered slot therefore has positional identity.
+        public override ListSemantics Semantics => ListSemantics.ExactOrdered;
 
         public override void SetValue(IMajorRecord record, List<IAssetLinkGetter<SkyrimSoundAssetType>>? value)
         {
@@ -24,8 +26,9 @@ namespace ForwardChanges.PropertyHandlers.SoundDescriptor
                     {
                         if (assetLink != null)
                         {
-                            // Use DataRelativePath to get the full path including "Data\" prefix
-                            var newAssetLink = new AssetLink<SkyrimSoundAssetType>(assetLink.DataRelativePath);
+                            // Mutagen writes GivenPath to ANAM. DataRelativePath is only a normalized
+                            // lookup path and strips Data\ while adding the Sound\ asset base folder.
+                            var newAssetLink = AssetPathHelper.Copy(assetLink)!;
                             soundDescriptor.SoundFiles.Add(newAssetLink);
                         }
                     }
@@ -50,12 +53,14 @@ namespace ForwardChanges.PropertyHandlers.SoundDescriptor
         {
             if (item1 == null && item2 == null) return true;
             if (item1 == null || item2 == null) return false;
-            return item1.DataRelativePath == item2.DataRelativePath;
+            return AssetPathHelper.AreEqual(item1, item2);
         }
 
         protected override string FormatItem(IAssetLinkGetter<SkyrimSoundAssetType>? item)
         {
-            return item?.DataRelativePath.ToString() ?? "null";
+            if (item == null) return "null";
+
+            return AssetPathHelper.Format(item);
         }
     }
 }

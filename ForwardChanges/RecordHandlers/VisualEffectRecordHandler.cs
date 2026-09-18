@@ -11,6 +11,10 @@ using ForwardChanges.RecordHandlers.Abstracts;
 
 namespace ForwardChanges.RecordHandlers;
 
+// Migration note:
+// - Generalized: RFCT art/shader links, flags, and metadata use shared semantic handlers.
+// - Kept specialized: none.
+// - Rationale: the record exposes only independent links and flag values.
 public class VisualEffectRecordHandler : AbstractRecordHandler
 {
     public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()

@@ -42,6 +42,7 @@ namespace ForwardChanges
         // Add exact FormKey strings like "050CED:Skyrim.esm".
         public static readonly HashSet<string> DeepDiveFormKeys = new(StringComparer.OrdinalIgnoreCase)
         {
+            "00285D:Update.esm"
         };
 
         // Add property names like "Responses" or "Conditions".

@@ -14,7 +14,8 @@ namespace ForwardChanges.RecordHandlers;
 // Migration note:
 // - Generalized: all MOVT scalar and enum fields via reflection handlers.
 // - Kept specialized: none.
-// - Rationale: IMovementType surface is simple and directly supported by generic handlers.
+// - Intentionally excluded: SPEDDataTypeState is Mutagen serialization state, not an xEdit field.
+// - Rationale: semantic fields are forwarded while the winning record retains its binary SPED layout.
 public class MovementTypeRecordHandler : AbstractRecordHandler
 {
     public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()
@@ -35,7 +36,6 @@ public class MovementTypeRecordHandler : AbstractRecordHandler
         { "RotateInPlaceRun", new SimpleReflectionPropertyHandler<float, IMovementType, IMovementTypeGetter>("RotateInPlaceRun") },
         { "RotateWhileMovingRun", new SimpleReflectionPropertyHandler<float, IMovementType, IMovementTypeGetter>("RotateWhileMovingRun") },
         { "AnimationChangeThresholds", new ComplexReflectionPropertyHandler<IAnimationChangeThresholdsGetter, IMovementType, IMovementTypeGetter>("AnimationChangeThresholds") },
-        { "SPEDDataTypeState", new SimpleReflectionPropertyHandler<MovementType.SPEDDataType, IMovementType, IMovementTypeGetter>("SPEDDataTypeState") }
     };
 
     public override IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter>[] GetRecordContexts(

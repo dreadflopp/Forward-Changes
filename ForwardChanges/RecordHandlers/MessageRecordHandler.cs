@@ -13,6 +13,10 @@ using ForwardChanges.PropertyHandlers.Interfaces;
 
 namespace ForwardChanges.RecordHandlers;
 
+// Migration note:
+// - Generalized: MESG text, binary data, links, flags, and scalars use shared semantic handlers.
+// - Kept specialized: MenuButtons retains aligned ordered rows and generated item copying.
+// - Rationale: button declaration order is meaningful and must be reconciled independently from scalar fields.
 public class MessageRecordHandler : AbstractRecordHandler
 {
     public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()

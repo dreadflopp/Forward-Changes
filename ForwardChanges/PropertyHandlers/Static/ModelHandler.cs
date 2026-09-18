@@ -7,6 +7,7 @@ using Mutagen.Bethesda.Plugins.Assets;
 using Mutagen.Bethesda.Skyrim.Assets;
 using Noggog;
 using ForwardChanges.PropertyHandlers.Abstracts;
+using ForwardChanges.PropertyHandlers.General;
 
 namespace ForwardChanges.PropertyHandlers.Static
 {
@@ -36,7 +37,8 @@ namespace ForwardChanges.PropertyHandlers.Static
                 // Create a new Model and copy the values
                 var newModel = new Model
                 {
-                    File = new AssetLink<SkyrimModelAssetType>(value.File.DataRelativePath.ToString())
+                    File = AssetPathHelper.Copy(value.File)!,
+                    Data = value.Data?.ToArray()
                 };
 
                 // Copy AlternateTextures if they exist
@@ -64,8 +66,9 @@ namespace ForwardChanges.PropertyHandlers.Static
             if (value1 == null && value2 == null) return true;
             if (value1 == null || value2 == null) return false;
 
-            // Compare File - use DataRelativePath for value-based comparison (avoids reference equality from different overlays)
-            if (value1.File.DataRelativePath != value2.File.DataRelativePath) return false;
+            if (!AssetPathHelper.AreEqual(value1.File, value2.File)) return false;
+
+            if (!AreDataEqual(value1, value2)) return false;
 
             // Compare AlternateTextures - treat null and empty as equivalent
             var alt1Count = value1.AlternateTextures?.Count ?? 0;
@@ -86,6 +89,16 @@ namespace ForwardChanges.PropertyHandlers.Static
             }
 
             return true;
+        }
+
+        private static bool AreDataEqual(IModelGetter value1, IModelGetter value2)
+        {
+            if (value1.Data == null || value2.Data == null)
+            {
+                return value1.Data == null && value2.Data == null;
+            }
+
+            return value1.Data.Value.Span.SequenceEqual(value2.Data.Value.Span);
         }
     }
 }

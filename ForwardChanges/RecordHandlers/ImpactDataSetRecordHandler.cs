@@ -5,15 +5,17 @@ using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Plugins.Cache;
 using ForwardChanges.PropertyHandlers.General;
+using ForwardChanges.PropertyHandlers.ImpactDataSet;
 using ForwardChanges.PropertyHandlers.Interfaces;
 using ForwardChanges.RecordHandlers.Abstracts;
 
 namespace ForwardChanges.RecordHandlers
 {
     // Migration note:
-    // - Generalized: the Impacts list via reflection list handling.
-    // - Kept specialized: none.
-    // - Rationale: the record is just a container for ImpactData list entries.
+    // - Generalized: record header and EditorID fields keep using the shared handlers.
+    // - Kept specialized: Impacts is merged as an unordered Material-keyed mapping.
+    // - Rationale: xEdit defines Material as the PNAM structural key and Impact as its value;
+    //   full-pair list equality can emit duplicate Material entries instead of replacements.
     public class ImpactDataSetRecordHandler : AbstractRecordHandler
     {
         public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()
@@ -21,7 +23,7 @@ namespace ForwardChanges.RecordHandlers
             { "EditorID", new EditorIDHandler() },
             { "MajorRecordFlagsRaw", new MajorRecordFlagsRawHandler() },
             { "SkyrimMajorRecordFlags", new SkyrimMajorRecordFlagsHandler() },
-            { "Impacts", new SimpleReflectionListPropertyHandler<IImpactDataGetter, IImpactDataSet, IImpactDataSetGetter>("Impacts") }
+            { "Impacts", new ImpactsHandler() }
         };
 
         public override IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter>[] GetRecordContexts(

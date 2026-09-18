@@ -9,9 +9,23 @@
 *.user
 *.userosscache
 *.sln.docstates
-DecompiledMutagen/
-.tools/
-docs/
+
+# Generated external reference sources
+/DecompiledMutagen/
+/XEditSource/
+
+# Locally installed development tools
+/.tools/
+
+# Generated audit reports
+/docs/record-handler-coverage.md
+/docs/record-handler-coverage.json
+
+# Temporary investigation output
+/.ilspytest/
+/temp-audit/
+/tmp/
+/ilspy-help.txt
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs

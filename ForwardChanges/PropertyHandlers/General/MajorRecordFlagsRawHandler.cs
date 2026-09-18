@@ -38,7 +38,7 @@ namespace ForwardChanges.PropertyHandlers.General
         /// Reference: xEdit source code (wbDefinitionsTES5.pas) and TES5 record format documentation.
         /// See also: https://github.com/wrye-bash/wrye-bash/wiki/[dev]-Record-Header-Flags
         /// </summary>
-        private static readonly Dictionary<int, string> BaseFlags = new()
+        private static readonly IReadOnlyDictionary<int, string> BaseFlags = new Dictionary<int, string>
         {
             { 0x0200, "Sky Marker" },              // Hidden From Local Map / Sky Marker
             { 0x0400, "Persistent" },              // Persistent Reference
@@ -50,9 +50,40 @@ namespace ForwardChanges.PropertyHandlers.General
             { 0x40000000, "Not Respawns" }         // Not Respawns
         };
 
+        private readonly IReadOnlyDictionary<int, string> _flagDefinitions;
+        private readonly int _ownedMask;
+
+        public MajorRecordFlagsRawHandler(params Type[] additionalFlagEnumTypes)
+        {
+            var flagDefinitions = new Dictionary<int, string>(BaseFlags);
+            foreach (var enumType in additionalFlagEnumTypes)
+            {
+                if (!enumType.IsEnum)
+                {
+                    throw new ArgumentException($"{enumType.Name} must be an enum type.", nameof(additionalFlagEnumTypes));
+                }
+
+                foreach (var value in Enum.GetValues(enumType))
+                {
+                    var flag = Convert.ToInt32(value);
+                    if (flag != 0)
+                    {
+                        flagDefinitions[flag] = Enum.GetName(enumType, value) ?? $"0x{flag:X8}";
+                    }
+                }
+            }
+
+            _flagDefinitions = flagDefinitions;
+            _ownedMask = flagDefinitions.Keys.Aggregate(0, (mask, flag) => mask | flag);
+        }
+
         public void SetValue(IMajorRecord record, int value)
         {
-            record.MajorRecordFlagsRaw = value;
+            // This handler owns only the configured bits. Preserve any bit which is
+            // unknown to this record's composite header view.
+            record.MajorRecordFlagsRaw =
+                (record.MajorRecordFlagsRaw & ~_ownedMask) |
+                (value & _ownedMask);
         }
 
         public int GetValue(IMajorRecordGetter record)
@@ -62,8 +93,8 @@ namespace ForwardChanges.PropertyHandlers.General
 
         public bool AreValuesEqual(int value1, int value2)
         {
-            // Only compare the flags we care about (those in BaseFlags)
-            foreach (var flag in BaseFlags.Keys)
+            // Only compare the flags this handler owns.
+            foreach (var flag in _flagDefinitions.Keys)
             {
                 var flag1Set = (value1 & flag) == flag;
                 var flag2Set = (value2 & flag) == flag;
@@ -84,7 +115,7 @@ namespace ForwardChanges.PropertyHandlers.General
                 return value?.ToString() ?? "null";
             }
 
-            var setFlags = BaseFlags
+            var setFlags = _flagDefinitions
                 .Where(kvp => (flags & kvp.Key) == kvp.Key)
                 .Select(kvp => kvp.Value)
                 .ToList();
@@ -116,7 +147,7 @@ namespace ForwardChanges.PropertyHandlers.General
             var winningFlags = GetValue(winningContext.Record);
 
             // Initialize original flag contexts
-            intFlagPropertyContext.OriginalFlagContexts = BaseFlags
+            intFlagPropertyContext.OriginalFlagContexts = _flagDefinitions
                 .Select(kvp => new IntFlagPropertyValueContext(
                     kvp.Key,
                     kvp.Value,
@@ -125,7 +156,7 @@ namespace ForwardChanges.PropertyHandlers.General
                 .ToList();
 
             // Initialize forward flag contexts with original values (will be updated as we process mods through load order)
-            intFlagPropertyContext.ForwardFlagContexts = BaseFlags
+            intFlagPropertyContext.ForwardFlagContexts = _flagDefinitions
                 .Select(kvp => new IntFlagPropertyValueContext(
                     kvp.Key,
                     kvp.Value,
@@ -172,7 +203,7 @@ namespace ForwardChanges.PropertyHandlers.General
             var recordFlags = GetValue(context.Record);
 
             // Process each individual flag
-            foreach (var flagDef in BaseFlags)
+            foreach (var flagDef in _flagDefinitions)
             {
                 var flagValue = flagDef.Key;
                 var flagName = flagDef.Value;

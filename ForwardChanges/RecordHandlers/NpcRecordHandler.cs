@@ -15,9 +15,10 @@ using System;
 namespace ForwardChanges.RecordHandlers
 {
     // Migration note:
-    // - Generalized: item owner copying/equality now uses Mutagen's OwnerTarget implementation, including UntypedOwner.
-    // - Specialized: NPC item matching, permission checks, and owner change formatting remain record-specific.
-    // - Rationale: Mutagen owns union copying/equality; patcher policy and diagnostics remain application behavior.
+    // - Generalized: semantic AIData, Configuration, and scalar PlayerSkills leaves use exact dotted shared handlers.
+    // - Specialized: protection policy, skill dictionaries, float tolerance, and NPC collection merging remain record-specific.
+    // - Intentionally excluded: AIData.Unused and PlayerSkills.Unused* are serialization-only fields.
+    // - Rationale: direct semantic leaves are reflection-safe; unused storage is not an xEdit-visible conflict surface.
     public class NpcRecordHandler : AbstractRecordHandler
     {
         public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()
@@ -30,22 +31,40 @@ namespace ForwardChanges.RecordHandlers
             { "CombatOverridePackageList", new SimpleReflectionFormLinkPropertyHandler<IFormListGetter, INpc, INpcGetter>("CombatOverridePackageList") },
             { "SpectatorOverridePackageList", new SimpleReflectionFormLinkPropertyHandler<IFormListGetter, INpc, INpcGetter>("SpectatorOverridePackageList") },
             { "Configuration.Flags", new ProtectionFlagsHandler() },
-            { "Configuration.MagickaOffset", new ConfigurationMagickaOffsetHandler() },
+            { "Configuration.MagickaOffset", new SimpleReflectionPropertyHandler<short, INpc, INpcGetter>("Configuration.MagickaOffset") },
+            { "Configuration.StaminaOffset", new SimpleReflectionPropertyHandler<short, INpc, INpcGetter>("Configuration.StaminaOffset") },
+            { "Configuration.Level", new ComplexReflectionPropertyHandler<IANpcLevelGetter, INpc, INpcGetter>("Configuration.Level") },
+            { "Configuration.CalcMinLevel", new SimpleReflectionPropertyHandler<short, INpc, INpcGetter>("Configuration.CalcMinLevel") },
+            { "Configuration.CalcMaxLevel", new SimpleReflectionPropertyHandler<short, INpc, INpcGetter>("Configuration.CalcMaxLevel") },
+            { "Configuration.SpeedMultiplier", new SimpleReflectionPropertyHandler<short, INpc, INpcGetter>("Configuration.SpeedMultiplier") },
+            { "Configuration.DispositionBase", new SimpleReflectionPropertyHandler<short, INpc, INpcGetter>("Configuration.DispositionBase") },
+            { "Configuration.TemplateFlags", new SimpleReflectionFlagPropertyHandler<NpcConfiguration.TemplateFlag, INpc, INpcGetter>("Configuration.TemplateFlags", preserveUnknownBits: true) },
+            { "Configuration.HealthOffset", new SimpleReflectionPropertyHandler<short, INpc, INpcGetter>("Configuration.HealthOffset") },
+            { "Configuration.BleedoutOverride", new SimpleReflectionPropertyHandler<short, INpc, INpcGetter>("Configuration.BleedoutOverride") },
             { "EditorID", new EditorIDHandler() },
             { "Class", new SimpleReflectionFormLinkPropertyHandler<IClassGetter, INpc, INpcGetter>("Class") },
-            { "AIData.Confidence", new AIDataConfidenceHandler() },
+            { "AIData.Aggression", new SimpleReflectionPropertyHandler<Aggression, INpc, INpcGetter>("AIData.Aggression") },
+            { "AIData.Confidence", new SimpleReflectionPropertyHandler<Confidence, INpc, INpcGetter>("AIData.Confidence") },
+            { "AIData.EnergyLevel", new SimpleReflectionPropertyHandler<byte, INpc, INpcGetter>("AIData.EnergyLevel") },
+            { "AIData.Responsibility", new SimpleReflectionPropertyHandler<Responsibility, INpc, INpcGetter>("AIData.Responsibility") },
+            { "AIData.Mood", new SimpleReflectionPropertyHandler<Mood, INpc, INpcGetter>("AIData.Mood") },
+            { "AIData.Assistance", new SimpleReflectionPropertyHandler<Assistance, INpc, INpcGetter>("AIData.Assistance") },
+            { "AIData.AggroRadiusBehavior", new SimpleReflectionPropertyHandler<bool, INpc, INpcGetter>("AIData.AggroRadiusBehavior") },
+            { "AIData.Warn", new SimpleReflectionPropertyHandler<uint, INpc, INpcGetter>("AIData.Warn") },
+            { "AIData.WarnOrAttack", new SimpleReflectionPropertyHandler<uint, INpc, INpcGetter>("AIData.WarnOrAttack") },
+            { "AIData.Attack", new SimpleReflectionPropertyHandler<uint, INpc, INpcGetter>("AIData.Attack") },
             { "ObserveDeadBodyOverridePackageList", new SimpleReflectionFormLinkPropertyHandler<IFormListGetter, INpc, INpcGetter>("ObserveDeadBodyOverridePackageList") },
             { "Factions", new FactionHandler() },
-            { "Packages", new SimpleReflectionListPropertyHandler<IFormLinkGetter<IPackageGetter>, INpc, INpcGetter>("Packages", ListOrdering.PreserveModOrder) },
-            { "ActorEffect", new SimpleReflectionListPropertyHandler<IFormLinkGetter<ISpellRecordGetter>, INpc, INpcGetter>("ActorEffect") },
+            { "Packages", new SimpleReflectionListPropertyHandler<IFormLinkGetter<IPackageGetter>, INpc, INpcGetter>("Packages", ListSemantics.AlignedOrdered) },
+            { "ActorEffect", new SimpleReflectionListPropertyHandler<IFormLinkGetter<ISpellRecordGetter>, INpc, INpcGetter>("ActorEffect", ListSemantics.SortedKeyed) },
             { "VirtualMachineAdapter", new VirtualMachineAdapterHandler() },
             { "Items", new ItemHandler() },
             { "Keywords", new KeywordListHandler() },
-            { "PlayerSkills.Health", new PlayerSkillsHealthHandler() },
-            { "PlayerSkills.Magicka", new PlayerSkillsMagickaHandler() },
-            { "PlayerSkills.Stamina", new PlayerSkillsStaminaHandler() },
+            { "PlayerSkills.Health", new SimpleReflectionPropertyHandler<ushort, INpc, INpcGetter>("PlayerSkills.Health") },
+            { "PlayerSkills.Magicka", new SimpleReflectionPropertyHandler<ushort, INpc, INpcGetter>("PlayerSkills.Magicka") },
+            { "PlayerSkills.Stamina", new SimpleReflectionPropertyHandler<ushort, INpc, INpcGetter>("PlayerSkills.Stamina") },
             { "PlayerSkills.FarAwayModelDistance", new PlayerSkillsFarAwayModelDistanceHandler() },
-            { "PlayerSkills.GearedUpWeapons", new PlayerSkillsGearedUpWeaponsHandler() },
+            { "PlayerSkills.GearedUpWeapons", new SimpleReflectionPropertyHandler<byte, INpc, INpcGetter>("PlayerSkills.GearedUpWeapons") },
             { "PlayerSkills.SkillValues", new PlayerSkillsSkillValuesHandler() },
             { "PlayerSkills.SkillOffsets", new PlayerSkillsSkillOffsetsHandler() },
             { "FaceMorph", new FaceMorphHandler() },

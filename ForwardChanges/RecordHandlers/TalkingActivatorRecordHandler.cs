@@ -26,12 +26,12 @@ public class TalkingActivatorRecordHandler : AbstractRecordHandler
         { "ObjectBounds", new ObjectBoundsHandler() },
         { "Name", new NameHandler() },
         { "Model", new ModelHandler() },
-        { "Destructible", new ComplexReflectionPropertyHandler<IDestructibleGetter, ITalkingActivator, ITalkingActivatorGetter>("Destructible") },
+        { "Destructible", new GeneratedCopyReflectionPropertyHandler<IDestructibleGetter, Destructible, ITalkingActivator, ITalkingActivatorGetter>("Destructible", value => value.DeepCopy(), DestructibleMixIn.Equals) },
         { "Keywords", new KeywordListHandler() },
         { "PNAM", new SimpleReflectionPropertyHandler<int?, ITalkingActivator, ITalkingActivatorGetter>("PNAM") },
         { "LoopingSound", new SimpleReflectionFormLinkPropertyHandler<ISoundMarkerGetter, ITalkingActivator, ITalkingActivatorGetter>("LoopingSound") },
         { "FNAM", new SimpleReflectionPropertyHandler<short?, ITalkingActivator, ITalkingActivatorGetter>("FNAM") },
-        { "VoiceType", new SimpleReflectionFormLinkPropertyHandler<IVoiceTypeGetter, ITalkingActivator, ITalkingActivatorGetter>("VoiceType") },
+        { "Voice", new SimpleReflectionFormLinkPropertyHandler<IVoiceTypeGetter, ITalkingActivator, ITalkingActivatorGetter>("Voice") },
         { "MajorFlags", new SimpleReflectionFlagPropertyHandler<TalkingActivator.MajorFlag, ITalkingActivator, ITalkingActivatorGetter>("MajorFlags") }
     };
 

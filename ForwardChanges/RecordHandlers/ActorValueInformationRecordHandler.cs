@@ -13,8 +13,9 @@ using ForwardChanges.RecordHandlers.Abstracts;
 namespace ForwardChanges.RecordHandlers
 {
     // Migration note:
-    // - Generalized: Description, Abbreviation, Skill via reflection handlers; CNAM via the shared binary-data handler.
+    // - Generalized: Description, Abbreviation, and Skill via reflection handlers.
     // - Kept specialized: Name via the shared name handler; PerkTree via a record-specific structural handler.
+    // - Intentionally excluded: CNAM is engine-managed binary data outside the semantic conflict surface.
     // - Rationale: PerkTree is a get-only mutable collection whose nested binary and list data require Mutagen's
     //   generated deep-copy and equality semantics.
     public class ActorValueInformationRecordHandler : AbstractRecordHandler
@@ -27,7 +28,6 @@ namespace ForwardChanges.RecordHandlers
             { "Name", new NameHandler() },
             { "Description", new ComplexReflectionPropertyHandler<ITranslatedStringGetter, IActorValueInformation, IActorValueInformationGetter>("Description") },
             { "Abbreviation", new SimpleReflectionPropertyHandler<string, IActorValueInformation, IActorValueInformationGetter>("Abbreviation") },
-            { "CNAM", new SimpleReflectionBinaryDataPropertyHandler<IActorValueInformation, IActorValueInformationGetter>("CNAM") },
             { "Skill", new ComplexReflectionPropertyHandler<IActorValueSkillGetter, IActorValueInformation, IActorValueInformationGetter>("Skill") },
             { "PerkTree", new PerkTreeHandler() }
         };

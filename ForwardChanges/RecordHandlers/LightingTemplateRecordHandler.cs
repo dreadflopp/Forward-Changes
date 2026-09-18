@@ -14,7 +14,8 @@ namespace ForwardChanges.RecordHandlers
     // Migration note:
     // - Generalized: colors, scalars, and nested ambient color blocks via reflection handlers.
     // - Kept specialized: none.
-    // - Rationale: the template is a structured value object with no bespoke list semantics.
+    // - Intentionally excluded: DATADataTypeState is Mutagen serialization state; Unknown is outside the semantic conflict surface.
+    // - Rationale: semantic fields are forwarded while the winning record retains its binary DATA layout.
     public class LightingTemplateRecordHandler : AbstractRecordHandler
     {
         public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()
@@ -37,9 +38,7 @@ namespace ForwardChanges.RecordHandlers
             { "FogMax", new SimpleReflectionPropertyHandler<float, ILightingTemplate, ILightingTemplateGetter>("FogMax") },
             { "LightFadeStartDistance", new SimpleReflectionPropertyHandler<float, ILightingTemplate, ILightingTemplateGetter>("LightFadeStartDistance") },
             { "LightFadeEndDistance", new SimpleReflectionPropertyHandler<float, ILightingTemplate, ILightingTemplateGetter>("LightFadeEndDistance") },
-            { "Unknown", new SimpleReflectionPropertyHandler<int, ILightingTemplate, ILightingTemplateGetter>("Unknown") },
             { "DirectionalAmbientColors", new ComplexReflectionPropertyHandler<IAmbientColorsGetter, ILightingTemplate, ILightingTemplateGetter>("DirectionalAmbientColors") },
-            { "DATADataTypeState", new SimpleReflectionPropertyHandler<Mutagen.Bethesda.Skyrim.LightingTemplate.DATADataType, ILightingTemplate, ILightingTemplateGetter>("DATADataTypeState") }
         };
 
         public override IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter>[] GetRecordContexts(

@@ -34,7 +34,7 @@ namespace ForwardChanges.PropertyHandlers.Eyes
         {
             if (value1 == null && value2 == null) return true;
             if (value1 == null || value2 == null) return false;
-            return TexturePathHelper.Normalize(value1) == TexturePathHelper.Normalize(value2);
+            return TexturePathHelper.AreEqual(value1, value2);
         }
     }
 }

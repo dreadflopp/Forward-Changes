@@ -11,6 +11,9 @@ using System;
 
 namespace ForwardChanges.RecordHandlers
 {
+    // Effects migration note: replaced whole-list property handling with the shared
+    // exact-position atomic handler; ingredient collection access stays specialized
+    // because xEdit gives the outer Effects entries no stable row key.
     public class IngredientRecordHandler : AbstractRecordHandler
     {
         public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()

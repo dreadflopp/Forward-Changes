@@ -12,6 +12,11 @@ using ForwardChanges.PropertyHandlers.Interfaces;
 
 namespace ForwardChanges.RecordHandlers
 {
+    // Migration note:
+    // - Generalized: Model now uses the shared full-model handler for IModeled records.
+    // - Kept specialized: light flags, icons, bounds, destructible data, and VM data.
+    // - Rationale: the shared handler writes the model's data-relative path and copies the
+    //   complete model without serializing Mutagen's implied "Meshes" asset root.
     public class LightRecordHandler : AbstractRecordHandler
     {
         public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()
@@ -23,7 +28,7 @@ namespace ForwardChanges.RecordHandlers
             { "Name", new NameHandler() },
             { "VirtualMachineAdapter", new VirtualMachineAdapterHandler() },
             { "ObjectBounds", new PropertyHandlers.Light.ObjectBoundsHandler() },
-            { "Model", new PropertyHandlers.Light.ModelHandler() },
+            { "Model", new PropertyHandlers.General.ModelHandler() },
             { "Icons", new IconsHandler() },
             { "Destructible", new DestructibleHandler() },
             { "Time", new SimpleReflectionPropertyHandler<int, ILight, ILightGetter>("Time") },

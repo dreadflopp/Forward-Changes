@@ -30,6 +30,16 @@ namespace ForwardChanges.PropertyHandlers.General
                     objectBoundedRecord.ObjectBounds = newObjectBounds;
                 }
             }
+            else if (record is IObjectBoundedOptional optionalRecord)
+            {
+                optionalRecord.ObjectBounds = value == null
+                    ? null
+                    : new ObjectBounds
+                    {
+                        First = value.First,
+                        Second = value.Second
+                    };
+            }
             else
             {
                 Console.WriteLine($"Error: Record does not implement IObjectBounded for {PropertyName}");
@@ -41,6 +51,10 @@ namespace ForwardChanges.PropertyHandlers.General
             if (record is IObjectBoundedGetter objectBoundedRecord)
             {
                 return objectBoundedRecord.ObjectBounds;
+            }
+            else if (record is IObjectBoundedOptionalGetter optionalRecord)
+            {
+                return optionalRecord.ObjectBounds;
             }
             else
             {

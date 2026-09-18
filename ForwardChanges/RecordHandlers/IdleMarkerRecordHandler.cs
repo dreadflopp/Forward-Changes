@@ -27,7 +27,7 @@ namespace ForwardChanges.RecordHandlers
             { "ObjectBounds", new ObjectBoundsHandler() },
             { "Flags", new FlagsHandler() },
             { "IdleTimer", new SimpleReflectionPropertyHandler<float?, IIdleMarker, IIdleMarkerGetter>("IdleTimer", 0.001f) },
-            { "Animations", new SimpleReflectionListPropertyHandler<IFormLinkGetter<IIdleAnimationGetter>, IIdleMarker, IIdleMarkerGetter>("Animations", ListOrdering.None, true) },
+            { "Animations", new AtomicReflectionListPropertyHandler<IFormLinkGetter<IIdleAnimationGetter>, IIdleMarker, IIdleMarkerGetter>("Animations", true) },
             { "Model", new ModelHandler() },
             { "MajorFlags", new SimpleReflectionFlagPropertyHandler<Mutagen.Bethesda.Skyrim.IdleMarker.MajorFlag, IIdleMarker, IIdleMarkerGetter>("MajorFlags") }
         };

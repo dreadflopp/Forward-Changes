@@ -1,13 +1,5 @@
-using Mutagen.Bethesda;
 using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Plugins.Records;
-using Mutagen.Bethesda.Plugins;
-using Mutagen.Bethesda.Synthesis;
-using ForwardChanges.PropertyHandlers.Abstracts;
-using ForwardChanges.Contexts;
-using ForwardChanges.Contexts.Interfaces;
-using System.Linq;
-using Noggog;
 
 namespace ForwardChanges.PropertyHandlers.Abstracts
 {
@@ -15,6 +7,11 @@ namespace ForwardChanges.PropertyHandlers.Abstracts
         where TRecordGetter : class, IMajorRecordGetter
         where TRecord : class, IMajorRecord
     {
+        // Skyrim xEdit defines the outer Effects collection as a plain wbRArray of
+        // wbRStruct entries with no outer StructSK. Its rows therefore have no
+        // stable value key and are compared by ordinal position.
+        public override ListSemantics Semantics => ListSemantics.ExactOrdered;
+
         public override string PropertyName => "Effects";
 
         public override List<IEffectGetter>? GetValue(IMajorRecordGetter record)
@@ -53,25 +50,7 @@ namespace ForwardChanges.PropertyHandlers.Abstracts
                             continue;
                         }
 
-                        try
-                        {
-                            var newEffect = new Effect
-                            {
-                                BaseEffect = new FormLinkNullable<IMagicEffectGetter>(effect.BaseEffect.FormKey),
-                                Data = effect.Data != null ? new EffectData
-                                {
-                                    Magnitude = effect.Data.Magnitude,
-                                    Area = effect.Data.Area,
-                                    Duration = effect.Data.Duration
-                                } : null,
-                                Conditions = new ExtendedList<Condition>(effect.Conditions.Select(c => c.DeepCopy()))
-                            };
-                            effects.Add(newEffect);
-                        }
-                        catch
-                        {
-                            // Handle error silently or log if needed
-                        }
+                        effects.Add(effect.DeepCopy());
                     }
                 }
 
@@ -90,42 +69,11 @@ namespace ForwardChanges.PropertyHandlers.Abstracts
             if (item1 == null && item2 == null) return true;
             if (item1 == null || item2 == null) return false;
 
-            // Compare BaseEffect using FormKey (value-based comparison)
-            var baseEffectEqual = item1.BaseEffect.FormKey == item2.BaseEffect.FormKey;
-            var dataEqual = AreEffectDataEqual(item1.Data, item2.Data);
-            var conditionsEqual = AreConditionsListsEqual(item1.Conditions, item2.Conditions);
-
-            var result = baseEffectEqual && dataEqual && conditionsEqual;
-
-            // Only log when there's a mismatch or when comparing specific effects
-            if (!result)
-            {
-                // LogCollector.Add(PropertyName, $"[{PropertyName}] DEBUG IsItemEqual: MISMATCH - {item1.BaseEffect.FormKey}({item1.Data?.Magnitude ?? 0}) vs {item2.BaseEffect.FormKey}({item2.Data?.Magnitude ?? 0})");
-                // LogCollector.Add(PropertyName, $"[{PropertyName}] DEBUG IsItemEqual: BaseEffect: {baseEffectEqual}, Data: {dataEqual}, Conditions: {conditionsEqual}");
-            }
-
-            return result;
+            return item1.Equals(item2);
         }
 
-        private bool AreEffectDataEqual(IEffectDataGetter? data1, IEffectDataGetter? data2)
-        {
-            if (data1 == null && data2 == null) return true;
-            if (data1 == null || data2 == null) return false;
-
-            return data1.Magnitude == data2.Magnitude &&
-                   data1.Area == data2.Area &&
-                   data1.Duration == data2.Duration;
-        }
-
-        private bool AreConditionsListsEqual(IReadOnlyList<IConditionGetter> conditions1, IReadOnlyList<IConditionGetter> conditions2)
-        {
-            if (conditions1.Count != conditions2.Count) return false;
-            for (int i = 0; i < conditions1.Count; i++)
-            {
-                if (!AreConditionsEqual(conditions1[i], conditions2[i])) return false;
-            }
-            return true;
-        }
+        protected override IEffectGetter CopyItemForForwardContext(IEffectGetter item)
+            => item.DeepCopy();
 
         protected override string FormatItem(IEffectGetter? item)
         {
@@ -145,16 +93,6 @@ namespace ForwardChanges.PropertyHandlers.Abstracts
             {
                 return $"Effect({item.GetType().Name}) - Error: {ex.Message}";
             }
-        }
-
-        private bool AreConditionsEqual(IConditionGetter? condition1, IConditionGetter? condition2)
-        {
-            if (condition1 == null && condition2 == null) return true;
-            if (condition1 == null || condition2 == null) return false;
-
-            // For now, use a simple comparison. This could be enhanced to compare specific condition properties
-            return condition1.GetType() == condition2.GetType() &&
-                   condition1.ToString() == condition2.ToString();
         }
     }
 }

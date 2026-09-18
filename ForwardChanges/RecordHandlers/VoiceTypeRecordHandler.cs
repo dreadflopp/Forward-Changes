@@ -11,6 +11,10 @@ using ForwardChanges.RecordHandlers.Abstracts;
 
 namespace ForwardChanges.RecordHandlers;
 
+// Migration note:
+// - Generalized: VTYP flags and metadata use shared semantic handlers.
+// - Kept specialized: none; Flags remains on the project-approved flag handler path.
+// - Rationale: the record exposes no coupled aggregate or list properties.
 public class VoiceTypeRecordHandler : AbstractRecordHandler
 {
     public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()

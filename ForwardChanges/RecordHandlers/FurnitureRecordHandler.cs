@@ -1,6 +1,5 @@
 using System;
 using Mutagen.Bethesda;
-using Mutagen.Bethesda.Plugins.Assets;
 using Mutagen.Bethesda.Plugins.Cache;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Skyrim;
@@ -38,8 +37,8 @@ namespace ForwardChanges.RecordHandlers
             { "InteractionKeyword", new SimpleReflectionFormLinkPropertyHandler<IKeywordGetter, IFurniture, IFurnitureGetter>("InteractionKeyword") },
             { "WorkbenchData", new ComplexReflectionPropertyHandler<IWorkbenchDataGetter, IFurniture, IFurnitureGetter>("WorkbenchData") },
             { "AssociatedSpell", new SimpleReflectionFormLinkPropertyHandler<ISpellGetter, IFurniture, IFurnitureGetter>("AssociatedSpell") },
-            { "Markers", new SimpleReflectionListPropertyHandler<IFurnitureMarkerGetter, IFurniture, IFurnitureGetter>("Markers", ListOrdering.None, true) },
-            { "ModelFilename", new SimpleReflectionPropertyHandler<AssetLinkGetter<SkyrimModelAssetType>?, IFurniture, IFurnitureGetter>("ModelFilename") },
+            { "Markers", new AtomicReflectionListPropertyHandler<IFurnitureMarkerGetter, IFurniture, IFurnitureGetter>("Markers", true) },
+            { "ModelFilename", new SimpleReflectionAssetLinkPropertyHandler<SkyrimModelAssetType, IFurniture, IFurnitureGetter>("ModelFilename") },
             { "MajorFlags", new SimpleReflectionFlagPropertyHandler<Mutagen.Bethesda.Skyrim.Furniture.MajorFlag, IFurniture, IFurnitureGetter>("MajorFlags") }
         };
 

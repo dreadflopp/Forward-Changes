@@ -15,6 +15,10 @@ using ForwardChanges.PropertyHandlers.Interfaces;
 
 namespace ForwardChanges.RecordHandlers;
 
+// Migration note:
+// - Generalized: MUST scalar, aggregate, and serialized asset-path fields use shared semantic handlers.
+// - Kept specialized: conditions retain CTDA alignment; cue points retain typed handling; Tracks is atomic.
+// - Rationale: xEdit declares track order semantic without an entry key, so the sequence has one owner.
 public class MusicTrackRecordHandler : AbstractRecordHandler
 {
     public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()
@@ -30,7 +34,7 @@ public class MusicTrackRecordHandler : AbstractRecordHandler
         { "LoopData", new ComplexReflectionPropertyHandler<IMusicTrackLoopDataGetter, IMusicTrack, IMusicTrackGetter>("LoopData") },
         { "CuePoints", new CuePointsHandler() },
         { "Conditions", new ConditionsHandler() },
-        { "Tracks", new SimpleReflectionListPropertyHandler<IFormLinkGetter<IMusicTrackGetter>, IMusicTrack, IMusicTrackGetter>("Tracks", ListOrdering.None) }
+        { "Tracks", new AtomicReflectionListPropertyHandler<IFormLinkGetter<IMusicTrackGetter>, IMusicTrack, IMusicTrackGetter>("Tracks") }
     };
 
     public override IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter>[] GetRecordContexts(

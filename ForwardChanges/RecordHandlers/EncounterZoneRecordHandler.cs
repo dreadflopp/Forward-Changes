@@ -12,6 +12,10 @@ using System;
 
 namespace ForwardChanges.RecordHandlers
 {
+    // Migration note:
+    // - Generalized: ECZN owner/location links and level/rank scalars use shared semantic handlers.
+    // - Kept specialized: Flags retains the approved record-specific flag handler.
+    // - Intentionally excluded: DATADataTypeState is serializer layout state.
     public class EncounterZoneRecordHandler : AbstractRecordHandler
     {
         public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()

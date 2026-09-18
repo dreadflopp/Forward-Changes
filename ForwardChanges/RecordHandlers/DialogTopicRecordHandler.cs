@@ -12,6 +12,10 @@ using System;
 
 namespace ForwardChanges.RecordHandlers
 {
+    // Migration note:
+    // - Generalized: DIAL links, enums, priority, name, and record metadata use shared semantic handlers.
+    // - Kept specialized: TopicFlags retains its approved flag handler.
+    // - Intentionally excluded: Unknown is child-group navigation metadata rather than a normal DIAL field.
     public class DialogTopicRecordHandler : AbstractRecordHandler
     {
         public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()

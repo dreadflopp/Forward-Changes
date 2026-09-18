@@ -4,9 +4,9 @@ namespace ForwardChanges.PropertyHandlers.General
 {
     internal static class OwnerTargetUtility
     {
-        public static OwnerTarget DeepCopy(IOwnerTargetGetter? owner)
+        public static OwnerTarget DeepCopy(IOwnerTargetGetter owner)
         {
-            return owner?.DeepCopy() ?? new UntypedOwner();
+            return owner.DeepCopy();
         }
 
         public static bool AreEqual(IOwnerTargetGetter? left, IOwnerTargetGetter? right)

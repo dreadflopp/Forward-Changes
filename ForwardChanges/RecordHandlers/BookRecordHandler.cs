@@ -12,6 +12,10 @@ using System;
 
 namespace ForwardChanges.RecordHandlers
 {
+    // Migration note:
+    // - Generalized: BOOK text, links, flags, and scalar fields use shared semantic handlers.
+    // - Kept specialized: Teaches and Icons retain their typed aggregate handlers.
+    // - Intentionally excluded: Unused is non-semantic storage; the winning value is preserved.
     public class BookRecordHandler : AbstractRecordHandler
     {
         public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()
@@ -32,7 +36,6 @@ namespace ForwardChanges.RecordHandlers
             { "Destructible", new DestructibleHandler() },
             { "Flags", new SimpleReflectionFlagPropertyHandler<Mutagen.Bethesda.Skyrim.Book.Flag, IBook, IBookGetter>("Flags") },
             { "Type", new SimpleReflectionPropertyHandler<Mutagen.Bethesda.Skyrim.Book.BookType, IBook, IBookGetter>("Type") },
-            { "Unused", new SimpleReflectionPropertyHandler<ushort, IBook, IBookGetter>("Unused") },
             { "Teaches", new TeachesHandler() },
             { "InventoryArt", new SimpleReflectionFormLinkPropertyHandler<IStaticGetter, IBook, IBookGetter>("InventoryArt") },
             { "VirtualMachineAdapter", new SimpleReflectionVirtualMachineAdapterHandler<IBook, IBookGetter>() },

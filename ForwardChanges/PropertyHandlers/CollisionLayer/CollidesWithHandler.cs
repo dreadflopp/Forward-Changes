@@ -8,6 +8,9 @@ namespace ForwardChanges.PropertyHandlers.CollisionLayer
     public class CollidesWithHandler : AbstractListPropertyHandler<IFormLinkGetter<ICollisionLayerGetter>>
     {
         public override string PropertyName => "CollidesWith";
+        public override ListSemantics Semantics => ListSemantics.SortedKeyed;
+
+        protected override IReadOnlyList<object?> GetSortKey(IFormLinkGetter<ICollisionLayerGetter> item) => [item.FormKey];
 
         public override List<IFormLinkGetter<ICollisionLayerGetter>>? GetValue(Mutagen.Bethesda.Plugins.Records.IMajorRecordGetter record)
         {

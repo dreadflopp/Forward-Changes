@@ -13,7 +13,7 @@ namespace ForwardChanges.Contexts
         public T Value { get; set; } = item;
         public string OwnerMod { get; set; } = ownerMod;
         public bool IsRemoved { get; set; } = false;
-        public int OrderIndex { get; set; } = 0;  // new: integer order slot; small lists => reindex cheaply
-        public string? OrderOwnerMod { get; set; } = ownerMod;  // new: who owns the positioning of this item
+        public int? AlignmentRowId { get; set; }
+        public string? AlignmentOwnerMod { get; set; } = ownerMod;
     }
 }

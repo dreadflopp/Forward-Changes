@@ -13,9 +13,10 @@ using Noggog;
 namespace ForwardChanges.RecordHandlers
 {
     // Migration note:
-    // - Generalized: entry owner copying/equality now uses Mutagen's OwnerTarget implementation, including UntypedOwner.
+    // - Generalized: entry owner copying/equality uses Mutagen's OwnerTarget implementation,
+    //   and unordered list matching now preserves duplicate occurrence counts.
     // - Specialized: leveled-NPC entry sorting/data comparison remains record-specific; Flags stays on the approved flag handler.
-    // - Rationale: generated union behavior replaces obsolete raw reflection without changing list or flag policy.
+    // - Rationale: entries are an unordered multiset, so equal values may legitimately occur more than once.
     public class LeveledNpcRecordHandler : AbstractRecordHandler
     {
         public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()

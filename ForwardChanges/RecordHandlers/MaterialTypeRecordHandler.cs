@@ -12,6 +12,10 @@ using ForwardChanges.PropertyHandlers.Interfaces;
 
 namespace ForwardChanges.RecordHandlers;
 
+// Migration note:
+// - Generalized: MATT links, translated name, color, buoyancy, and metadata use shared semantic handlers.
+// - Kept specialized: none; Flags remains on the project-approved flag handler path.
+// - Rationale: every semantic field is independently writable without aggregate coupling.
 public class MaterialTypeRecordHandler : AbstractRecordHandler
 {
     public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()

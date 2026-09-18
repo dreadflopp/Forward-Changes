@@ -13,9 +13,11 @@ using System;
 namespace ForwardChanges.RecordHandlers
 {
     // Migration note:
-    // - Generalized: Description, PickUpSound, PutDownSound, EquipmentType, Addiction, AddictionChance, ConsumeSound.
-    // - Kept specialized: Destructible, Icons, Effects, Flags, MajorFlags.
-    // - Rationale: generalized properties are direct reflection-safe reads/writes; kept handlers contain record-specific or flag-specific behavior.
+    // - Generalized: ObjectBounds, Description, PickUpSound, PutDownSound, EquipmentType, Addiction, AddictionChance, ConsumeSound.
+    // - Generalized Effects reconciliation to the shared exact-position atomic handler.
+    // - Kept specialized: Destructible, Icons, Effects collection access, Flags, MajorFlags.
+    // - Rationale: direct properties are reflection-safe; xEdit gives outer Effects
+    //   entries no row key, while collection access and flag handling remain record-specific.
     public class IngestibleRecordHandler : AbstractRecordHandler
     {
         public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()
@@ -23,6 +25,7 @@ namespace ForwardChanges.RecordHandlers
             { "EditorID", new EditorIDHandler() },
             { "MajorRecordFlagsRaw", new MajorRecordFlagsRawHandler() },
             { "SkyrimMajorRecordFlags", new SkyrimMajorRecordFlagsHandler() },
+            { "ObjectBounds", new ObjectBoundsHandler() },
             { "Name", new NameHandler() },
             { "Description", new ComplexReflectionPropertyHandler<ITranslatedStringGetter, IIngestible, IIngestibleGetter>("Description") },
             { "Model", new ModelHandler() },

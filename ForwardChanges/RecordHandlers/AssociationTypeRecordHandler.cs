@@ -11,9 +11,9 @@ using ForwardChanges.RecordHandlers.Abstracts;
 namespace ForwardChanges.RecordHandlers
 {
     // Migration note:
-    // - Generalized: ParentTitle, Title, IsFamily via reflection handlers.
-    // - Kept specialized: none.
-    // - Rationale: small surface with reflection-safe properties.
+    // - Generalized: IsFamily via a reflection handler.
+    // - Kept specialized: ParentTitle and Title use typed gendered-string handling.
+    // - Rationale: IGenderedItem is enumerable but represents fixed male/female slots, not a list.
     public class AssociationTypeRecordHandler : AbstractRecordHandler
     {
         public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()
@@ -21,8 +21,8 @@ namespace ForwardChanges.RecordHandlers
             { "EditorID", new EditorIDHandler() },
             { "MajorRecordFlagsRaw", new MajorRecordFlagsRawHandler() },
             { "SkyrimMajorRecordFlags", new SkyrimMajorRecordFlagsHandler() },
-            { "ParentTitle", new ComplexReflectionPropertyHandler<IGenderedItemGetter<string?>, IAssociationType, IAssociationTypeGetter>("ParentTitle") },
-            { "Title", new ComplexReflectionPropertyHandler<IGenderedItemGetter<string?>, IAssociationType, IAssociationTypeGetter>("Title") },
+            { "ParentTitle", new GenderedItemHandler<string?, string?, IAssociationType, IAssociationTypeGetter>("ParentTitle", record => record.ParentTitle, (record, value) => record.ParentTitle = value, value => value, (left, right) => StringComparisonHelper.EqualsNormalized(left, right)) },
+            { "Title", new GenderedItemHandler<string?, string?, IAssociationType, IAssociationTypeGetter>("Title", record => record.Title, (record, value) => record.Title = value, value => value, (left, right) => StringComparisonHelper.EqualsNormalized(left, right)) },
             { "IsFamily", new SimpleReflectionPropertyHandler<bool?, IAssociationType, IAssociationTypeGetter>("IsFamily") }
         };
 

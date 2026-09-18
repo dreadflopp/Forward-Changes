@@ -1,0 +1,1010 @@
+[
+  {
+    "handler": "ArmorAddonRecordHandler.cs",
+    "property": "BodyTemplate.ActsLike44",
+    "status": "SerializationState",
+    "reason": "Mutagen discriminator selecting the BOD2 versus BODT BodyTemplate encoding; it is not an independent xEdit semantic field."
+  },
+  {
+    "handler": "ArmorRecordHandler.cs",
+    "property": "BodyTemplate.ActsLike44",
+    "status": "SerializationState",
+    "reason": "Mutagen discriminator selecting the BOD2 versus BODT BodyTemplate encoding; it is not an independent xEdit semantic field."
+  },
+  {
+    "handler": "AmmunitionRecordHandler.cs",
+    "property": "DATADataTypeState",
+    "status": "SerializationState",
+    "reason": "Mutagen discriminator controlling the AMMO DATA layout/breaks; it is not an independent xEdit semantic field."
+  },
+  {
+    "handler": "CameraShotRecordHandler.cs",
+    "property": "DATADataTypeState",
+    "status": "SerializationState",
+    "reason": "Mutagen discriminator controlling the CAMS DATA layout/breaks; it is not an independent xEdit semantic field."
+  },
+  {
+    "handler": "CombatStyleRecordHandler.cs",
+    "property": "CSGDDataTypeState",
+    "status": "SerializationState",
+    "reason": "Mutagen discriminator controlling the CSTY CSGD layout/breaks; it is not an independent xEdit semantic field."
+  },
+  {
+    "handler": "ExplosionRecordHandler.cs",
+    "property": "DATADataTypeState",
+    "status": "SerializationState",
+    "reason": "Mutagen discriminator controlling the EXPL DATA layout/breaks; it is not an independent xEdit semantic field."
+  },
+  {
+    "handler": "LightingTemplateRecordHandler.cs",
+    "property": "DATADataTypeState",
+    "status": "SerializationState",
+    "reason": "Mutagen discriminator controlling the LGTM DATA layout/breaks; it is not an independent xEdit semantic field."
+  },
+  {
+    "handler": "MaterialObjectRecordHandler.cs",
+    "property": "DATADataTypeState",
+    "status": "SerializationState",
+    "reason": "Mutagen discriminator controlling the MATO DATA layout/breaks; it is not an independent xEdit semantic field."
+  },
+  {
+    "handler": "MovementTypeRecordHandler.cs",
+    "property": "SPEDDataTypeState",
+    "status": "SerializationState",
+    "reason": "Mutagen discriminator controlling the MOVT SPED layout/breaks; it is not an independent xEdit semantic field."
+  },
+  {
+    "handler": "ProjectileRecordHandler.cs",
+    "property": "DATADataTypeState",
+    "status": "SerializationState",
+    "reason": "Mutagen discriminator controlling the PROJ DATA layout/breaks; it is not an independent xEdit semantic field."
+  },
+  {
+    "handler": "RaceRecordHandler.cs",
+    "property": "DATADataTypeState",
+    "status": "SerializationState",
+    "reason": "Mutagen discriminator controlling the RACE DATA layout/breaks; it is not an independent xEdit semantic field."
+  },
+  {
+    "handler": "RaceRecordHandler.cs",
+    "property": "ExportingExtraNam2",
+    "status": "SerializationState",
+    "reason": "Mutagen parser/writer state preserving an empty extra NAM2 marker; it is not an independent xEdit semantic field."
+  },
+  {
+    "handler": "ShaderParticleGeometryRecordHandler.cs",
+    "property": "DATADataTypeState",
+    "status": "SerializationState",
+    "reason": "Mutagen discriminator controlling the SPGD DATA layout/breaks; it is not an independent xEdit semantic field."
+  },
+  {
+    "handler": "WaterRecordHandler.cs",
+    "property": "DNAMDataTypeState",
+    "status": "SerializationState",
+    "reason": "Mutagen discriminator controlling the WATR DNAM layout/breaks; it is not an independent xEdit semantic field."
+  },
+  {
+    "handler": "WeatherRecordHandler.cs",
+    "property": "NAM0DataTypeState",
+    "status": "SerializationState",
+    "reason": "Mutagen discriminator controlling the WTHR NAM0 layout/breaks; it is not an independent xEdit semantic field."
+  },
+  {
+    "handler": "ArmorRecordHandler.cs",
+    "property": "MajorFlags",
+    "status": "AliasOrDuplicate",
+    "reason": "Armor.MajorFlags is a typed view over MajorRecordFlagsRaw. Armor uses one composite MajorRecordFlagsRaw handler for common and record-specific bits."
+  },
+  {
+    "handler": "ArmorRecordHandler.cs",
+    "property": "SkyrimMajorRecordFlags",
+    "status": "AliasOrDuplicate",
+    "reason": "SkyrimMajorRecordFlags is a typed view over MajorRecordFlagsRaw. Armor uses one composite MajorRecordFlagsRaw handler to avoid duplicate writes to the same header integer."
+  },
+  {
+    "handler": "CellRecordHandler.cs",
+    "property": "Persistent",
+    "status": "RuntimeOrNavigation",
+    "reason": "Child placed records in the CELL persistent GRUP; they are processed as their own major records rather than as a CELL property."
+  },
+  {
+    "handler": "CellRecordHandler.cs",
+    "property": "PersistentTimestamp",
+    "status": "RuntimeOrNavigation",
+    "reason": "GRUP header metadata for persistent CELL children, not an xEdit CELL field."
+  },
+  {
+    "handler": "CellRecordHandler.cs",
+    "property": "PersistentUnknownGroupData",
+    "status": "RuntimeOrNavigation",
+    "reason": "GRUP header metadata for persistent CELL children, not an xEdit CELL field."
+  },
+  {
+    "handler": "CellRecordHandler.cs",
+    "property": "Temporary",
+    "status": "RuntimeOrNavigation",
+    "reason": "Child records in the CELL temporary GRUP; they are processed as their own major records rather than as a CELL property."
+  },
+  {
+    "handler": "CellRecordHandler.cs",
+    "property": "TemporaryTimestamp",
+    "status": "RuntimeOrNavigation",
+    "reason": "GRUP header metadata for temporary CELL children, not an xEdit CELL field."
+  },
+  {
+    "handler": "CellRecordHandler.cs",
+    "property": "TemporaryUnknownGroupData",
+    "status": "RuntimeOrNavigation",
+    "reason": "GRUP header metadata for temporary CELL children, not an xEdit CELL field."
+  },
+  {
+    "handler": "CellRecordHandler.cs",
+    "property": "Timestamp",
+    "status": "RuntimeOrNavigation",
+    "reason": "CELL child-group header metadata, not a normal record property."
+  },
+  {
+    "handler": "CellRecordHandler.cs",
+    "property": "UnknownGroupData",
+    "status": "RuntimeOrNavigation",
+    "reason": "CELL child-group header metadata, not a normal record property."
+  },
+  {
+    "handler": "DialogTopicRecordHandler.cs",
+    "property": "Responses",
+    "status": "RuntimeOrNavigation",
+    "reason": "INFO child major records stored under the DIAL group; INFO records have their own handler."
+  },
+  {
+    "handler": "DialogTopicRecordHandler.cs",
+    "property": "Timestamp",
+    "status": "RuntimeOrNavigation",
+    "reason": "DIAL child-group header metadata, not a normal DIAL field."
+  },
+  {
+    "handler": "DialogTopicRecordHandler.cs",
+    "property": "Unknown",
+    "status": "RuntimeOrNavigation",
+    "reason": "DIAL child-group header metadata, not a normal DIAL field."
+  },
+  {
+    "handler": "EffectShaderRecordHandler.cs",
+    "property": "DATADataTypeState",
+    "status": "SerializationState",
+    "reason": "Mutagen discriminator controlling DATA layout/breaks; it is not an independent xEdit semantic field."
+  },
+  {
+    "handler": "EncounterZoneRecordHandler.cs",
+    "property": "DATADataTypeState",
+    "status": "SerializationState",
+    "reason": "Mutagen discriminator controlling DATA layout/breaks; it is not an independent xEdit semantic field."
+  },
+  {
+    "handler": "ObjectEffectRecordHandler.cs",
+    "property": "ENITDataTypeState",
+    "status": "SerializationState",
+    "reason": "Mutagen discriminator controlling ENIT layout/breaks; it is not an independent xEdit semantic field."
+  },
+  {
+    "handler": "QuestRecordHandler.cs",
+    "property": "VirtualMachineAdapter.Versioning",
+    "status": "SerializationState",
+    "reason": "Mutagen VersioningBreaks controls QuestAdapter binary layout and is derived during parsing; semantic VMAD fields are forwarded separately."
+  },
+  {
+    "handler": "SceneRecordHandler.cs",
+    "property": "Unused",
+    "status": "IntentionalExclusion",
+    "reason": "Legacy SCHR/SCDA/SCTX/QNAM/SCRO storage from older Creation Kit versions is hidden by xEdit and excluded from semantic comparison and copying."
+  },
+  {
+    "handler": "SceneRecordHandler.cs",
+    "property": "Unused2",
+    "status": "IntentionalExclusion",
+    "reason": "Legacy SCHR/SCDA/SCTX/QNAM/SCRO storage from older Creation Kit versions is hidden by xEdit and excluded from semantic comparison and copying."
+  },
+  {
+    "handler": "SceneRecordHandler.cs",
+    "property": "VirtualMachineAdapter",
+    "status": "AliasOrDuplicate",
+    "reason": "Covered without overlap by typed VMAD presence, version, object-format, scripts, and complete script-fragments handlers."
+  },
+  {
+    "handler": "WeaponRecordHandler.cs",
+    "property": "Critical.Versioning",
+    "status": "SerializationState",
+    "reason": "Mutagen VersioningBreaks selects the CRDT binary layout and is derived during parsing; all semantic Critical leaves are forwarded separately."
+  },
+  {
+    "handler": "StaticRecordHandler.cs",
+    "property": "DNAMDataTypeState",
+    "status": "SerializationState",
+    "reason": "Mutagen discriminator controlling DNAM layout/breaks; it is not an independent xEdit semantic field."
+  },
+  {
+    "handler": "WorldspaceRecordHandler.cs",
+    "property": "LargeReferences",
+    "status": "RuntimeOrNavigation",
+    "reason": "Worldspace child-group/container data rather than an independent WRLD record field."
+  },
+  {
+    "handler": "WorldspaceRecordHandler.cs",
+    "property": "OffsetData",
+    "status": "RuntimeOrNavigation",
+    "reason": "Worldspace child-group offset data maintained with child groups rather than ordinary WRLD property forwarding."
+  },
+  {
+    "handler": "WorldspaceRecordHandler.cs",
+    "property": "SubCells",
+    "status": "RuntimeOrNavigation",
+    "reason": "CELL/block child groups under WRLD; child records are processed separately."
+  },
+  {
+    "handler": "WorldspaceRecordHandler.cs",
+    "property": "SubCellsTimestamp",
+    "status": "RuntimeOrNavigation",
+    "reason": "WRLD child-group header metadata, not a normal WRLD field."
+  },
+  {
+    "handler": "WorldspaceRecordHandler.cs",
+    "property": "SubCellsUnknown",
+    "status": "RuntimeOrNavigation",
+    "reason": "WRLD child-group header metadata, not a normal WRLD field."
+  },
+  {
+    "handler": "WorldspaceRecordHandler.cs",
+    "property": "TopCell",
+    "status": "RuntimeOrNavigation",
+    "reason": "Top-level CELL child record under WRLD; CELL records are processed separately."
+  },
+  {
+    "handler": "WorldspaceRecordHandler.cs",
+    "property": "CanopyShadow",
+    "status": "IntentionalExclusion",
+    "reason": "NNAM is marked unused/cpIgnore by xEdit; forwarding it could revive obsolete data, so the winning override is preserved."
+  },
+  {
+    "handler": "WorldspaceRecordHandler.cs",
+    "property": "MaxHeight",
+    "status": "IntentionalExclusion",
+    "reason": "MHDT is generated worldspace height data marked no-copy by xEdit; it is preserved from the winning override rather than conflict-forwarded."
+  },
+  {
+    "handler": "WorldspaceRecordHandler.cs",
+    "property": "ObjectBoundsMin",
+    "status": "IntentionalExclusion",
+    "reason": "Generated WRLD object bounds are kept winner-owned so independent component forwarding cannot create invalid bounds."
+  },
+  {
+    "handler": "WorldspaceRecordHandler.cs",
+    "property": "ObjectBoundsMax",
+    "status": "IntentionalExclusion",
+    "reason": "Generated WRLD object bounds are kept winner-owned so independent component forwarding cannot create invalid bounds."
+  },
+  {
+    "handler": "WorldspaceRecordHandler.cs",
+    "property": "SkyrimMajorRecordFlags",
+    "status": "AliasOrDuplicate",
+    "reason": "Owned by the single MajorRecordFlagsRaw handler, which preserves all shared and WRLD-specific header bits without overlapping writes."
+  },
+  {
+    "handler": "WorldspaceRecordHandler.cs",
+    "property": "MajorFlags",
+    "status": "AliasOrDuplicate",
+    "reason": "WRLD-specific major flags are a typed view of MajorRecordFlagsRaw and are owned by that single composite handler."
+  },
+  {
+    "handler": "WorldspaceRecordHandler.cs",
+    "property": "WorldMapCellOffset",
+    "status": "AliasOrDuplicate",
+    "reason": "Handled atomically with WorldMapOffsetScale by WorldMapOffsetHandler because both values share the required ONAM structure."
+  },
+  {
+    "handler": "ActorValueInformationRecordHandler.cs",
+    "property": "CNAM",
+    "status": "IntentionalExclusion",
+    "reason": "Engine-managed binary data excluded by the project runtime-field policy; the winning override is preserved."
+  },
+  {
+    "handler": "CellRecordHandler.cs",
+    "property": "WaterHeight",
+    "status": "IntentionalExclusion",
+    "reason": "Runtime-managed CELL field excluded from conflict forwarding; the winning override is preserved."
+  },
+  {
+    "handler": "CellRecordHandler.cs",
+    "property": "Landscape",
+    "status": "RuntimeOrNavigation",
+    "reason": "Runtime-managed LAND child data is excluded from CELL property forwarding."
+  },
+  {
+    "handler": "CellRecordHandler.cs",
+    "property": "NavigationMeshes",
+    "status": "RuntimeOrNavigation",
+    "reason": "Navigation child data is excluded from CELL property forwarding."
+  },
+  {
+    "handler": "DialogResponseRecordHandler.cs",
+    "property": "PreviousDialog",
+    "status": "RuntimeOrNavigation",
+    "reason": "Runtime/structural dialog linkage is preserved from the winning override rather than conflict-forwarded."
+  },
+  {
+    "handler": "DialogResponseRecordHandler.cs",
+    "property": "UnknownData",
+    "status": "IntentionalExclusion",
+    "reason": "Opaque ordered SCHR/QNAM/NEXT payloads cannot be safely merged across plugins; the winning list is preserved atomically."
+  },
+  {
+    "handler": "ArmorAddonRecordHandler.cs",
+    "property": "Unknown",
+    "status": "IntentionalExclusion",
+    "reason": "Unknown engine field outside the supported semantic conflict surface; the winning override is preserved."
+  },
+  {
+    "handler": "ArmorAddonRecordHandler.cs",
+    "property": "Unknown2",
+    "status": "IntentionalExclusion",
+    "reason": "Unknown engine field outside the supported semantic conflict surface; the winning override is preserved."
+  },
+  {
+    "handler": "ArmorAddonRecordHandler.cs",
+    "property": "WorldModel.Male.Data",
+    "status": "IntentionalExclusion",
+    "reason": "Generated model metadata is excluded independently; semantic file and alternate-texture fields are forwarded."
+  },
+  {
+    "handler": "ArmorAddonRecordHandler.cs",
+    "property": "WorldModel.Female.Data",
+    "status": "IntentionalExclusion",
+    "reason": "Generated model metadata is excluded independently; semantic file and alternate-texture fields are forwarded."
+  },
+  {
+    "handler": "ArmorAddonRecordHandler.cs",
+    "property": "FirstPersonModel.Male.Data",
+    "status": "IntentionalExclusion",
+    "reason": "Generated model metadata is excluded independently; semantic file and alternate-texture fields are forwarded."
+  },
+  {
+    "handler": "ArmorAddonRecordHandler.cs",
+    "property": "FirstPersonModel.Female.Data",
+    "status": "IntentionalExclusion",
+    "reason": "Generated model metadata is excluded independently; semantic file and alternate-texture fields are forwarded."
+  },
+  {
+    "handler": "ClassRecordHandler.cs",
+    "property": "Unknown",
+    "status": "IntentionalExclusion",
+    "reason": "Unknown engine field outside the supported semantic conflict surface; the winning override is preserved."
+  },
+  {
+    "handler": "ClassRecordHandler.cs",
+    "property": "Unknown2",
+    "status": "IntentionalExclusion",
+    "reason": "Unknown engine field outside the supported semantic conflict surface; the winning override is preserved."
+  },
+  {
+    "handler": "GrassRecordHandler.cs",
+    "property": "Unknown",
+    "status": "IntentionalExclusion",
+    "reason": "Unknown engine field outside the supported semantic conflict surface; the winning override is preserved."
+  },
+  {
+    "handler": "GrassRecordHandler.cs",
+    "property": "Unknown2",
+    "status": "IntentionalExclusion",
+    "reason": "Unknown engine field outside the supported semantic conflict surface; the winning override is preserved."
+  },
+  {
+    "handler": "GrassRecordHandler.cs",
+    "property": "Unknown3",
+    "status": "IntentionalExclusion",
+    "reason": "Unknown engine field outside the supported semantic conflict surface; the winning override is preserved."
+  },
+  {
+    "handler": "ImpactRecordHandler.cs",
+    "property": "Unknown",
+    "status": "IntentionalExclusion",
+    "reason": "Unknown engine field outside the supported semantic conflict surface; the winning override is preserved."
+  },
+  {
+    "handler": "LightingTemplateRecordHandler.cs",
+    "property": "Unknown",
+    "status": "IntentionalExclusion",
+    "reason": "Unknown engine field outside the supported semantic conflict surface; the winning override is preserved."
+  },
+  {
+    "handler": "MagicEffectRecordHandler.cs",
+    "property": "Unknown1",
+    "status": "IntentionalExclusion",
+    "reason": "Unknown engine field outside the supported semantic conflict surface; the winning override is preserved."
+  },
+  {
+    "handler": "PackageRecordHandler.cs",
+    "property": "Unknown",
+    "status": "IntentionalExclusion",
+    "reason": "Unknown engine field outside the supported semantic conflict surface; the winning override is preserved."
+  },
+  {
+    "handler": "PackageRecordHandler.cs",
+    "property": "Unknown2",
+    "status": "IntentionalExclusion",
+    "reason": "Unknown engine field outside the supported semantic conflict surface; the winning override is preserved."
+  },
+  {
+    "handler": "PackageRecordHandler.cs",
+    "property": "Unknown3",
+    "status": "IntentionalExclusion",
+    "reason": "Unknown engine field outside the supported semantic conflict surface; the winning override is preserved."
+  },
+  {
+    "handler": "PackageRecordHandler.cs",
+    "property": "Unknown4",
+    "status": "IntentionalExclusion",
+    "reason": "Unknown engine field outside the supported semantic conflict surface; the winning override is preserved."
+  },
+  {
+    "handler": "PackageRecordHandler.cs",
+    "property": "PackageTemplate",
+    "status": "IntentionalExclusion",
+    "reason": "Temporarily not forwarded: PackageTemplateGraph is disabled because Mutagen 0.54.4 reorders physical PACK data rows by UNAM key while writing."
+  },
+  {
+    "handler": "PackageRecordHandler.cs",
+    "property": "DataInputVersion",
+    "status": "IntentionalExclusion",
+    "reason": "Temporarily not forwarded with the disabled PackageTemplateGraph atomic unit because its fields must share one owner."
+  },
+  {
+    "handler": "PackageRecordHandler.cs",
+    "property": "Data",
+    "status": "IntentionalExclusion",
+    "reason": "Temporarily not forwarded: Mutagen 0.54.4 sorts PACK value records by UNAM key and changes their physical xEdit row order."
+  },
+  {
+    "handler": "PackageRecordHandler.cs",
+    "property": "XnamMarker",
+    "status": "IntentionalExclusion",
+    "reason": "Temporarily not forwarded with the disabled PackageTemplateGraph serialization unit."
+  },
+  {
+    "handler": "PackageRecordHandler.cs",
+    "property": "ProcedureTree",
+    "status": "IntentionalExclusion",
+    "reason": "Temporarily not forwarded with PackageTemplateGraph because branch DataInputIndices refer to the grouped package data dictionary."
+  },
+  {
+    "handler": "PlacedObjectRecordHandler.cs",
+    "property": "Unknown",
+    "status": "IntentionalExclusion",
+    "reason": "Unknown engine field outside the supported semantic conflict surface; the winning override is preserved."
+  },
+  {
+    "handler": "QuestRecordHandler.cs",
+    "property": "Unknown",
+    "status": "IntentionalExclusion",
+    "reason": "Unknown engine field outside the supported semantic conflict surface; the winning override is preserved."
+  },
+  {
+    "handler": "RaceRecordHandler.cs",
+    "property": "Unknown",
+    "status": "IntentionalExclusion",
+    "reason": "Unknown engine field outside the supported semantic conflict surface; the winning override is preserved."
+  },
+  {
+    "handler": "RelationshipRecordHandler.cs",
+    "property": "Unknown",
+    "status": "IntentionalExclusion",
+    "reason": "Unknown engine field outside the supported semantic conflict surface; the winning override is preserved."
+  },
+  {
+    "handler": "ReverbParametersRecordHandler.cs",
+    "property": "Unknown",
+    "status": "IntentionalExclusion",
+    "reason": "Unknown engine field outside the supported semantic conflict surface; the winning override is preserved."
+  },
+  {
+    "handler": "TreeRecordHandler.cs",
+    "property": "Unknown",
+    "status": "IntentionalExclusion",
+    "reason": "Unknown engine field outside the supported semantic conflict surface; the winning override is preserved."
+  },
+  {
+    "handler": "WaterRecordHandler.cs",
+    "property": "Unknown",
+    "status": "IntentionalExclusion",
+    "reason": "Unknown engine field outside the supported semantic conflict surface; the winning override is preserved."
+  },
+  {
+    "handler": "WaterRecordHandler.cs",
+    "property": "Unknown2",
+    "status": "IntentionalExclusion",
+    "reason": "Unknown engine field outside the supported semantic conflict surface; the winning override is preserved."
+  },
+  {
+    "handler": "WaterRecordHandler.cs",
+    "property": "Unknown3",
+    "status": "IntentionalExclusion",
+    "reason": "Unknown engine field outside the supported semantic conflict surface; the winning override is preserved."
+  },
+  {
+    "handler": "WaterRecordHandler.cs",
+    "property": "Unknown4",
+    "status": "IntentionalExclusion",
+    "reason": "Unknown engine field outside the supported semantic conflict surface; the winning override is preserved."
+  },
+  {
+    "handler": "WaterRecordHandler.cs",
+    "property": "Unknown5",
+    "status": "IntentionalExclusion",
+    "reason": "Unknown engine field outside the supported semantic conflict surface; the winning override is preserved."
+  },
+  {
+    "handler": "WaterRecordHandler.cs",
+    "property": "Unknown6",
+    "status": "IntentionalExclusion",
+    "reason": "Unknown engine field outside the supported semantic conflict surface; the winning override is preserved."
+  },
+  {
+    "handler": "WaterRecordHandler.cs",
+    "property": "Unknown7",
+    "status": "IntentionalExclusion",
+    "reason": "Unknown engine field outside the supported semantic conflict surface; the winning override is preserved."
+  },
+  {
+    "handler": "WeatherRecordHandler.cs",
+    "property": "Unknown",
+    "status": "IntentionalExclusion",
+    "reason": "Unknown engine field outside the supported semantic conflict surface; the winning override is preserved."
+  },
+  {
+    "handler": "WeaponRecordHandler.cs",
+    "property": "Data.Unknown",
+    "status": "IntentionalExclusion",
+    "reason": "Unknown WEAP DATA leaf outside the supported semantic conflict surface; the winning value is preserved."
+  },
+  {
+    "handler": "WeaponRecordHandler.cs",
+    "property": "Data.Unknown2",
+    "status": "IntentionalExclusion",
+    "reason": "Unknown WEAP DATA leaf outside the supported semantic conflict surface; the winning value is preserved."
+  },
+  {
+    "handler": "WeaponRecordHandler.cs",
+    "property": "Data.Unknown3",
+    "status": "IntentionalExclusion",
+    "reason": "Unknown WEAP DATA leaf outside the supported semantic conflict surface; the winning value is preserved."
+  },
+  {
+    "handler": "WeaponRecordHandler.cs",
+    "property": "Data.Unknown4",
+    "status": "IntentionalExclusion",
+    "reason": "Unknown WEAP DATA leaf outside the supported semantic conflict surface; the winning value is preserved."
+  },
+  {
+    "handler": "WeaponRecordHandler.cs",
+    "property": "Data.Unknown5",
+    "status": "IntentionalExclusion",
+    "reason": "Unknown WEAP DATA leaf outside the supported semantic conflict surface; the winning value is preserved."
+  },
+  {
+    "handler": "ImageSpaceAdapterRecordHandler.cs",
+    "property": "Animatable",
+    "status": "AliasOrDuplicate",
+    "reason": "Covered by the AnimationSettings atomic unit; it is not registered independently because splitting the group could create an effect no source mod authored."
+  },
+  {
+    "handler": "ImageSpaceAdapterRecordHandler.cs",
+    "property": "Duration",
+    "status": "AliasOrDuplicate",
+    "reason": "Covered by the AnimationSettings atomic unit; it is not registered independently because splitting the group could create an effect no source mod authored."
+  },
+  {
+    "handler": "ImageSpaceAdapterRecordHandler.cs",
+    "property": "BlurRadius",
+    "status": "AliasOrDuplicate",
+    "reason": "Covered by the BlurRadius atomic unit; it is not registered independently because splitting the group could create an effect no source mod authored."
+  },
+  {
+    "handler": "ImageSpaceAdapterRecordHandler.cs",
+    "property": "DoubleVisionStrength",
+    "status": "AliasOrDuplicate",
+    "reason": "Covered by the DoubleVisionStrength atomic unit; it is not registered independently because splitting the group could create an effect no source mod authored."
+  },
+  {
+    "handler": "ImageSpaceAdapterRecordHandler.cs",
+    "property": "TintColor",
+    "status": "AliasOrDuplicate",
+    "reason": "Covered by the TintColor atomic unit; it is not registered independently because splitting the group could create an effect no source mod authored."
+  },
+  {
+    "handler": "ImageSpaceAdapterRecordHandler.cs",
+    "property": "FadeColor",
+    "status": "AliasOrDuplicate",
+    "reason": "Covered by the FadeColor atomic unit; it is not registered independently because splitting the group could create an effect no source mod authored."
+  },
+  {
+    "handler": "ImageSpaceAdapterRecordHandler.cs",
+    "property": "RadialBlurUseTarget",
+    "status": "AliasOrDuplicate",
+    "reason": "Covered by the RadialBlur atomic unit; it is not registered independently because splitting the group could create an effect no source mod authored."
+  },
+  {
+    "handler": "ImageSpaceAdapterRecordHandler.cs",
+    "property": "RadialBlurCenter",
+    "status": "AliasOrDuplicate",
+    "reason": "Covered by the RadialBlur atomic unit; it is not registered independently because splitting the group could create an effect no source mod authored."
+  },
+  {
+    "handler": "ImageSpaceAdapterRecordHandler.cs",
+    "property": "RadialBlurStrength",
+    "status": "AliasOrDuplicate",
+    "reason": "Covered by the RadialBlur atomic unit; it is not registered independently because splitting the group could create an effect no source mod authored."
+  },
+  {
+    "handler": "ImageSpaceAdapterRecordHandler.cs",
+    "property": "RadialBlurRampUp",
+    "status": "AliasOrDuplicate",
+    "reason": "Covered by the RadialBlur atomic unit; it is not registered independently because splitting the group could create an effect no source mod authored."
+  },
+  {
+    "handler": "ImageSpaceAdapterRecordHandler.cs",
+    "property": "RadialBlurStart",
+    "status": "AliasOrDuplicate",
+    "reason": "Covered by the RadialBlur atomic unit; it is not registered independently because splitting the group could create an effect no source mod authored."
+  },
+  {
+    "handler": "ImageSpaceAdapterRecordHandler.cs",
+    "property": "RadialBlurRampDown",
+    "status": "AliasOrDuplicate",
+    "reason": "Covered by the RadialBlur atomic unit; it is not registered independently because splitting the group could create an effect no source mod authored."
+  },
+  {
+    "handler": "ImageSpaceAdapterRecordHandler.cs",
+    "property": "RadialBlurDownStart",
+    "status": "AliasOrDuplicate",
+    "reason": "Covered by the RadialBlur atomic unit; it is not registered independently because splitting the group could create an effect no source mod authored."
+  },
+  {
+    "handler": "ImageSpaceAdapterRecordHandler.cs",
+    "property": "DepthOfFieldFlags",
+    "status": "AliasOrDuplicate",
+    "reason": "Covered by the DepthOfField atomic unit; it is not registered independently because splitting the group could create an effect no source mod authored."
+  },
+  {
+    "handler": "ImageSpaceAdapterRecordHandler.cs",
+    "property": "DepthOfFieldStrength",
+    "status": "AliasOrDuplicate",
+    "reason": "Covered by the DepthOfField atomic unit; it is not registered independently because splitting the group could create an effect no source mod authored."
+  },
+  {
+    "handler": "ImageSpaceAdapterRecordHandler.cs",
+    "property": "DepthOfFieldDistance",
+    "status": "AliasOrDuplicate",
+    "reason": "Covered by the DepthOfField atomic unit; it is not registered independently because splitting the group could create an effect no source mod authored."
+  },
+  {
+    "handler": "ImageSpaceAdapterRecordHandler.cs",
+    "property": "DepthOfFieldRange",
+    "status": "AliasOrDuplicate",
+    "reason": "Covered by the DepthOfField atomic unit; it is not registered independently because splitting the group could create an effect no source mod authored."
+  },
+  {
+    "handler": "ImageSpaceAdapterRecordHandler.cs",
+    "property": "MotionBlurStrength",
+    "status": "AliasOrDuplicate",
+    "reason": "Covered by the MotionBlurStrength atomic unit; it is not registered independently because splitting the group could create an effect no source mod authored."
+  },
+  {
+    "handler": "ImageSpaceAdapterRecordHandler.cs",
+    "property": "HdrEyeAdaptSpeedMult",
+    "status": "AliasOrDuplicate",
+    "reason": "Covered by the HdrEyeAdaptSpeed atomic unit; it is not registered independently because splitting the group could create an effect no source mod authored."
+  },
+  {
+    "handler": "ImageSpaceAdapterRecordHandler.cs",
+    "property": "HdrEyeAdaptSpeedAdd",
+    "status": "AliasOrDuplicate",
+    "reason": "Covered by the HdrEyeAdaptSpeed atomic unit; it is not registered independently because splitting the group could create an effect no source mod authored."
+  },
+  {
+    "handler": "ImageSpaceAdapterRecordHandler.cs",
+    "property": "HdrBloomBlurRadiusMult",
+    "status": "AliasOrDuplicate",
+    "reason": "Covered by the HdrBloomBlurRadius atomic unit; it is not registered independently because splitting the group could create an effect no source mod authored."
+  },
+  {
+    "handler": "ImageSpaceAdapterRecordHandler.cs",
+    "property": "HdrBloomBlurRadiusAdd",
+    "status": "AliasOrDuplicate",
+    "reason": "Covered by the HdrBloomBlurRadius atomic unit; it is not registered independently because splitting the group could create an effect no source mod authored."
+  },
+  {
+    "handler": "ImageSpaceAdapterRecordHandler.cs",
+    "property": "HdrBloomThresholdMult",
+    "status": "AliasOrDuplicate",
+    "reason": "Covered by the HdrBloomThreshold atomic unit; it is not registered independently because splitting the group could create an effect no source mod authored."
+  },
+  {
+    "handler": "ImageSpaceAdapterRecordHandler.cs",
+    "property": "HdrBloomThresholdAdd",
+    "status": "AliasOrDuplicate",
+    "reason": "Covered by the HdrBloomThreshold atomic unit; it is not registered independently because splitting the group could create an effect no source mod authored."
+  },
+  {
+    "handler": "ImageSpaceAdapterRecordHandler.cs",
+    "property": "HdrBloomScaleMult",
+    "status": "AliasOrDuplicate",
+    "reason": "Covered by the HdrBloomScale atomic unit; it is not registered independently because splitting the group could create an effect no source mod authored."
+  },
+  {
+    "handler": "ImageSpaceAdapterRecordHandler.cs",
+    "property": "HdrBloomScaleAdd",
+    "status": "AliasOrDuplicate",
+    "reason": "Covered by the HdrBloomScale atomic unit; it is not registered independently because splitting the group could create an effect no source mod authored."
+  },
+  {
+    "handler": "ImageSpaceAdapterRecordHandler.cs",
+    "property": "HdrTargetLumMinMult",
+    "status": "AliasOrDuplicate",
+    "reason": "Covered by the HdrTargetLumMin atomic unit; it is not registered independently because splitting the group could create an effect no source mod authored."
+  },
+  {
+    "handler": "ImageSpaceAdapterRecordHandler.cs",
+    "property": "HdrTargetLumMinAdd",
+    "status": "AliasOrDuplicate",
+    "reason": "Covered by the HdrTargetLumMin atomic unit; it is not registered independently because splitting the group could create an effect no source mod authored."
+  },
+  {
+    "handler": "ImageSpaceAdapterRecordHandler.cs",
+    "property": "HdrTargetLumMaxMult",
+    "status": "AliasOrDuplicate",
+    "reason": "Covered by the HdrTargetLumMax atomic unit; it is not registered independently because splitting the group could create an effect no source mod authored."
+  },
+  {
+    "handler": "ImageSpaceAdapterRecordHandler.cs",
+    "property": "HdrTargetLumMaxAdd",
+    "status": "AliasOrDuplicate",
+    "reason": "Covered by the HdrTargetLumMax atomic unit; it is not registered independently because splitting the group could create an effect no source mod authored."
+  },
+  {
+    "handler": "ImageSpaceAdapterRecordHandler.cs",
+    "property": "HdrSunlightScaleMult",
+    "status": "AliasOrDuplicate",
+    "reason": "Covered by the HdrSunlightScale atomic unit; it is not registered independently because splitting the group could create an effect no source mod authored."
+  },
+  {
+    "handler": "ImageSpaceAdapterRecordHandler.cs",
+    "property": "HdrSunlightScaleAdd",
+    "status": "AliasOrDuplicate",
+    "reason": "Covered by the HdrSunlightScale atomic unit; it is not registered independently because splitting the group could create an effect no source mod authored."
+  },
+  {
+    "handler": "ImageSpaceAdapterRecordHandler.cs",
+    "property": "HdrSkyScaleMult",
+    "status": "AliasOrDuplicate",
+    "reason": "Covered by the HdrSkyScale atomic unit; it is not registered independently because splitting the group could create an effect no source mod authored."
+  },
+  {
+    "handler": "ImageSpaceAdapterRecordHandler.cs",
+    "property": "HdrSkyScaleAdd",
+    "status": "AliasOrDuplicate",
+    "reason": "Covered by the HdrSkyScale atomic unit; it is not registered independently because splitting the group could create an effect no source mod authored."
+  },
+  {
+    "handler": "ImageSpaceAdapterRecordHandler.cs",
+    "property": "CinematicSaturationMult",
+    "status": "AliasOrDuplicate",
+    "reason": "Covered by the CinematicSaturation atomic unit; it is not registered independently because splitting the group could create an effect no source mod authored."
+  },
+  {
+    "handler": "ImageSpaceAdapterRecordHandler.cs",
+    "property": "CinematicSaturationAdd",
+    "status": "AliasOrDuplicate",
+    "reason": "Covered by the CinematicSaturation atomic unit; it is not registered independently because splitting the group could create an effect no source mod authored."
+  },
+  {
+    "handler": "ImageSpaceAdapterRecordHandler.cs",
+    "property": "CinematicBrightnessMult",
+    "status": "AliasOrDuplicate",
+    "reason": "Covered by the CinematicBrightness atomic unit; it is not registered independently because splitting the group could create an effect no source mod authored."
+  },
+  {
+    "handler": "ImageSpaceAdapterRecordHandler.cs",
+    "property": "CinematicBrightnessAdd",
+    "status": "AliasOrDuplicate",
+    "reason": "Covered by the CinematicBrightness atomic unit; it is not registered independently because splitting the group could create an effect no source mod authored."
+  },
+  {
+    "handler": "ImageSpaceAdapterRecordHandler.cs",
+    "property": "CinematicContrastMult",
+    "status": "AliasOrDuplicate",
+    "reason": "Covered by the CinematicContrast atomic unit; it is not registered independently because splitting the group could create an effect no source mod authored."
+  },
+  {
+    "handler": "ImageSpaceAdapterRecordHandler.cs",
+    "property": "CinematicContrastAdd",
+    "status": "AliasOrDuplicate",
+    "reason": "Covered by the CinematicContrast atomic unit; it is not registered independently because splitting the group could create an effect no source mod authored."
+  },
+  {
+    "handler": "ImageSpaceAdapterRecordHandler.cs",
+    "property": "Unknown08",
+    "status": "IntentionalExclusion",
+    "reason": "Unknown keyframe collection outside the supported semantic conflict surface; the winning collection is preserved."
+  },
+  {
+    "handler": "ImageSpaceAdapterRecordHandler.cs",
+    "property": "Unknown48",
+    "status": "IntentionalExclusion",
+    "reason": "Unknown keyframe collection outside the supported semantic conflict surface; the winning collection is preserved."
+  },
+  {
+    "handler": "ImageSpaceAdapterRecordHandler.cs",
+    "property": "Unknown09",
+    "status": "IntentionalExclusion",
+    "reason": "Unknown keyframe collection outside the supported semantic conflict surface; the winning collection is preserved."
+  },
+  {
+    "handler": "ImageSpaceAdapterRecordHandler.cs",
+    "property": "Unknown49",
+    "status": "IntentionalExclusion",
+    "reason": "Unknown keyframe collection outside the supported semantic conflict surface; the winning collection is preserved."
+  },
+  {
+    "handler": "ImageSpaceAdapterRecordHandler.cs",
+    "property": "Unknown0A",
+    "status": "IntentionalExclusion",
+    "reason": "Unknown keyframe collection outside the supported semantic conflict surface; the winning collection is preserved."
+  },
+  {
+    "handler": "ImageSpaceAdapterRecordHandler.cs",
+    "property": "Unknown4A",
+    "status": "IntentionalExclusion",
+    "reason": "Unknown keyframe collection outside the supported semantic conflict surface; the winning collection is preserved."
+  },
+  {
+    "handler": "ImageSpaceAdapterRecordHandler.cs",
+    "property": "Unknown0B",
+    "status": "IntentionalExclusion",
+    "reason": "Unknown keyframe collection outside the supported semantic conflict surface; the winning collection is preserved."
+  },
+  {
+    "handler": "ImageSpaceAdapterRecordHandler.cs",
+    "property": "Unknown4B",
+    "status": "IntentionalExclusion",
+    "reason": "Unknown keyframe collection outside the supported semantic conflict surface; the winning collection is preserved."
+  },
+  {
+    "handler": "ImageSpaceAdapterRecordHandler.cs",
+    "property": "Unknown0C",
+    "status": "IntentionalExclusion",
+    "reason": "Unknown keyframe collection outside the supported semantic conflict surface; the winning collection is preserved."
+  },
+  {
+    "handler": "ImageSpaceAdapterRecordHandler.cs",
+    "property": "Unknown4C",
+    "status": "IntentionalExclusion",
+    "reason": "Unknown keyframe collection outside the supported semantic conflict surface; the winning collection is preserved."
+  },
+  {
+    "handler": "ImageSpaceAdapterRecordHandler.cs",
+    "property": "Unknown0D",
+    "status": "IntentionalExclusion",
+    "reason": "Unknown keyframe collection outside the supported semantic conflict surface; the winning collection is preserved."
+  },
+  {
+    "handler": "ImageSpaceAdapterRecordHandler.cs",
+    "property": "Unknown4D",
+    "status": "IntentionalExclusion",
+    "reason": "Unknown keyframe collection outside the supported semantic conflict surface; the winning collection is preserved."
+  },
+  {
+    "handler": "ImageSpaceAdapterRecordHandler.cs",
+    "property": "Unknown0E",
+    "status": "IntentionalExclusion",
+    "reason": "Unknown keyframe collection outside the supported semantic conflict surface; the winning collection is preserved."
+  },
+  {
+    "handler": "ImageSpaceAdapterRecordHandler.cs",
+    "property": "Unknown4E",
+    "status": "IntentionalExclusion",
+    "reason": "Unknown keyframe collection outside the supported semantic conflict surface; the winning collection is preserved."
+  },
+  {
+    "handler": "ImageSpaceAdapterRecordHandler.cs",
+    "property": "Unknown0F",
+    "status": "IntentionalExclusion",
+    "reason": "Unknown keyframe collection outside the supported semantic conflict surface; the winning collection is preserved."
+  },
+  {
+    "handler": "ImageSpaceAdapterRecordHandler.cs",
+    "property": "Unknown4F",
+    "status": "IntentionalExclusion",
+    "reason": "Unknown keyframe collection outside the supported semantic conflict surface; the winning collection is preserved."
+  },
+  {
+    "handler": "ImageSpaceAdapterRecordHandler.cs",
+    "property": "Unknown10",
+    "status": "IntentionalExclusion",
+    "reason": "Unknown keyframe collection outside the supported semantic conflict surface; the winning collection is preserved."
+  },
+  {
+    "handler": "ImageSpaceAdapterRecordHandler.cs",
+    "property": "Unknown50",
+    "status": "IntentionalExclusion",
+    "reason": "Unknown keyframe collection outside the supported semantic conflict surface; the winning collection is preserved."
+  },
+  {
+    "handler": "ImageSpaceAdapterRecordHandler.cs",
+    "property": "Unknown14",
+    "status": "IntentionalExclusion",
+    "reason": "Unknown keyframe collection outside the supported semantic conflict surface; the winning collection is preserved."
+  },
+  {
+    "handler": "ImageSpaceAdapterRecordHandler.cs",
+    "property": "Unknown54",
+    "status": "IntentionalExclusion",
+    "reason": "Unknown keyframe collection outside the supported semantic conflict surface; the winning collection is preserved."
+  },
+  {
+    "handler": "BookRecordHandler.cs",
+    "property": "Unused",
+    "status": "IntentionalExclusion",
+    "reason": "Unused BOOK storage is not an independently editable semantic field; the winning value is preserved."
+  },
+  {
+    "handler": "PerkRecordHandler.cs",
+    "property": "MajorFlags",
+    "status": "AliasOrDuplicate",
+    "reason": "PERK-specific major flags are a typed view over MajorRecordFlagsRaw and are owned by that single composite flag handler."
+  },
+  {
+    "handler": "PerkRecordHandler.cs",
+    "property": "SkyrimMajorRecordFlags",
+    "status": "AliasOrDuplicate",
+    "reason": "Common Skyrim major flags are a typed view over MajorRecordFlagsRaw and are owned by the PERK composite flag handler."
+  },
+  {
+    "handler": "QuestRecordHandler.cs",
+    "property": "QuestFormVersion",
+    "status": "IntentionalExclusion",
+    "reason": "xEdit marks QuestFormVersion cpIgnore; it is format metadata rather than an independently editable semantic field."
+  },
+  {
+    "handler": "StaticRecordHandler.cs",
+    "property": "MajorFlags",
+    "status": "AliasOrDuplicate",
+    "reason": "STAT-specific major flags are a typed view over MajorRecordFlagsRaw and are owned by that single composite flag handler."
+  },
+  {
+    "handler": "StaticRecordHandler.cs",
+    "property": "SkyrimMajorRecordFlags",
+    "status": "AliasOrDuplicate",
+    "reason": "Common Skyrim major flags are a typed view over MajorRecordFlagsRaw and are owned by the STAT composite flag handler."
+  },
+  {
+    "handler": "StaticRecordHandler.cs",
+    "property": "Unused",
+    "status": "IntentionalExclusion",
+    "reason": "Unused STAT storage is serialization-only data; the winning value is preserved."
+  },
+  {
+    "handler": "TextureSetRecordHandler.cs",
+    "property": "SkyrimMajorRecordFlags",
+    "status": "AliasOrDuplicate",
+    "reason": "Common Skyrim major flags are a typed view over MajorRecordFlagsRaw and are owned by that single raw flag handler."
+  },
+  {
+    "handler": "WaterRecordHandler.cs",
+    "property": "UnusedNoisemaps",
+    "status": "IntentionalExclusion",
+    "reason": "No exact writable Skyrim xEdit collection mapping is confirmed for UnusedNoisemaps; the winning value is preserved."
+  },
+  {
+    "handler": "WeaponRecordHandler.cs",
+    "property": "Unused",
+    "status": "IntentionalExclusion",
+    "reason": "Unused WEAP storage is outside the supported semantic conflict surface; the winning value is preserved."
+  }
+]

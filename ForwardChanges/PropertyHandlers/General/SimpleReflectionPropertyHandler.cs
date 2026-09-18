@@ -29,8 +29,9 @@ namespace ForwardChanges.PropertyHandlers.General
         private readonly string[] _propertyPath;
         private readonly PropertyInfo? _getterProperty;
         private readonly PropertyInfo? _setterProperty;
-        private readonly PropertyInfo[]? _pathProperties;
-        private readonly Type[]? _pathTypes;
+        private readonly PropertyInfo[]? _getterPathProperties;
+        private readonly PropertyInfo[]? _setterPathProperties;
+        private readonly Type[]? _setterPathTypes;
         private readonly float? _p3FloatEpsilon;
 
         public SimpleReflectionPropertyHandler(string propertyName, float? p3FloatEpsilon = null)
@@ -54,9 +55,8 @@ namespace ForwardChanges.PropertyHandlers.General
             // Build path for nested properties
             if (_propertyPath.Length > 1)
             {
-                _pathProperties = new PropertyInfo[_propertyPath.Length - 1];
-                _pathTypes = new Type[_propertyPath.Length - 1];
-                BuildPropertyPath(typeof(TRecordGetter), _propertyPath, _pathProperties, _pathTypes);
+                _getterPathProperties = BuildPropertyPath(typeof(TRecordGetter), _propertyPath, out _);
+                _setterPathProperties = BuildPropertyPath(typeof(TRecord), _propertyPath, out _setterPathTypes);
             }
         }
 
@@ -69,8 +69,7 @@ namespace ForwardChanges.PropertyHandlers.General
 
             for (int i = 0; i < path.Length; i++)
             {
-                property = currentType.GetProperty(path[i],
-                    BindingFlags.Public | BindingFlags.Instance | BindingFlags.FlattenHierarchy);
+                property = FindPathProperty(currentType, path[i], i < path.Length - 1 ? path[i + 1] : null);
 
                 if (property == null)
                 {
@@ -92,14 +91,15 @@ namespace ForwardChanges.PropertyHandlers.General
             return property;
         }
 
-        private void BuildPropertyPath(Type startType, string[] path, PropertyInfo[] pathProperties, Type[] pathTypes)
+        private PropertyInfo[] BuildPropertyPath(Type startType, string[] path, out Type[] pathTypes)
         {
+            var pathProperties = new PropertyInfo[path.Length - 1];
+            pathTypes = new Type[path.Length - 1];
             Type currentType = startType;
 
             for (int i = 0; i < path.Length - 1; i++)
             {
-                var property = currentType.GetProperty(path[i],
-                    BindingFlags.Public | BindingFlags.Instance | BindingFlags.FlattenHierarchy);
+                var property = FindPathProperty(currentType, path[i], path[i + 1]);
 
                 if (property == null)
                 {
@@ -118,6 +118,18 @@ namespace ForwardChanges.PropertyHandlers.General
                 pathTypes[i] = propType;
                 currentType = propType;
             }
+
+            return pathProperties;
+        }
+
+        private static PropertyInfo? FindPathProperty(Type type, string name, string? nextSegment)
+        {
+            return ReflectionPropertyResolver.Find(type, name, nextSegment);
+        }
+
+        private static bool HasProperty(Type type, string name)
+        {
+            return ReflectionPropertyResolver.HasProperty(type, name);
         }
 
         public override TValue? GetValue(IMajorRecordGetter record)
@@ -138,19 +150,19 @@ namespace ForwardChanges.PropertyHandlers.General
                 object? currentObject = typedRecord;
 
                 // Navigate through nested properties
-                if (_pathProperties != null && _pathTypes != null)
+                if (_getterPathProperties != null)
                 {
-                    for (int i = 0; i < _pathProperties.Length; i++)
+                    for (int i = 0; i < _getterPathProperties.Length; i++)
                     {
                         if (currentObject == null)
                         {
                             return default;
                         }
 
-                        currentObject = _pathProperties[i].GetValue(currentObject);
+                        currentObject = _getterPathProperties[i].GetValue(currentObject);
 
                         // If we got a null value and there are more properties to navigate, return default
-                        if (currentObject == null && i < _pathProperties.Length - 1)
+                        if (currentObject == null && i < _getterPathProperties.Length - 1)
                         {
                             return default;
                         }
@@ -191,12 +203,12 @@ namespace ForwardChanges.PropertyHandlers.General
                 object? currentObject = typedRecord;
 
                 // Navigate through nested properties, creating intermediate objects if needed
-                if (_pathProperties != null && _pathTypes != null)
+                if (_setterPathProperties != null && _setterPathTypes != null)
                 {
-                    for (int i = 0; i < _pathProperties.Length; i++)
+                    for (int i = 0; i < _setterPathProperties.Length; i++)
                     {
-                        var pathProperty = _pathProperties[i];
-                        var pathType = _pathTypes[i];
+                        var pathProperty = _setterPathProperties[i];
+                        var pathType = _setterPathTypes[i];
 
                         // Get the current value of the intermediate property
                         var intermediateValue = pathProperty.GetValue(currentObject);

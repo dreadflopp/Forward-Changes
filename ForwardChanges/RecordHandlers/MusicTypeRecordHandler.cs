@@ -27,7 +27,7 @@ public class MusicTypeRecordHandler : AbstractRecordHandler
         { "Flags", new SimpleReflectionFlagPropertyHandler<MusicType.Flag, IMusicType, IMusicTypeGetter>("Flags") },
         { "Data", new ComplexReflectionPropertyHandler<IMusicTypeDataGetter, IMusicType, IMusicTypeGetter>("Data") },
         { "FadeDuration", new SimpleReflectionPropertyHandler<float?, IMusicType, IMusicTypeGetter>("FadeDuration") },
-        { "Tracks", new SimpleReflectionListPropertyHandler<IFormLinkGetter<IMusicTrackGetter>, IMusicType, IMusicTypeGetter>("Tracks", ListOrdering.None, canBeNull: true) }
+        { "Tracks", new AtomicReflectionListPropertyHandler<IFormLinkGetter<IMusicTrackGetter>, IMusicType, IMusicTypeGetter>("Tracks", canBeNull: true) }
     };
 
     public override IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter>[] GetRecordContexts(

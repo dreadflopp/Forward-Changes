@@ -9,13 +9,14 @@ using Mutagen.Bethesda.Skyrim;
 
 if (args.Length < 2)
 {
-    Console.Error.WriteLine("Usage: RecordHandlerCoverage <repository-root> <markdown-output> [json-output]");
+    Console.Error.WriteLine("Usage: RecordHandlerCoverage <repository-root> <markdown-output> [json-output] [overrides-file]");
     return 2;
 }
 
 var repositoryRoot = Path.GetFullPath(args[0]);
 var markdownOutput = Path.GetFullPath(args[1]);
 var jsonOutput = args.Length >= 3 ? Path.GetFullPath(args[2]) : null;
+var overridesPath = args.Length >= 4 ? Path.GetFullPath(args[3]) : null;
 var handlersDirectory = Path.Combine(repositoryRoot, "ForwardChanges", "RecordHandlers");
 var propertyHandlersDirectory = Path.Combine(repositoryRoot, "ForwardChanges", "PropertyHandlers");
 
@@ -27,6 +28,14 @@ if (!Directory.Exists(handlersDirectory))
 
 var getterAssembly = typeof(IArmorGetter).Assembly;
 var reports = new List<HandlerReport>();
+var jsonOptions = new JsonSerializerOptions
+{
+    WriteIndented = true,
+    PropertyNameCaseInsensitive = true,
+    Converters = { new JsonStringEnumConverter() }
+};
+var coverageOverrides = LoadOverrides(overridesPath, jsonOptions);
+var usedOverrideKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 var auditedInheritedPropertyNames = new HashSet<string>(StringComparer.Ordinal)
 {
     "EditorID",
@@ -70,7 +79,13 @@ foreach (var sourcePath in Directory.EnumerateFiles(handlersDirectory, "*RecordH
         .Concat(inheritedProjectProperties)
         .DistinctBy(property => property.Name)
         .OrderBy(property => property.Name)
-        .Select(property => AuditProperty(property, registrations, propertyHandlerSources))
+        .Select(property => AuditProperty(
+            Path.GetFileName(sourcePath),
+            property,
+            registrations,
+            propertyHandlerSources,
+            coverageOverrides,
+            usedOverrideKeys))
         .ToList();
 
     reports.Add(new HandlerReport(Path.GetFileName(sourcePath), getterName, registrations, propertyReports, null));
@@ -82,23 +97,56 @@ File.WriteAllText(markdownOutput, BuildMarkdown(reports), new UTF8Encoding(encod
 if (jsonOutput is not null)
 {
     Directory.CreateDirectory(Path.GetDirectoryName(jsonOutput)!);
-    File.WriteAllText(jsonOutput, JsonSerializer.Serialize(reports, new JsonSerializerOptions
-    {
-        WriteIndented = true,
-        Converters = { new JsonStringEnumConverter() }
-    }), new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+    File.WriteAllText(jsonOutput, JsonSerializer.Serialize(reports, jsonOptions), new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
 }
 
-var missingCount = reports.Sum(report => report.Properties.Count(property => property.Status == CoverageStatus.Missing));
-var reviewCount = reports.Sum(report => report.Properties.Count(property => property.Status == CoverageStatus.Review));
-Console.WriteLine($"Audited {reports.Count} handlers: {missingCount} missing candidates, {reviewCount} review candidates.");
+var unusedOverrides = coverageOverrides.Keys.Except(usedOverrideKeys, StringComparer.OrdinalIgnoreCase).Order().ToList();
+foreach (var unusedOverride in unusedOverrides)
+{
+    Console.Error.WriteLine($"Unused coverage override: {unusedOverride.Replace('\0', '.')}");
+}
+
+var missingCount = reports.Sum(report => report.Properties.Count(property => property.Status == CoverageStatus.MissingCandidate));
+var partialCount = reports.Sum(report => report.Properties.Count(property => property.Status == CoverageStatus.Partial));
+Console.WriteLine($"Audited {reports.Count} handlers: {missingCount} missing candidates, {partialCount} partial candidates.");
 Console.WriteLine($"Markdown report: {markdownOutput}");
 if (jsonOutput is not null)
 {
     Console.WriteLine($"JSON report: {jsonOutput}");
 }
 
-return reports.Any(report => report.Error is not null) ? 1 : 0;
+return reports.Any(report => report.Error is not null) || unusedOverrides.Count > 0 ? 1 : 0;
+
+static Dictionary<string, CoverageOverride> LoadOverrides(string? overridesPath, JsonSerializerOptions jsonOptions)
+{
+    if (overridesPath is null || !File.Exists(overridesPath))
+    {
+        return new Dictionary<string, CoverageOverride>(StringComparer.OrdinalIgnoreCase);
+    }
+
+    var entries = JsonSerializer.Deserialize<List<CoverageOverride>>(File.ReadAllText(overridesPath), jsonOptions) ?? [];
+    var result = new Dictionary<string, CoverageOverride>(StringComparer.OrdinalIgnoreCase);
+    foreach (var entry in entries)
+    {
+        var key = OverrideKey(entry.Handler, entry.Property);
+        if (!result.TryAdd(key, entry))
+        {
+            throw new InvalidOperationException($"Duplicate coverage override for {entry.Handler}.{entry.Property}.");
+        }
+
+        if (entry.Status is CoverageStatus.Covered or CoverageStatus.AggregateCovered or CoverageStatus.Partial or CoverageStatus.MissingCandidate)
+        {
+            throw new InvalidOperationException($"Override {entry.Handler}.{entry.Property} must describe an intentional classification, not inferred coverage status {entry.Status}.");
+        }
+
+        if (string.IsNullOrWhiteSpace(entry.Reason))
+        {
+            throw new InvalidOperationException($"Override {entry.Handler}.{entry.Property} requires a reason.");
+        }
+    }
+
+    return result;
+}
 
 static string? FindGetterName(string source)
 {
@@ -116,6 +164,12 @@ static List<HandlerRegistration> FindRegistrations(string source)
 {
     const string pattern = "\\{\\s*\"(?<key>[^\"]+)\"\\s*,\\s*new\\s+(?<handler>[A-Za-z0-9_.]+)(?:<[^;{}]+?>)?\\s*\\(";
     return Regex.Matches(source, pattern, RegexOptions.Multiline)
+        .Where(match =>
+        {
+            var lineStart = source.LastIndexOf('\n', Math.Max(0, match.Index - 1)) + 1;
+            var prefix = source[lineStart..match.Index];
+            return !prefix.Contains("//", StringComparison.Ordinal);
+        })
         .Select(match => new HandlerRegistration(
             match.Groups["key"].Value,
             match.Groups["handler"].Value,
@@ -124,17 +178,33 @@ static List<HandlerRegistration> FindRegistrations(string source)
 }
 
 static PropertyReport AuditProperty(
+    string handlerFile,
     PropertyInfo property,
     List<HandlerRegistration> registrations,
-    IReadOnlyDictionary<string, string> propertyHandlerSources)
+    IReadOnlyDictionary<string, string> propertyHandlerSources,
+    IReadOnlyDictionary<string, CoverageOverride> coverageOverrides,
+    ISet<string> usedOverrideKeys)
 {
+    var overrideKey = OverrideKey(handlerFile, property.Name);
+    if (coverageOverrides.TryGetValue(overrideKey, out var coverageOverride))
+    {
+        usedOverrideKeys.Add(overrideKey);
+        return new PropertyReport(
+            property.Name,
+            FriendlyType(property.PropertyType),
+            coverageOverride.Status,
+            [],
+            ExpandLeaves(property.PropertyType, property.Name, depth: 0, visited: []),
+            coverageOverride.Reason);
+    }
+
     var exact = registrations
         .Where(registration => string.Equals(registration.Key, property.Name, StringComparison.OrdinalIgnoreCase))
         .ToList();
     if (exact.Count > 0)
     {
         return new PropertyReport(property.Name, FriendlyType(property.PropertyType), CoverageStatus.Covered,
-            exact.Select(registration => registration.Key).ToList(), []);
+            exact.Select(registration => registration.Key).ToList(), [], null);
     }
 
     var dotted = registrations
@@ -158,15 +228,38 @@ static PropertyReport AuditProperty(
         .Concat(implementationCandidates)
         .DistinctBy(registration => registration.Key)
         .ToList();
-    var status = candidates.Count > 0 ? CoverageStatus.Review : CoverageStatus.Missing;
+    var nestedLeaves = ExpandLeaves(property.PropertyType, property.Name, depth: 0, visited: []);
+    var classifiedLeaves = nestedLeaves
+        .Select(leaf => (Leaf: leaf, Key: OverrideKey(handlerFile, leaf)))
+        .Where(item => coverageOverrides.ContainsKey(item.Key))
+        .ToList();
+    foreach (var classifiedLeaf in classifiedLeaves)
+    {
+        usedOverrideKeys.Add(classifiedLeaf.Key);
+    }
+    var allNestedLeavesCovered = nestedLeaves.Count > 0
+        && nestedLeaves.All(leaf =>
+            registrations.Any(registration => string.Equals(registration.Key, leaf, StringComparison.OrdinalIgnoreCase))
+            || coverageOverrides.ContainsKey(OverrideKey(handlerFile, leaf)));
+    var status = candidates.Count == 0
+        ? CoverageStatus.MissingCandidate
+        : IsLeaf(Nullable.GetUnderlyingType(property.PropertyType) ?? property.PropertyType) || allNestedLeavesCovered
+            ? CoverageStatus.AggregateCovered
+            : CoverageStatus.Partial;
 
     return new PropertyReport(
         property.Name,
         FriendlyType(property.PropertyType),
         status,
         candidates.Select(registration => registration.Key).ToList(),
-        ExpandLeaves(property.PropertyType, property.Name, depth: 0, visited: []));
+        nestedLeaves,
+        classifiedLeaves.Count == 0
+            ? null
+            : string.Join(" ",
+                classifiedLeaves.Select(item => $"{item.Leaf}: {coverageOverrides[item.Key].Reason}")));
 }
+
+static string OverrideKey(string handler, string property) => $"{handler}\0{property}";
 
 static List<string> ExpandLeaves(Type inputType, string path, int depth, HashSet<Type> visited)
 {
@@ -255,20 +348,21 @@ static string BuildMarkdown(List<HandlerReport> reports)
     builder.AppendLine();
     builder.AppendLine($"Generated: {DateTimeOffset.Now:yyyy-MM-dd HH:mm:ss zzz}");
     builder.AppendLine();
-    builder.AppendLine("This is a static registration audit. `Missing` means no matching handler registration was found. `Review` means a nested or specialized mapping may exist and needs inspection. `Covered` confirms registration, not equality/copy correctness or whether the property is a separately serialized xEdit field.");
+    builder.AppendLine("This is a static registration audit. `Covered` is an exact registration, `AggregateCovered` is inferred from a specialized handler implementation, `Partial` indicates nested/split handling, and `MissingCandidate` has no detected handler. Reviewed aliases and non-property surfaces are classified through the tracked overrides file.");
     builder.AppendLine();
     builder.AppendLine("Direct record properties plus the project-standard inherited `EditorID`, `MajorRecordFlagsRaw`, and `SkyrimMajorRecordFlags` fields are compared. Identity/version metadata is excluded.");
     builder.AppendLine();
     builder.AppendLine("## Summary");
     builder.AppendLine();
-    builder.AppendLine("| Handler | Getter | Covered | Review | Missing | Error |");
-    builder.AppendLine("|---|---|---:|---:|---:|---|");
+    builder.AppendLine("| Handler | Getter | Covered | Aggregate | Partial | Missing | Classified exclusion/alias | Error |");
+    builder.AppendLine("|---|---|---:|---:|---:|---:|---:|---|");
     foreach (var report in reports)
     {
-        builder.AppendLine($"| {Escape(report.Handler)} | {Escape(report.Getter ?? "-")} | {Count(report, CoverageStatus.Covered)} | {Count(report, CoverageStatus.Review)} | {Count(report, CoverageStatus.Missing)} | {Escape(report.Error ?? string.Empty)} |");
+        var classified = report.Properties.Count(property => property.Status is CoverageStatus.RuntimeOrNavigation or CoverageStatus.SerializationState or CoverageStatus.AliasOrDuplicate or CoverageStatus.IntentionalExclusion);
+        builder.AppendLine($"| {Escape(report.Handler)} | {Escape(report.Getter ?? "-")} | {Count(report, CoverageStatus.Covered)} | {Count(report, CoverageStatus.AggregateCovered)} | {Count(report, CoverageStatus.Partial)} | {Count(report, CoverageStatus.MissingCandidate)} | {classified} | {Escape(report.Error ?? string.Empty)} |");
     }
 
-    foreach (var report in reports.Where(report => report.Error is not null || report.Properties.Any(property => property.Status != CoverageStatus.Covered)))
+    foreach (var report in reports.Where(report => report.Error is not null || report.Properties.Any(property => property.Status is not CoverageStatus.Covered and not CoverageStatus.AggregateCovered)))
     {
         builder.AppendLine();
         builder.AppendLine($"## {report.Handler}");
@@ -281,11 +375,11 @@ static string BuildMarkdown(List<HandlerReport> reports)
             continue;
         }
 
-        builder.AppendLine("| Property | Type | Status | Possible handler keys | Nested leaves |");
-        builder.AppendLine("|---|---|---|---|---|");
-        foreach (var property in report.Properties.Where(property => property.Status != CoverageStatus.Covered))
+        builder.AppendLine("| Property | Type | Status | Possible handler keys | Nested leaves | Reason |");
+        builder.AppendLine("|---|---|---|---|---|---|");
+        foreach (var property in report.Properties.Where(property => property.Status is not CoverageStatus.Covered and not CoverageStatus.AggregateCovered))
         {
-            builder.AppendLine($"| `{Escape(property.Name)}` | `{Escape(property.Type)}` | {property.Status} | {Escape(string.Join(", ", property.HandlerKeys))} | {Escape(string.Join("<br>", property.NestedLeaves))} |");
+            builder.AppendLine($"| `{Escape(property.Name)}` | `{Escape(property.Type)}` | {property.Status} | {Escape(string.Join(", ", property.HandlerKeys))} | {Escape(string.Join("<br>", property.NestedLeaves))} | {Escape(property.Reason ?? string.Empty)} |");
         }
     }
 
@@ -307,10 +401,16 @@ static string Escape(string value) => value.Replace("|", "\\|").Replace("\r", " 
 public enum CoverageStatus
 {
     Covered,
-    Review,
-    Missing
+    AggregateCovered,
+    Partial,
+    MissingCandidate,
+    RuntimeOrNavigation,
+    SerializationState,
+    AliasOrDuplicate,
+    IntentionalExclusion
 }
 
 public sealed record HandlerRegistration(string Key, string HandlerType, int SourceLine);
-public sealed record PropertyReport(string Name, string Type, CoverageStatus Status, List<string> HandlerKeys, List<string> NestedLeaves);
+public sealed record CoverageOverride(string Handler, string Property, CoverageStatus Status, string Reason);
+public sealed record PropertyReport(string Name, string Type, CoverageStatus Status, List<string> HandlerKeys, List<string> NestedLeaves, string? Reason);
 public sealed record HandlerReport(string Handler, string? Getter, List<HandlerRegistration> Registrations, List<PropertyReport> Properties, string? Error);

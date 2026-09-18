@@ -14,7 +14,10 @@ using System;
 namespace ForwardChanges.RecordHandlers
 {
     // Migration note:
-    // - Generalized: placed-NPC location links continue to use the shared reflection form-link handler.
+    // - Generalized: placed-NPC location links and ragdoll byte payloads use shared reflection handlers.
+    //   XLRL/LocationReference intentionally stays on this conflict-aware path: a newly added value that
+    //   survives into the winner already produces no patch, while a later removal remains a real conflict,
+    //   matching xEdit's cpBenignIfAdded behavior.
     // - Specialized: NPC placement/list behavior remains specialized; Mutagen 0.54.4 now exposes LocationReference as ILocationGetter.
     // - Rationale: only the generated link target changed, so no record-specific behavior needed replacement.
     public class PlacedNpcRecordHandler : AbstractRecordHandler
@@ -27,19 +30,21 @@ namespace ForwardChanges.RecordHandlers
             { "MajorFlags", new MajorFlagsHandler() },
             { "Base", new SimpleReflectionFormLinkPropertyHandler<INpcGetter, IPlacedNpc, IPlacedNpcGetter>("Base") },
             { "EncounterZone", new SimpleReflectionFormLinkPropertyHandler<IEncounterZoneGetter, IPlacedNpc, IPlacedNpcGetter>("EncounterZone") },
+            { "RagdollData", new SimpleReflectionBinaryDataPropertyHandler<IPlacedNpc, IPlacedNpcGetter>("RagdollData") },
+            { "RagdollBipedData", new SimpleReflectionBinaryDataPropertyHandler<IPlacedNpc, IPlacedNpcGetter>("RagdollBipedData") },
             { "Patrol", new ComplexReflectionPropertyHandler<IPatrolGetter, IPlacedNpc, IPlacedNpcGetter>("Patrol") },
             { "LevelModifier", new SimpleReflectionPropertyHandler<Level?, IPlacedNpc, IPlacedNpcGetter>("LevelModifier") },
             { "MerchantContainer", new SimpleReflectionFormLinkPropertyHandler<IPlacedObjectGetter, IPlacedNpc, IPlacedNpcGetter>("MerchantContainer") },
             { "Count", new SimpleReflectionPropertyHandler<int?, IPlacedNpc, IPlacedNpcGetter>("Count") },
             { "Radius", new SimpleReflectionPropertyHandler<float?, IPlacedNpc, IPlacedNpcGetter>("Radius") },
             { "Health", new SimpleReflectionPropertyHandler<float?, IPlacedNpc, IPlacedNpcGetter>("Health") },
-            { "LinkedReferences", new SimpleReflectionListPropertyHandler<ILinkedReferencesGetter, IPlacedNpc, IPlacedNpcGetter>("LinkedReferences", ListOrdering.PreserveModOrder) },
+            { "LinkedReferences", new SimpleReflectionListPropertyHandler<ILinkedReferencesGetter, IPlacedNpc, IPlacedNpcGetter>("LinkedReferences", ListSemantics.SortedKeyed, keySelector: entry => entry.KeywordOrReference.FormKey) },
             { "ActivateParents", new ComplexReflectionPropertyHandler<IActivateParentsGetter, IPlacedNpc, IPlacedNpcGetter>("ActivateParents") },
             { "LinkedReferenceColor", new ComplexReflectionPropertyHandler<ILinkedReferenceColorGetter, IPlacedNpc, IPlacedNpcGetter>("LinkedReferenceColor") },
             { "PersistentLocation", new SimpleReflectionFormLinkPropertyHandler<ILocationGetter, IPlacedNpc, IPlacedNpcGetter>("PersistentLocation") },
             { "LocationReference", new SimpleReflectionFormLinkPropertyHandler<ILocationGetter, IPlacedNpc, IPlacedNpcGetter>("LocationReference") },
             { "IsIgnoredBySandbox", new SimpleReflectionPropertyHandler<bool, IPlacedNpc, IPlacedNpcGetter>("IsIgnoredBySandbox") },
-            { "LocationRefTypes", new SimpleReflectionListPropertyHandler<IFormLinkGetter<ILocationReferenceTypeGetter>, IPlacedNpc, IPlacedNpcGetter>("LocationRefTypes", ListOrdering.PreserveModOrder, canBeNull: true) },
+            { "LocationRefTypes", new SimpleReflectionListPropertyHandler<IFormLinkGetter<ILocationReferenceTypeGetter>, IPlacedNpc, IPlacedNpcGetter>("LocationRefTypes", ListSemantics.AlignedOrdered, canBeNull: true) },
             { "HeadTrackingWeight", new SimpleReflectionPropertyHandler<float?, IPlacedNpc, IPlacedNpcGetter>("HeadTrackingWeight") },
             { "Horse", new SimpleReflectionFormLinkPropertyHandler<IPlacedNpcGetter, IPlacedNpc, IPlacedNpcGetter>("Horse") },
             { "FavorCost", new SimpleReflectionPropertyHandler<float?, IPlacedNpc, IPlacedNpcGetter>("FavorCost") },

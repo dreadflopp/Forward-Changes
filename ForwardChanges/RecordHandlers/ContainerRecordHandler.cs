@@ -13,6 +13,10 @@ using System;
 
 namespace ForwardChanges.RecordHandlers
 {
+    // Migration note:
+    // - Generalized: independent CONT scalar, link, model, VMAD, and header fields use shared handlers.
+    // - Kept specialized: Items keeps FormID-keyed entry ownership; destructible data and flags retain semantic handlers.
+    // - Rationale: item count/metadata changes must replace the entry under the same item key.
     public class ContainerRecordHandler : AbstractRecordHandler
     {
         public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()

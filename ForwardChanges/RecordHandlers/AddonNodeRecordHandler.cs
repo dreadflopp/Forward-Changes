@@ -11,9 +11,9 @@ using ForwardChanges.RecordHandlers.Abstracts;
 namespace ForwardChanges.RecordHandlers
 {
     // Migration note:
-    // - Generalized: NodeIndex, Sound, MasterParticleSystemCap, AlwaysLoaded via reflection.
+    // - Generalized: NodeIndex, Sound, MasterParticleSystemCap, and the serialized Flags enum via reflection.
     // - Kept specialized: ObjectBounds and Model use existing project handlers.
-    // - Rationale: reuses established shared handlers and avoids duplicate property logic.
+    // - Rationale: Flags replaces the obsolete nonexistent AlwaysLoaded property path and uses the approved flag handler.
     public class AddonNodeRecordHandler : AbstractRecordHandler
     {
         public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()
@@ -26,7 +26,7 @@ namespace ForwardChanges.RecordHandlers
             { "NodeIndex", new SimpleReflectionPropertyHandler<int, IAddonNode, IAddonNodeGetter>("NodeIndex") },
             { "Sound", new SimpleReflectionFormLinkPropertyHandler<ISoundDescriptorGetter, IAddonNode, IAddonNodeGetter>("Sound") },
             { "MasterParticleSystemCap", new SimpleReflectionPropertyHandler<ushort, IAddonNode, IAddonNodeGetter>("MasterParticleSystemCap") },
-            { "AlwaysLoaded", new SimpleReflectionPropertyHandler<bool, IAddonNode, IAddonNodeGetter>("AlwaysLoaded") }
+            { "Flags", new SimpleReflectionFlagPropertyHandler<AddonNode.Flag, IAddonNode, IAddonNodeGetter>("Flags", preserveUnknownBits: true) }
         };
 
         public override IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter>[] GetRecordContexts(

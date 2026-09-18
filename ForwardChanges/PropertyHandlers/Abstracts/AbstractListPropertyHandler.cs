@@ -1,1131 +1,949 @@
-using Mutagen.Bethesda;
-using Mutagen.Bethesda.Synthesis;
-using Mutagen.Bethesda.Skyrim;
-using Mutagen.Bethesda.Plugins.Records;
-using Mutagen.Bethesda.Plugins.Cache;
-using Noggog;
 using ForwardChanges.Contexts;
-using ForwardChanges.PropertyHandlers.Interfaces;
 using ForwardChanges.Contexts.Interfaces;
+using ForwardChanges.PropertyHandlers.Formatting;
+using ForwardChanges.PropertyHandlers.Interfaces;
+using Mutagen.Bethesda.Plugins.Cache;
+using Mutagen.Bethesda.Plugins.Records;
+using Mutagen.Bethesda.Skyrim;
+using Mutagen.Bethesda.Synthesis;
 
-namespace ForwardChanges.PropertyHandlers.Abstracts
+namespace ForwardChanges.PropertyHandlers.Abstracts;
+
+public enum ListSemantics
 {
-    public enum ListOrdering
+    Unordered,
+    SortedKeyed,
+    AlignedOrdered,
+    /// <summary>
+    /// Entries are identified by their zero-based position and compared as atomic
+    /// values. No sort key, value identity, or sequence alignment is applied.
+    /// </summary>
+    ExactOrdered
+}
+
+public abstract class AbstractListPropertyHandler<T> : IPropertyHandler<List<T>> where T : class
+{
+    public abstract string PropertyName { get; }
+    public bool RequiresFullLoadOrderProcessing => true;
+    public virtual ListSemantics Semantics => ListSemantics.Unordered;
+    protected virtual bool CanBeNull => false;
+
+    public abstract void SetValue(IMajorRecord record, List<T>? value);
+    public abstract List<T>? GetValue(IMajorRecordGetter record);
+
+    public virtual bool AreValuesEqual(List<T>? value1, List<T>? value2)
     {
-        None,           // No ordering needed (Keywords, FormLists)
-        PreserveModOrder // Preserve exact order from mod that added items (Conditions, Effects)
+        if (value1 == null && value2 == null) return true;
+        if (value1 == null || value2 == null || value1.Count != value2.Count) return false;
+
+        if (Semantics is ListSemantics.AlignedOrdered or ListSemantics.ExactOrdered)
+        {
+            return value1.Zip(value2, IsItemContentEqual).All(equal => equal);
+        }
+
+        var unmatched = value2.ToList();
+        foreach (var item1 in value1)
+        {
+            var matchIndex = unmatched.FindIndex(item2 => IsItemContentEqual(item1, item2));
+            if (matchIndex < 0) return false;
+            unmatched.RemoveAt(matchIndex);
+        }
+
+        return true;
     }
 
-    public abstract class AbstractListPropertyHandler<T> : IPropertyHandler<List<T>> where T : class
+    public virtual void UpdatePropertyContext(
+        IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> context,
+        IPatcherState<ISkyrimMod, ISkyrimModGetter> state,
+        IPropertyContext propertyContext)
     {
-        public abstract string PropertyName { get; }
-        public bool RequiresFullLoadOrderProcessing => true;
-        protected virtual ListOrdering Ordering => ListOrdering.None;
-
-        public abstract void SetValue(IMajorRecord record, List<T>? value);
-        public abstract List<T>? GetValue(IMajorRecordGetter record);
-
-        public virtual bool AreValuesEqual(List<T>? value1, List<T>? value2)
+        if (propertyContext is not ListPropertyContext<T> listPropertyContext)
         {
-            if (value1 == null && value2 == null) return true;
-            if (value1 == null || value2 == null) return false;
-            if (value1.Count != value2.Count) return false;
-
-            return value1.All(item1 => value2.Any(item2 => IsItemEqual(item1, item2)));
+            throw new InvalidOperationException(
+                $"Property context is not a list property context for {PropertyName}");
         }
 
-        public virtual void UpdatePropertyContext(
-            IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> context,
-            IPatcherState<ISkyrimMod, ISkyrimModGetter> state,
-            IPropertyContext propertyContext)
+        var recordValue = GetValue(context.Record);
+        var recordItems = recordValue ?? [];
+        var forwardValueContexts = listPropertyContext.ForwardValueContexts
+            ?? throw new InvalidOperationException(
+                $"Property context is not initialized for {PropertyName}");
+        var recordMod = state.LoadOrder[context.ModKey].Mod;
+        if (recordMod == null)
         {
-            if (context == null)
-            {
-                Console.WriteLine($"Error: Context is null for {PropertyName}");
-                return;
-            }
+            Console.WriteLine($"Error: Record mod is null for {PropertyName}");
+            return;
+        }
 
-            if (propertyContext is not ListPropertyContext<T> listPropertyContext)
-            {
-                throw new InvalidOperationException($"Error: Property context is not a list property context for {PropertyName}");
-            }
+        ProcessPresence(context, recordMod, recordValue == null, listPropertyContext);
 
-            var recordItems = GetValue(context.Record) ?? [];
-
-            var forwardValueContexts = listPropertyContext.ForwardValueContexts;
-            if (forwardValueContexts == null)
-            {
-                Console.WriteLine($"Error: Property context is not properly initialized for {PropertyName}");
-                return;
-            }
-
-            var recordMod = state.LoadOrder[context.ModKey].Mod;
-            if (recordMod == null)
-            {
-                Console.WriteLine($"Error: Record mod is null for {PropertyName}");
-                return;
-            }
-
-            // Always process removals and additions first (separation of concerns)
+        if (Semantics == ListSemantics.AlignedOrdered)
+        {
+            var declaredAlignmentRows = AlignCurrentList(listPropertyContext, recordItems);
+            ProcessAlignedItems(
+                context.ModKey.ToString(),
+                recordMod,
+                recordItems,
+                declaredAlignmentRows,
+                listPropertyContext,
+                forwardValueContexts);
+        }
+        else if (Semantics == ListSemantics.ExactOrdered)
+        {
+            ProcessExactOrderedItems(
+                context.ModKey.ToString(),
+                recordMod,
+                recordItems,
+                listPropertyContext,
+                forwardValueContexts);
+        }
+        else
+        {
             ProcessRemovals(context, recordMod, recordItems, forwardValueContexts);
-            ProcessAdditions(context, recordMod, recordItems, forwardValueContexts, GetValue(context.Record));
-
-            // Then apply sorting algorithm if ordering is required
-            if (Ordering == ListOrdering.PreserveModOrder)
-            {
-                // Uses ProcessSortingAlgorithm_Unified (cleaner, same logic). REVERT: change to ProcessSortingAlgorithm_Legacy(...) if issues occur.
-                ProcessSortingAlgorithm(context, recordMod, recordItems, forwardValueContexts);
-            }
-
-            // Step 4: Process handler-specific logic (metadata updates)
-            ProcessHandlerSpecificLogic(context, state, listPropertyContext, recordItems, forwardValueContexts);
-
-            // Update the state
-            listPropertyContext.ForwardValueContexts = forwardValueContexts;
-
-            // Debug: Show final result (simplified)
-            //LogCollector.Add(PropertyName, $"DEBUG UpdatePropertyContext: Final result has {forwardValueContexts.Count} items");
-
-            // Debug: Show detailed result by printing all forward value contexts
-            // LogCollector.Add(PropertyName, $"DEBUG UpdatePropertyContext: Final result has {forwardValueContexts.Count} items");
-            // foreach (var item in forwardValueContexts)
-            // {
-            //     LogCollector.Add(PropertyName, $"DEBUG   - {FormatItem(item.Value)} (owned by {item.OwnerMod}, status: {(item.IsRemoved ? "REMOVED" : "ACTIVE")})");
-            // }
+            ProcessAdditions(context, recordMod, recordItems, forwardValueContexts);
         }
 
-        private void ProcessRemovals(
-            IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> context,
-            ISkyrimModGetter recordMod,
-            List<T> recordItems,
-            List<ListPropertyValueContext<T>> forwardValueContexts)
+        ProcessHandlerSpecificLogic(
+            context,
+            state,
+            listPropertyContext,
+            recordItems,
+            forwardValueContexts);
+
+        if (Semantics is not (ListSemantics.AlignedOrdered or ListSemantics.ExactOrdered))
         {
-            // ============================================================================
-            // SECTION 1: PREPARE DATA STRUCTURES
-            // ============================================================================
+            ProcessSameIdentityReplacements(
+                context,
+                recordMod,
+                recordItems,
+                listPropertyContext,
+                forwardValueContexts);
+        }
 
-            // Group active (non-removed) forward items by their values for efficient lookup
-            var activeForwardItems = forwardValueContexts.Where(i => !i.IsRemoved).ToList();
+        if (Semantics == ListSemantics.SortedKeyed)
+        {
+            SortActiveItems(state, forwardValueContexts);
+        }
+        listPropertyContext.ForwardValueContexts = forwardValueContexts;
+    }
 
-            var forwardItemGroups = activeForwardItems.GroupBy(item => item.Value)
-                                                     .Select(g => (Item: g.Key, Items: g.ToList()))
-                                                     .ToList();
+    /// <summary>
+    /// Reconciles a list whose entries have only positional identity. Each value at
+    /// an index is atomic: a content change replaces and takes ownership of that
+    /// complete entry. This matches xEdit arrays whose entries expose no display
+    /// sort key, so xEdit presents their columns by ordinal position.
+    /// </summary>
+    protected void ProcessExactOrderedItems(
+        string modName,
+        ISkyrimModGetter recordMod,
+        IReadOnlyList<T> recordItems,
+        ListPropertyContext<T> listPropertyContext,
+        List<ListPropertyValueContext<T>> forwardValueContexts)
+    {
+        for (var position = 0; position < recordItems.Count; position++)
+        {
+            var declaredItem = recordItems[position];
+            var activeItem = forwardValueContexts.FirstOrDefault(item =>
+                !item.IsRemoved && item.AlignmentRowId == position);
+            var originalItem = listPropertyContext.OriginalValueContexts?.FirstOrDefault(item =>
+                item.AlignmentRowId == position);
 
-            // Group record items by their values for efficient lookup (used in both sections)
-            var recordItemGroups = recordItems.GroupBy(item => item)
-                                             .Select(g => (Item: g.Key, Count: g.Count()))
-                                             .ToList();
-
-            // ============================================================================
-            // SECTION 2: REMOVE EXCESS ITEMS (MORE FORWARD ITEMS THAN RECORD ITEMS)
-            // ============================================================================
-            // For each unique item in the current record, check if we have too many forward items
-            foreach (var recordGroup in recordItemGroups)
+            if (activeItem != null)
             {
-                var recordItem = recordGroup.Item;
-                var recordCount = recordGroup.Count;
+                if (IsItemContentEqual(activeItem.Value, declaredItem)) continue;
 
-                // Find if this record item exists in our forward contexts
-                var forwardGroup = forwardItemGroups.FirstOrDefault(g => IsItemEqual(g.Item, recordItem));
-                if (forwardGroup.Item != null)
+                var returnsToOriginal = originalItem != null
+                    && IsItemContentEqual(originalItem.Value, declaredItem);
+                if (returnsToOriginal && !HasPermissionsToModify(recordMod, activeItem.OwnerMod))
                 {
-                    var forwardItems = forwardGroup.Items;
-                    var forwardCount = forwardItems.Count;
-
-                    // If we have more forward items than record items, remove the excess
-                    while (forwardCount > recordCount)
-                    {
-                        // Find an item to remove by working backwards through the list
-                        // This avoids collection modification issues during enumeration
-                        var itemToRemove = null as ListPropertyValueContext<T>;
-                        for (int i = forwardItems.Count - 1; i >= 0; i--)
-                        {
-                            // Only remove items from mods we have permission to modify
-                            // (either our own mod or mods we have as masters)
-                            // Skip already-removed items so we don't "remove" the same one twice
-                            if (!forwardItems[i].IsRemoved && HasPermissionsToModify(recordMod, forwardItems[i].OwnerMod))
-                            {
-                                itemToRemove = forwardItems[i];
-                                break;
-                            }
-                        }
-
-                        if (itemToRemove != null)
-                        {
-                            // Mark the item as removed and transfer ownership to current mod
-                            var oldOwner = itemToRemove.OwnerMod;
-                            itemToRemove.IsRemoved = true;
-                            itemToRemove.OwnerMod = context.ModKey.ToString();
-                            forwardCount--;
-                            LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: Removing item {FormatItem(recordItem)} (was owned by {oldOwner}) Success");
-                        }
-                        else
-                        {
-                            // No items can be removed due to permission restrictions
-                            LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: Cannot remove item {FormatItem(recordItem)} - no permission");
-                            break; // Can't remove any more instances of this item
-                        }
-                    }
+                    LogCollector.Add(
+                        PropertyName,
+                        $"[{PropertyName}] {modName}: Cannot revert positional item at index {position} to {FormatItem(declaredItem)} - no permission. Current owner: {activeItem.OwnerMod}");
+                    continue;
                 }
+
+                var oldOwner = activeItem.OwnerMod;
+                activeItem.Value = declaredItem;
+                activeItem.OwnerMod = modName;
+                activeItem.AlignmentOwnerMod = modName;
+                LogCollector.Add(
+                    PropertyName,
+                    $"[{PropertyName}] {modName}: Replacing positional item at index {position} with {FormatItem(declaredItem)} (was owned by {oldOwner}, new owner: {activeItem.OwnerMod}) Success");
+                continue;
             }
 
-            // ============================================================================
-            // SECTION 3: REMOVE ITEMS NOT PRESENT IN CURRENT RECORD
-            // ============================================================================
-            // Find all forward items that are active but don't exist in the current record
-            var itemsNotInRecord = forwardValueContexts
-                .Where(item => !item.IsRemoved && !recordItemGroups.Any(g => IsItemEqual(g.Item, item.Value)))
+            var removedItemsAtPosition = forwardValueContexts
+                .Where(item => item.IsRemoved && item.AlignmentRowId == position)
                 .ToList();
+            var returnsToRemovedOriginal = originalItem != null
+                && IsItemContentEqual(originalItem.Value, declaredItem);
+            var itemToRestore = removedItemsAtPosition.FirstOrDefault(item =>
+                HasPermissionsToModify(recordMod, item.OwnerMod));
 
-            // Process each item that should be removed
-            foreach (var item in itemsNotInRecord)
+            if (returnsToRemovedOriginal
+                && itemToRestore == null
+                && removedItemsAtPosition.Count > 0)
             {
-                // Check if we have permission to remove this item
-                if (HasPermissionsToModify(recordMod, item.OwnerMod))
-                {
-                    // Mark as removed and transfer ownership
-                    var oldOwner = item.OwnerMod;
-                    item.IsRemoved = true;
-                    item.OwnerMod = context.ModKey.ToString();
-                    LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: Removing item not in record {FormatItem(item.Value)} (was owned by {oldOwner}, new owner: {item.OwnerMod}) Success");
-                }
-                else
-                {
-                    // Log permission denial for debugging
-                    LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: Cannot remove item not in record {FormatItem(item.Value)} - no permission. Current owner: {item.OwnerMod}");
-                }
+                LogCollector.Add(
+                    PropertyName,
+                    $"[{PropertyName}] {modName}: Cannot restore positional item at index {position} {FormatItem(declaredItem)} - no permission. Current owner: {removedItemsAtPosition[0].OwnerMod}");
+                continue;
             }
 
+            if (itemToRestore != null)
+            {
+                var oldOwner = itemToRestore.OwnerMod;
+                itemToRestore.Value = declaredItem;
+                itemToRestore.IsRemoved = false;
+                itemToRestore.OwnerMod = modName;
+                itemToRestore.AlignmentOwnerMod = modName;
+                LogCollector.Add(
+                    PropertyName,
+                    $"[{PropertyName}] {modName}: Restoring positional item at index {position} as {FormatItem(declaredItem)} (was owned by {oldOwner}, new owner: {itemToRestore.OwnerMod}) Success");
+                continue;
+            }
+
+            var newItem = new ListPropertyValueContext<T>(declaredItem, modName)
+            {
+                AlignmentRowId = position,
+                AlignmentOwnerMod = modName
+            };
+            forwardValueContexts.Add(newItem);
+            LogCollector.Add(
+                PropertyName,
+                $"[{PropertyName}] {modName}: Adding positional item at index {position} {FormatItem(declaredItem)} (new owner: {modName}) Success");
         }
 
-
-        private void ProcessAdditions(
-            IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> context,
-            ISkyrimModGetter recordMod,
-            List<T> recordItems,
-            List<ListPropertyValueContext<T>> forwardValueContexts,
-            List<T>? originalRecordItems)
+        foreach (var item in forwardValueContexts
+                     .Where(item => !item.IsRemoved && item.AlignmentRowId >= recordItems.Count)
+                     .ToList())
         {
-            // ============================================================================
-            // SECTION 1: PREPARE DATA STRUCTURES
-            // ============================================================================
-
-            // Group forward context items by equality (including removed items for un-removal)
-            // This includes both active and removed items to handle un-removal scenarios
-            // Use a custom grouping that respects IsItemEqual for proper condition comparison
-            var forwardItemGroups = new List<(T Item, List<ListPropertyValueContext<T>> Items)>();
-
-            foreach (var contextItem in forwardValueContexts)
+            var position = item.AlignmentRowId!.Value;
+            if (!HasPermissionsToModify(recordMod, item.OwnerMod))
             {
-                // Find existing group with equal item
-                var existingGroup = forwardItemGroups.FirstOrDefault(g => IsItemEqual(g.Item, contextItem.Value));
-                if (existingGroup.Item != null)
-                {
-                    // Add to existing group
-                    existingGroup.Items.Add(contextItem);
-                }
-                else
-                {
-                    // Create new group
-                    forwardItemGroups.Add((contextItem.Value, new List<ListPropertyValueContext<T>> { contextItem }));
-                }
+                LogCollector.Add(
+                    PropertyName,
+                    $"[{PropertyName}] {modName}: Cannot remove positional item at index {position} {FormatItem(item.Value)} - no permission. Current owner: {item.OwnerMod}");
+                continue;
             }
 
-            // Debug: Log the forward item groups
-            // LogCollector.Add(PropertyName, $"DEBUG ProcessAdditions: Found {forwardItemGroups.Count} forward item groups:");
-            // foreach (var group in forwardItemGroups)
-            // {
-            //     var activeCount = group.Items.Count(item => !item.IsRemoved);
-            //     var removedCount = group.Items.Count(item => item.IsRemoved);
-            //     LogCollector.Add(PropertyName, $"DEBUG   - {FormatItem(group.Item)}: {activeCount} active, {removedCount} removed");
-            // }
-
-            // Group record items by their values for efficient lookup
-            var recordItemGroups = recordItems.GroupBy(item => item)
-                                             .Select(g => (Item: g.Key, Count: g.Count()))
-                                             .ToList();
-
-            if (PropertyName == "LocationRefTypes")
-            {
-                LogCollector.Add(PropertyName, $"[DEBUG {PropertyName}] ProcessAdditions: recordItems.Count={recordItems.Count}, forwardValueContexts.Count={forwardValueContexts.Count}");
-                for (int di = 0; di < recordItems.Count; di++)
-                    LogCollector.Add(PropertyName, $"[DEBUG {PropertyName}]   recordItems[{di}] = {FormatItem(recordItems[di])} refHash={recordItems[di]?.GetHashCode() ?? 0}");
-                LogCollector.Add(PropertyName, $"[DEBUG {PropertyName}] GroupBy(item=>item) gave recordItemGroups.Count={recordItemGroups.Count}");
-                foreach (var g in recordItemGroups)
-                    LogCollector.Add(PropertyName, $"[DEBUG {PropertyName}]   group Item={FormatItem(g.Item)} Count={g.Count}");
-            }
-
-            // ============================================================================
-            // SECTION 2: PROCESS EACH RECORD ITEM (ADD MISSING OR UN-REMOVE ITEMS)
-            // ============================================================================
-            // For each item in the current record (in order), ensure we have the right number in forward contexts
-            for (int recordIndex = 0; recordIndex < recordItems.Count; recordIndex++)
-            {
-                var recordItem = recordItems[recordIndex];
-
-                // Count how many instances of this item we need
-                var recordCount = recordItems.Count(item => IsItemEqual(item, recordItem));
-
-                // Find if this record item exists in our forward contexts
-                var forwardGroup = forwardItemGroups.FirstOrDefault(g => IsItemEqual(g.Item, recordItem));
-
-                if (PropertyName == "LocationRefTypes")
-                    LogCollector.Add(PropertyName, $"[DEBUG {PropertyName}] iter {recordIndex}: recordItem={FormatItem(recordItem)} recordCount={recordCount} forwardGroupFound={forwardGroup.Item != null}");
-
-                if (forwardGroup.Item != null)
-                {
-                    // ============================================================================
-                    // SECTION 2A: ITEM EXISTS IN FORWARD CONTEXTS - HANDLE COUNT MISMATCH
-                    // ============================================================================
-                    var forwardItems = forwardGroup.Items;
-                    var activeForwardCount = forwardItems.Count(item => !item.IsRemoved);
-                    var removedForwardCount = forwardItems.Count(item => item.IsRemoved);
-
-                    // If we need more active items than we currently have
-                    while (activeForwardCount < recordCount)
-                    {
-                        // ============================================================================
-                        // SECTION 2A.1: PRIORITIZE UN-REMOVING EXISTING ITEMS
-                        // ============================================================================
-                        // First, try to un-remove a removed item that we have permission to modify
-                        var itemToUnremove = forwardItems.FirstOrDefault(item =>
-                            item.IsRemoved && HasPermissionsToModify(recordMod, item.OwnerMod));
-
-                        if (itemToUnremove != null)
-                        {
-                            // Successfully un-remove an existing item
-                            var oldOwner = itemToUnremove.OwnerMod;
-                            itemToUnremove.IsRemoved = false;
-                            itemToUnremove.OwnerMod = context.ModKey.ToString();
-                            itemToUnremove.OrderOwnerMod = context.ModKey.ToString(); // Set order ownership for un-removed items
-                            activeForwardCount++;
-                            LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: Adding back previously removed item {FormatItem(recordItem)} (was owned by {oldOwner}, new owner: {itemToUnremove.OwnerMod}) Success");
-                        }
-                        else
-                        {
-                            // ============================================================================
-                            // SECTION 2A.2: HANDLE PERMISSION RESTRICTIONS OR ADD NEW ITEMS
-                            // ============================================================================
-                            // Check if there's a removed item we can't un-remove due to permissions
-                            var removedItemWithoutPermission = forwardItems.FirstOrDefault(item => item.IsRemoved);
-                            if (removedItemWithoutPermission != null)
-                            {
-                                // Permission denied - can't un-remove this item
-                                LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: Cannot add back previously removed item {FormatItem(recordItem)} - no permission (owned by {removedItemWithoutPermission.OwnerMod})");
-                                break; // Can't add any more instances of this item
-                            }
-                            else
-                            {
-                                // ============================================================================
-                                // SECTION 2A.3: ADD COMPLETELY NEW ITEM
-                                // ============================================================================
-                                // No removed item exists, so add as new item
-                                var newItem = new ListPropertyValueContext<T>(recordItem, context.ModKey.ToString());
-                                newItem.OrderOwnerMod = null; // New items - will be set during sorting
-
-                                // Add new item to forward contexts
-
-                                forwardValueContexts.Add(newItem);
-                                forwardItems.Add(newItem);
-                                activeForwardCount++;
-                                LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: Adding new item {FormatItem(recordItem)} (new owner: {newItem.OwnerMod}) Success");
-                            }
-                        }
-                    }
-                }
-                else
-                {
-                    // ============================================================================
-                    // SECTION 2B: ITEM DOESN'T EXIST IN FORWARD CONTEXTS - ADD ALL INSTANCES
-                    // ============================================================================
-                    // When we add new items we must also add them to forwardItemGroups so that
-                    // a later iteration with the same recordItem (e.g. duplicate FormKey) finds
-                    // the group and goes to 2A instead of adding again (which caused 2+2+1+1=6).
-                    if (PropertyName == "LocationRefTypes")
-                        LogCollector.Add(PropertyName, $"[DEBUG {PropertyName}] SECTION 2B: adding recordCount={recordCount} items for {FormatItem(recordItem)}");
-
-                    var newGroupItems = new List<ListPropertyValueContext<T>>();
-                    for (int i = 0; i < recordCount; i++)
-                    {
-                        var newItem = new ListPropertyValueContext<T>(recordItem, context.ModKey.ToString());
-                        newItem.OrderOwnerMod = null; // New items - will be set during sorting
-
-                        forwardValueContexts.Add(newItem);
-                        newGroupItems.Add(newItem);
-                        LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: Adding new item {FormatItem(recordItem)} (new owner: {newItem.OwnerMod}) Success");
-                    }
-                    forwardItemGroups.Add((recordItem, newGroupItems));
-                }
-            }
-
+            var oldOwner = item.OwnerMod;
+            item.IsRemoved = true;
+            item.OwnerMod = modName;
+            item.AlignmentOwnerMod = modName;
+            LogCollector.Add(
+                PropertyName,
+                $"[{PropertyName}] {modName}: Removing positional item at index {position} {FormatItem(item.Value)} (was owned by {oldOwner}, new owner: {item.OwnerMod}) Success");
         }
 
-        /// <summary>
-        /// NEIGHBOR-BASED PARTIAL REORDERING ALGORITHM - DETAILED DOCUMENTATION
-        /// 
-        /// This is a partial reordering algorithm that allows mods to reorder only specific items
-        /// while preserving the original neighbor relationships of items they don't have permission to move.
-        /// It uses permission-aware placement and neighbor-based positioning to maintain item relationships.
-        /// 
-        /// DETAILED ALGORITHM STEPS:
-        /// 
-        /// STEP 1: GET CURRENT STATE
-        /// - Extract all active (non-removed) items from forwardValueContexts
-        /// - Log current order for debugging and verification
-        /// 
-        /// STEP 2: BUILD PERMISSION-AWARE FINAL ORDER
-        /// - For each item the mod declares:
-        ///   * Find matching instance in current active items
-        ///   * Check if mod has permission to reorder this item (HasPermissionsToModify)
-        ///   * If permission granted: Add to finalOrder list
-        ///   * If permission denied: Leave in remainingInstances list
-        /// - Log which items were included/excluded and why
-        /// 
-        /// STEP 3: PLACE REMAINING ITEMS BASED ON ORIGINAL "BEFORE" RELATIONSHIPS
-        /// - For each item in remainingInstances (excluding new items with OrderOwnerMod == null):
-        ///   * Find all items that were originally before this item
-        ///   * Place the item after the last "before" item that's already in finalOrder
-        ///   * This preserves the original relative positions of items the mod can't reorder
-        /// - Keep new items (OrderOwnerMod == null) in remainingInstances for Step 5
-        /// 
-        /// STEP 4: ASSIGN ORDER OWNERSHIP
-        /// - For each item in finalOrder, check if it moved by comparing neighbor relationships
-        /// - An item has moved if BOTH its "before" AND "after" neighbors have changed
-        /// - Only check items that existed before this mod (OrderOwnerMod != null)
-        /// - For each item that moved: Take OrderOwnerMod ownership
-        /// - Log ownership changes for debugging
-        /// 
-        /// STEP 5: PLACE NEW ITEMS BASED ON MOD'S DECLARED ORDER
-        /// - Sort remainingInstances (new items) according to the mod's declared order
-        /// - For each new item, find what should be before it according to mod's wishes
-        /// - Place the item after the last "before" item that's already in finalOrder
-        /// - Set OrderOwnerMod for new items (they have OrderOwnerMod == null)
-        /// 
-        /// STEP 6: UPDATE FORWARD CONTEXTS
-        /// - Replace active items in forwardValueContexts with final order
-        /// - Preserve removed items at the end
-        /// - Log final order for verification
-        /// 
-        /// KEY FEATURES:
-        /// - Mod-Intent Respect: Places desired items in the mod's declared sequence
-        /// - Partial Reordering: Can reorder some items while preserving others
-        /// - Permission Granularity: Respects permissions per-item, not all-or-nothing
-        /// - Before-Relationship Preservation: Remaining items maintain original "before" relationships
-        /// - Instance-Aware: Uses actual instances, not just values, for accurate tracking
-        /// - Smart Positioning: Finds optimal positions based on original "before" context
-        /// - Ownership Tracking: Only takes ownership of items that actually moved
-        /// 
-        /// TEST CASES:
-        /// 
-        /// Case 1 - Full reorder with permission:
-        /// - Current: A, B
-        /// - Mod wants: B, A (has permission for both)
-        /// - Desired order: B, A
-        /// - Remaining: (none)
-        /// - Final: B, A (both items moved, both get order ownership)
-        /// 
-        /// Case 2 - Partial reorder with mixed permissions:
-        /// - Current: A, B, C
-        /// - Mod wants: B, A (has permission for A,B but not C)
-        /// - Desired order: B, A
-        /// - Remaining: C
-        /// - Final: B, A, C (C maintains original neighbor relationships)
-        /// 
-        /// Case 3 - No permission scenario:
-        /// - Current: A, B
-        /// - Mod wants: B, A (no permission for either)
-        /// - Desired order: (none)
-        /// - Remaining: A, B
-        /// - Final: A, B (original order preserved)
-        /// 
-        /// Case 4 - Complex partial reorder:
-        /// - Current: A, B, C, D, E
-        /// - Mod wants: C, A, E (has permission for A,C,E but not B,D)
-        /// - Desired order: C, A, E
-        /// - Remaining: B, D
-        /// - Final: C, A, B, D, E (B,D maintain original neighbor relationships)
-        /// 
-        /// Case 5 - Duplicates with reordering:
-        /// - Current: A, A, B
-        /// - Mod wants: A, B, A (has permission for all)
-        /// - Desired order: A, B, A
-        /// - Remaining: (none)
-        /// - Final: A, B, A (reordered according to mod's sequence)
-        /// 
-        /// Case 6 - Pure reorder with relative position changes:
-        /// - Current: A, B, C, D
-        /// - Mod wants: D, A, B, C (has permission for all)
-        /// - Desired order: D, A, B, C
-        /// - Remaining: (none)
-        /// - Final: D, A, B, C (only D changed relative position, gets order ownership)
-        /// 
-        /// Case 7 - Partial permission reorder:
-        /// - Current: A, B, C, D
-        /// - Mod wants: D, A, B, C (has permission for A,B,C but not D)
-        /// - Desired order: A, B, C
-        /// - Remaining: D
-        /// - Final: A, B, C, D (D stays at end, maintains original position)
-        /// </summary>
-        /// <remarks>
-        /// ENTRY POINT - Dispatches to the active implementation.
-        /// REVERT: If ProcessSortingAlgorithm_Unified causes issues, change the call in UpdatePropertyContext to ProcessSortingAlgorithm_Legacy(...)
-        /// </remarks>
-        private void ProcessSortingAlgorithm(
-            IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> context,
-            ISkyrimModGetter recordMod,
-            List<T> recordItems,
-            List<ListPropertyValueContext<T>> forwardValueContexts)
+        OrderExactItemsByPosition(forwardValueContexts);
+    }
+
+    private static void OrderExactItemsByPosition(
+        List<ListPropertyValueContext<T>> forwardValueContexts)
+    {
+        var priorPositions = new Dictionary<ListPropertyValueContext<T>, int>(
+            ReferenceEqualityComparer.Instance);
+        for (var index = 0; index < forwardValueContexts.Count; index++)
         {
-            ProcessSortingAlgorithm_Unified(context, recordMod, recordItems, forwardValueContexts);
+            priorPositions[forwardValueContexts[index]] = index;
+        }
+        var activeItems = forwardValueContexts
+            .Where(item => !item.IsRemoved)
+            .OrderBy(item => item.AlignmentRowId ?? int.MaxValue)
+            .ThenBy(item => priorPositions[item])
+            .ToList();
+        var removedItems = forwardValueContexts.Where(item => item.IsRemoved).ToList();
+
+        forwardValueContexts.Clear();
+        forwardValueContexts.AddRange(activeItems);
+        forwardValueContexts.AddRange(removedItems);
+    }
+
+    private void ProcessPresence(
+        IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> context,
+        ISkyrimModGetter recordMod,
+        bool recordIsNull,
+        ListPropertyContext<T> listPropertyContext)
+    {
+        if (recordIsNull)
+        {
+            listPropertyContext.CanBeNull = true;
         }
 
-        /// <summary>
-        /// UNIFIED PLACEMENT IMPLEMENTATION - Cleaner refactor using PlaceAfter(beforeItems) helper.
-        /// Same algorithm as Legacy, restructured. Uses ReferenceEquals for correct duplicate handling.
-        /// Validated by ForwardChanges.Tests.SortingAlgorithmAlternativesTests.Alt3_UnifiedPlacement_*.
-        /// </summary>
-        private void ProcessSortingAlgorithm_Unified(
-            IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> context,
-            ISkyrimModGetter recordMod,
-            List<T> recordItems,
-            List<ListPropertyValueContext<T>> forwardValueContexts)
+        if (!listPropertyContext.CanBeNull)
         {
-            var modName = context.ModKey.ToString();
-            var currentActiveItems = forwardValueContexts.Where(item => !item.IsRemoved).ToList();
-            var finalOrder = new List<ListPropertyValueContext<T>>();
-            var remainingInstances = new List<ListPropertyValueContext<T>>(currentActiveItems);
-
-            // Step 2: Build permission-aware final order (declared items we can reorder)
-            foreach (var declaredValue in recordItems)
-            {
-                var match = remainingInstances.FirstOrDefault(inst => IsItemEqual(inst.Value, declaredValue));
-                if (match != null && HasPermissionsToModify(recordMod, match.OrderOwnerMod))
-                {
-                    finalOrder.Add(match);
-                    remainingInstances.Remove(match);
-                }
-            }
-
-            var existingRemainingItems = remainingInstances.Where(item => item.OrderOwnerMod != null).ToList();
-            var newRemainingItems = remainingInstances.Where(item => item.OrderOwnerMod == null).ToList();
-
-            // Step 3: Place existing remaining items using unified PlaceAfter helper
-            foreach (var remainingItem in existingRemainingItems)
-            {
-                var beforeItems = GetBeforeItems(currentActiveItems, remainingItem);
-                int position = PlaceAfter(beforeItems, finalOrder);
-                finalOrder.Insert(position, remainingItem);
-            }
-
-            // Step 4: Assign order ownership (use ReferenceEquals for duplicate handling)
-            UpdateOrderOwnership(finalOrder, currentActiveItems, modName);
-
-            // Step 5: Place new items based on mod's declared order
-            var sortedNewItems = new List<(ListPropertyValueContext<T> Item, int RecordIndex)>();
-            var remainingToMatch = new List<ListPropertyValueContext<T>>(newRemainingItems);
-            for (int recordIndex = 0; recordIndex < recordItems.Count; recordIndex++)
-            {
-                var declaredValue = recordItems[recordIndex];
-                var matchIndex = remainingToMatch.FindIndex(item => IsItemEqual(item.Value, declaredValue));
-                if (matchIndex >= 0)
-                {
-                    sortedNewItems.Add((remainingToMatch[matchIndex], recordIndex));
-                    remainingToMatch.RemoveAt(matchIndex);
-                }
-            }
-
-            foreach (var (newItem, declaredIndex) in sortedNewItems)
-            {
-                int position = FindPositionForNewItem(newItem, recordItems, finalOrder, declaredIndex: declaredIndex);
-                finalOrder.Insert(position, newItem);
-                newItem.OrderOwnerMod = modName;
-            }
-
-            // Step 6: Update forward contexts
-            var removedItems = forwardValueContexts.Where(x => x.IsRemoved).ToList();
-            forwardValueContexts.Clear();
-            forwardValueContexts.AddRange(finalOrder);
-            forwardValueContexts.AddRange(removedItems);
+            listPropertyContext.ForwardIsNull = false;
+            return;
         }
 
-        /// <summary>
-        /// LEGACY IMPLEMENTATION - Original algorithm. Kept for easy revert.
-        /// To revert: In UpdatePropertyContext, change ProcessSortingAlgorithm(...) to ProcessSortingAlgorithm_Legacy(...)
-        /// </summary>
-        private void ProcessSortingAlgorithm_Legacy(
-            IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> context,
-            ISkyrimModGetter recordMod,
-            List<T> recordItems,
-            List<ListPropertyValueContext<T>> forwardValueContexts)
+        var originalIsNull = listPropertyContext.OriginalIsNull;
+        var forwardIsNull = listPropertyContext.ForwardIsNull;
+        if (recordIsNull != originalIsNull && recordIsNull != forwardIsNull)
         {
-            var modName = context.ModKey.ToString();
-            if (PropertyName == "LocationRefTypes")
-            {
-                LogCollector.Add(PropertyName, $"[DEBUG SORT] ProcessSortingAlgorithm mod={modName} recordItems.Count={recordItems.Count}");
-                LogCollector.Add(PropertyName, $"[DEBUG SORT]   recordItems order: {string.Join(", ", recordItems.Select((item, i) => $"[{i}]{FormatItem(item)}"))}");
-            }
-
-            // ============================================================================
-            // STEP 1: GET CURRENT STATE
-            // ============================================================================
-            var currentActiveItems = forwardValueContexts.Where(item => !item.IsRemoved).ToList();
-            if (PropertyName == "LocationRefTypes")
-                LogCollector.Add(PropertyName, $"[DEBUG SORT] STEP 1 currentActiveItems: {string.Join(", ", currentActiveItems.Select((item, i) => $"[{i}]{FormatItem(item.Value)}"))}");
-
-            // ============================================================================
-            // STEP 2: BUILD PERMISSION-AWARE FINAL ORDER
-            // ============================================================================
-            var finalOrder = new List<ListPropertyValueContext<T>>();
-            var remainingInstances = new List<ListPropertyValueContext<T>>(currentActiveItems);
-
-            foreach (var declaredValue in recordItems)
-            {
-                var match = remainingInstances.FirstOrDefault(inst => IsItemEqual(inst.Value, declaredValue));
-                if (match != null)
-                {
-                    // Only add to final order if we have permission to reorder this item
-                    if (HasPermissionsToModify(recordMod, match.OrderOwnerMod))
-                    {
-                        finalOrder.Add(match);
-                        remainingInstances.Remove(match);
-                        //LogCollector.Add(PropertyName, $"STEP 2 - Added to final order: {FormatItem(match.Value)} (has permission)");
-                    }
-                    else
-                    {
-                        //LogCollector.Add(PropertyName, $"STEP 2 - Skipped from final order: {FormatItem(match.Value)} (no permission, owner: {match.OrderOwnerMod})");
-                    }
-                }
-            }
-            if (PropertyName == "LocationRefTypes")
-            {
-                LogCollector.Add(PropertyName, $"[DEBUG SORT] STEP 2 finalOrder: {string.Join(", ", finalOrder.Select((item, i) => $"[{i}]{FormatItem(item.Value)}"))}");
-                LogCollector.Add(PropertyName, $"[DEBUG SORT] STEP 2 remainingInstances: {string.Join(", ", remainingInstances.Select((item, i) => $"[{i}]{FormatItem(item.Value)}"))}");
-            }
-
-            // ============================================================================
-            // STEP 3: PLACE REMAINING ITEMS BASED ON ORIGINAL "BEFORE" RELATIONSHIPS
-            // ============================================================================
-            // Separate existing items from new items
-            var existingRemainingItems = remainingInstances.Where(item => item.OrderOwnerMod != null).ToList();
-            var newRemainingItems = remainingInstances.Where(item => item.OrderOwnerMod == null).ToList();
-
-            if (PropertyName == "LocationRefTypes")
-            {
-                LogCollector.Add(PropertyName, $"[DEBUG SORT] STEP 3 finalOrder after existing: {string.Join(", ", finalOrder.Select((item, i) => $"[{i}]{FormatItem(item.Value)}"))}");
-                LogCollector.Add(PropertyName, $"[DEBUG SORT] STEP 3 newRemainingItems: {string.Join(", ", newRemainingItems.Select(item => FormatItem(item.Value)))}");
-            }
-
-            foreach (var remainingItem in existingRemainingItems)
-            {
-                int position = FindPositionBasedOnBeforeRelationships(remainingItem, currentActiveItems, finalOrder);
-                finalOrder.Insert(position, remainingItem);
-                //LogCollector.Add(PropertyName, $"STEP 3 - Placed existing remaining item: {FormatItem(remainingItem.Value)} at position {position}");
-            }
-
-            // ============================================================================
-            // STEP 4: ASSIGN ORDER OWNERSHIP
-            // ============================================================================
-            // Check which items actually moved by comparing neighbor relationships
-            // Only check items that existed before this mod (OrderOwnerMod != null)
-            foreach (var finalItem in finalOrder)
-            {
-                // Find this item's neighbors in original order
-                var originalBefore = GetItemBefore(finalItem, currentActiveItems);
-                var originalAfter = GetItemAfter(finalItem, currentActiveItems);
-
-                // Find this item's neighbors in final order
-                var finalBefore = GetItemBefore(finalItem, finalOrder);
-                var finalAfter = GetItemAfter(finalItem, finalOrder);
-
-                // Check if BOTH neighbors changed (indicating this item moved)
-                bool beforeChanged = !AreItemsEqual(originalBefore, finalBefore);
-                bool afterChanged = !AreItemsEqual(originalAfter, finalAfter);
-
-                if (beforeChanged && afterChanged)
-                {
-                    // This item moved - take order ownership
-                    finalItem.OrderOwnerMod = modName;
-                    //LogCollector.Add(PropertyName, $"STEP 4 - Order ownership: {FormatItem(finalItem.Value)} moved (neighbors changed) → {modName}");
-                    //LogCollector.Add(PropertyName, $"    Original: before={FormatItem(originalBefore?.Value)}, after={FormatItem(originalAfter?.Value)}");
-                    //LogCollector.Add(PropertyName, $"    Final: before={FormatItem(finalBefore?.Value)}, after={FormatItem(finalAfter?.Value)}");
-                }
-                else
-                {
-                    //LogCollector.Add(PropertyName, $"STEP 4 - No move: {FormatItem(finalItem.Value)} (neighbors unchanged)");
-                }
-            }
-
-            // ============================================================================
-            // STEP 5: PLACE NEW ITEMS BASED ON MOD'S DECLARED ORDER
-            // ============================================================================
-            // Sort new items according to the mod's declared order. Consume matches so that
-            // duplicate values (e.g. two 0697D3) each get their own context in correct order.
-            var sortedNewItems = new List<(ListPropertyValueContext<T> Item, int RecordIndex)>();
-            var remainingToMatch = new List<ListPropertyValueContext<T>>(newRemainingItems);
-            for (int recordIndex = 0; recordIndex < recordItems.Count; recordIndex++)
-            {
-                var declaredValue = recordItems[recordIndex];
-                var matchIndex = remainingToMatch.FindIndex(item => IsItemEqual(item.Value, declaredValue));
-                if (matchIndex >= 0)
-                {
-                    var newItem = remainingToMatch[matchIndex];
-                    sortedNewItems.Add((newItem, recordIndex));
-                    remainingToMatch.RemoveAt(matchIndex);
-                }
-            }
-
-            if (PropertyName == "LocationRefTypes")
-                LogCollector.Add(PropertyName, $"[DEBUG SORT] STEP 5 sortedNewItems (after consume): {string.Join(", ", sortedNewItems.Select((item, i) => $"[{i}]{FormatItem(item.Item.Value)}"))}");
-
-            // Place each new item based on what should be before it. Use declaredIndex (position in
-            // recordItems) so duplicates get correct placement: second 0697D3 goes after first, not at same slot.
-            foreach (var (newItem, declaredIndex) in sortedNewItems)
-            {
-                int position = FindPositionForNewItem(newItem, recordItems, finalOrder, declaredIndex: declaredIndex);
-                if (PropertyName == "LocationRefTypes")
-                    LogCollector.Add(PropertyName, $"[DEBUG SORT] STEP 5 place declaredIndex={declaredIndex} {FormatItem(newItem.Value)} at position={position}");
-                finalOrder.Insert(position, newItem);
-                newItem.OrderOwnerMod = modName; // Set order ownership for new items
-            }
-
-            // ============================================================================
-            // STEP 6: UPDATE FORWARD CONTEXTS
-            // ============================================================================
-            var removedItems = forwardValueContexts.Where(x => x.IsRemoved).ToList();
-            forwardValueContexts.Clear();
-            forwardValueContexts.AddRange(finalOrder);
-            forwardValueContexts.AddRange(removedItems);
-
-            if (PropertyName == "LocationRefTypes")
-                LogCollector.Add(PropertyName, $"[DEBUG SORT] STEP 6 finalOrder written to forwardValueContexts: {string.Join(", ", finalOrder.Select((item, i) => $"[{i}]{FormatItem(item.Value)}"))}");
+            listPropertyContext.ForwardIsNull = recordIsNull;
+            listPropertyContext.ForwardPresenceOwnerMod = context.ModKey.ToString();
+            return;
         }
 
-        /// <summary>
-        /// Returns all items that appear before the given item in originalOrder.
-        /// Uses ReferenceEquals for duplicate handling. Used by ProcessSortingAlgorithm_Unified.
-        /// </summary>
-        private List<ListPropertyValueContext<T>> GetBeforeItems(
-            List<ListPropertyValueContext<T>> originalOrder,
-            ListPropertyValueContext<T> item)
+        if (recordIsNull == originalIsNull
+            && recordIsNull != forwardIsNull
+            && HasPermissionsToModify(recordMod, listPropertyContext.ForwardPresenceOwnerMod))
         {
-            var before = new List<ListPropertyValueContext<T>>();
-            foreach (var o in originalOrder)
-            {
-                if (ReferenceEquals(o, item)) break;
-                before.Add(o);
-            }
-            return before;
+            listPropertyContext.ForwardIsNull = recordIsNull;
+            listPropertyContext.ForwardPresenceOwnerMod = context.ModKey.ToString();
         }
+    }
 
-        /// <summary>
-        /// Returns the insert position: after the last "before" item that's already in finalOrder.
-        /// Uses ReferenceEquals to find exact instances. Used by ProcessSortingAlgorithm_Unified.
-        /// </summary>
-        private int PlaceAfter(
-            List<ListPropertyValueContext<T>> beforeItems,
-            List<ListPropertyValueContext<T>> finalOrder)
-        {
-            int pos = 0;
-            foreach (var b in beforeItems)
-            {
-                int i = finalOrder.FindIndex(item => ReferenceEquals(item, b));
-                if (i != -1) pos = Math.Max(pos, i + 1);
-            }
-            return Math.Min(pos, finalOrder.Count);
-        }
+    private void ProcessRemovals(
+        IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> context,
+        ISkyrimModGetter recordMod,
+        List<T> recordItems,
+        List<ListPropertyValueContext<T>> forwardValueContexts)
+    {
+        var recordGroups = GroupItems(recordItems);
+        var activeGroups = GroupValueContexts(forwardValueContexts.Where(item => !item.IsRemoved));
 
-        /// <summary>
-        /// Updates OrderOwnerMod for items that moved (both neighbors changed).
-        /// Uses ReferenceEquals for correct duplicate handling.
-        /// </summary>
-        private void UpdateOrderOwnership(
-            List<ListPropertyValueContext<T>> finalOrder,
-            List<ListPropertyValueContext<T>> originalOrder,
-            string modName)
+        foreach (var recordGroup in recordGroups)
         {
-            foreach (var finalItem in finalOrder)
+            var forwardGroup = activeGroups.FirstOrDefault(group =>
+                IsItemIdentityEqual(group.Item, recordGroup.Item));
+            if (forwardGroup.Item == null) continue;
+
+            var activeCount = forwardGroup.Items.Count;
+            while (activeCount > recordGroup.Count)
             {
-                var originalBefore = GetNeighbor(originalOrder, finalItem, -1);
-                var originalAfter = GetNeighbor(originalOrder, finalItem, 1);
-                var finalBefore = GetNeighbor(finalOrder, finalItem, -1);
-                var finalAfter = GetNeighbor(finalOrder, finalItem, 1);
-                bool beforeChanged = !AreItemsEqual(originalBefore, finalBefore);
-                bool afterChanged = !AreItemsEqual(originalAfter, finalAfter);
-                if (beforeChanged && afterChanged)
-                    finalItem.OrderOwnerMod = modName;
+                var itemToRemove = forwardGroup.Items.LastOrDefault(item =>
+                    !item.IsRemoved && HasPermissionsToModify(recordMod, item.OwnerMod));
+                if (itemToRemove == null)
+                {
+                    LogCollector.Add(
+                        PropertyName,
+                        $"[{PropertyName}] {context.ModKey}: Cannot remove excess item {FormatItem(recordGroup.Item)} - no permission");
+                    break;
+                }
+
+                var oldOwner = itemToRemove.OwnerMod;
+                itemToRemove.IsRemoved = true;
+                itemToRemove.OwnerMod = context.ModKey.ToString();
+                activeCount--;
+                LogCollector.Add(
+                    PropertyName,
+                    $"[{PropertyName}] {context.ModKey}: Removing excess item {FormatItem(recordGroup.Item)} (was owned by {oldOwner}, new owner: {itemToRemove.OwnerMod}) Success");
             }
         }
 
-        /// <summary>
-        /// Gets the neighbor at offset (-1 = before, +1 = after). Uses ReferenceEquals for duplicate handling.
-        /// </summary>
-        private ListPropertyValueContext<T>? GetNeighbor(
-            List<ListPropertyValueContext<T>> list,
-            ListPropertyValueContext<T> item,
-            int offset)
+        var itemsNotInRecord = forwardValueContexts
+            .Where(item =>
+                !item.IsRemoved
+                && !recordGroups.Any(group => IsItemIdentityEqual(group.Item, item.Value)))
+            .ToList();
+        foreach (var item in itemsNotInRecord)
         {
-            int i = list.FindIndex(x => ReferenceEquals(x, item));
-            int j = i + offset;
-            return j >= 0 && j < list.Count ? list[j] : null;
+            if (!HasPermissionsToModify(recordMod, item.OwnerMod))
+            {
+                LogCollector.Add(
+                    PropertyName,
+                    $"[{PropertyName}] {context.ModKey}: Cannot remove item not in record {FormatItem(item.Value)} - no permission. Current owner: {item.OwnerMod}");
+                continue;
+            }
+
+            var oldOwner = item.OwnerMod;
+            item.IsRemoved = true;
+            item.OwnerMod = context.ModKey.ToString();
+            LogCollector.Add(
+                PropertyName,
+                $"[{PropertyName}] {context.ModKey}: Removing item not in record {FormatItem(item.Value)} (was owned by {oldOwner}, new owner: {item.OwnerMod}) Success");
+        }
+    }
+
+    private void ProcessAdditions(
+        IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> context,
+        ISkyrimModGetter recordMod,
+        List<T> recordItems,
+        List<ListPropertyValueContext<T>> forwardValueContexts)
+    {
+        foreach (var recordGroup in GroupItems(recordItems))
+        {
+            var matchingContexts = forwardValueContexts
+                .Where(item => IsItemIdentityEqual(item.Value, recordGroup.Item))
+                .ToList();
+            var activeCount = matchingContexts.Count(item => !item.IsRemoved);
+
+            while (activeCount < recordGroup.Count)
+            {
+                var itemToRestore = matchingContexts.FirstOrDefault(item =>
+                    item.IsRemoved && HasPermissionsToModify(recordMod, item.OwnerMod));
+                if (itemToRestore != null)
+                {
+                    var oldOwner = itemToRestore.OwnerMod;
+                    itemToRestore.IsRemoved = false;
+                    itemToRestore.OwnerMod = context.ModKey.ToString();
+                    itemToRestore.AlignmentOwnerMod = context.ModKey.ToString();
+                    activeCount++;
+                    LogCollector.Add(
+                        PropertyName,
+                        $"[{PropertyName}] {context.ModKey}: Adding back previously removed item {FormatItem(recordGroup.Item)} (was owned by {oldOwner}, new owner: {itemToRestore.OwnerMod}) Success");
+                    continue;
+                }
+
+                var inaccessibleRemovedItem = matchingContexts.FirstOrDefault(item => item.IsRemoved);
+                if (inaccessibleRemovedItem != null)
+                {
+                    LogCollector.Add(
+                        PropertyName,
+                        $"[{PropertyName}] {context.ModKey}: Cannot add back previously removed item {FormatItem(recordGroup.Item)} - no permission (owned by {inaccessibleRemovedItem.OwnerMod})");
+                    break;
+                }
+
+                var newItem = new ListPropertyValueContext<T>(
+                    recordGroup.Item,
+                    context.ModKey.ToString())
+                {
+                    AlignmentOwnerMod = null
+                };
+                forwardValueContexts.Add(newItem);
+                matchingContexts.Add(newItem);
+                activeCount++;
+                LogCollector.Add(
+                    PropertyName,
+                    $"[{PropertyName}] {context.ModKey}: Adding new item {FormatItem(recordGroup.Item)} (new owner: {newItem.OwnerMod}) Success");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Progressively aligns the accumulated row sequence with one mod's declared
+    /// sequence. This is the active ordering implementation for every
+    /// <see cref="ListSemantics.AlignedOrdered"/> handler.
+    /// </summary>
+    protected int[] AlignCurrentList(
+        ListPropertyContext<T> listPropertyContext,
+        IReadOnlyList<T> recordItems)
+    {
+        var result = XEditSequenceAligner.Align(
+            listPropertyContext.AlignmentRows,
+            recordItems,
+            (left, right) => IsAlignmentEqual(left, right),
+            () => listPropertyContext.NextAlignmentRowId++);
+        listPropertyContext.AlignmentRows = result.Rows;
+        return result.RightRowIds;
+    }
+
+    /// <summary>
+    /// Reconciles one aligned plugin column by occurrence-specific xEdit row ID.
+    /// Row identity locates an existing entry; content equality determines whether
+    /// that row's value changed. This distinction is required for conditions, whose
+    /// operator and comparison value are data within an xEdit-aligned row.
+    /// </summary>
+    protected void ProcessAlignedItems(
+        string modName,
+        ISkyrimModGetter recordMod,
+        IReadOnlyList<T> recordItems,
+        IReadOnlyList<int> declaredRowIds,
+        ListPropertyContext<T> listPropertyContext,
+        List<ListPropertyValueContext<T>> forwardValueContexts)
+    {
+        if (recordItems.Count != declaredRowIds.Count)
+        {
+            throw new InvalidOperationException(
+                $"Alignment row count does not match the declared {PropertyName} item count");
         }
 
-        /// <summary>
-        /// Finds the position for a remaining item based on its original "before" relationships.
-        /// This method ensures that items maintain their original relative positions to items that were before them.
-        /// Uses actual item relationships, not indexes, for robust positioning.
-        /// </summary>
-        /// <param name="itemToPlace">The remaining item we want to place</param>
-        /// <param name="originalOrder">The original order of all items</param>
-        /// <param name="currentFinalOrder">The current state of the final order being built</param>
-        /// <returns>The position (index) to insert the item</returns>
-        private int FindPositionBasedOnBeforeRelationships(
-            ListPropertyValueContext<T> itemToPlace,
-            List<ListPropertyValueContext<T>> originalOrder,
-            List<ListPropertyValueContext<T>> currentFinalOrder)
+        var activeItems = forwardValueContexts.Where(item => !item.IsRemoved).ToList();
+        var consumedActiveItems = new HashSet<ListPropertyValueContext<T>>(
+            ReferenceEqualityComparer.Instance);
+
+        for (var declaredIndex = 0; declaredIndex < recordItems.Count; declaredIndex++)
         {
-            // Find all items that were originally before this item (by comparing values, not indexes)
-            var originalBeforeItems = new List<ListPropertyValueContext<T>>();
-            bool foundItemToPlace = false;
+            var declaredItem = recordItems[declaredIndex];
+            var declaredRowId = declaredRowIds[declaredIndex];
 
-            foreach (var originalItem in originalOrder)
+            // A row match takes precedence over value identity. An aligned row can
+            // legitimately contain edited data that is not semantically equal to the
+            // value from the preceding plugin column.
+            var activeItem = activeItems.FirstOrDefault(item =>
+                !consumedActiveItems.Contains(item)
+                && item.AlignmentRowId == declaredRowId);
+            if (activeItem != null)
             {
-                // Use reference equality for duplicate handling: find the exact instance we're placing
-                if (ReferenceEquals(originalItem, itemToPlace))
+                consumedActiveItems.Add(activeItem);
+                ReplaceAlignedRowValue(
+                    modName,
+                    recordMod,
+                    declaredItem,
+                    declaredRowId,
+                    activeItem,
+                    listPropertyContext);
+                continue;
+            }
+
+            // xEdit represents a move as an old-row gap plus a new row. Preserve the
+            // existing ownership rule by recognizing the same logical item before
+            // deciding that the new row is an unrelated addition.
+            activeItem = activeItems.FirstOrDefault(item =>
+                !consumedActiveItems.Contains(item)
+                && IsItemIdentityEqual(item.Value, declaredItem));
+            if (activeItem != null)
+            {
+                consumedActiveItems.Add(activeItem);
+                var originalRowId = activeItem.AlignmentRowId;
+                if (activeItem.AlignmentRowId == null
+                    || activeItem.AlignmentOwnerMod == null
+                    || HasPermissionsToModify(recordMod, activeItem.AlignmentOwnerMod))
                 {
-                    foundItemToPlace = true;
-                    break; // Stop when we find the item we're placing
+                    activeItem.AlignmentRowId = declaredRowId;
+                    activeItem.AlignmentOwnerMod = modName;
                 }
-                originalBeforeItems.Add(originalItem);
+
+                ReplaceAlignedRowValue(
+                    modName,
+                    recordMod,
+                    declaredItem,
+                    originalRowId,
+                    activeItem,
+                    listPropertyContext);
+                continue;
             }
 
-            if (!foundItemToPlace)
+            var removedIdentityItems = forwardValueContexts
+                .Where(item =>
+                    item.IsRemoved
+                    && IsItemIdentityEqual(item.Value, declaredItem))
+                .ToList();
+            var itemToRestore = removedIdentityItems.FirstOrDefault(item =>
+                    item.AlignmentRowId == declaredRowId
+                    && HasPermissionsToModify(recordMod, item.OwnerMod))
+                ?? removedIdentityItems.FirstOrDefault(item =>
+                    HasPermissionsToModify(recordMod, item.OwnerMod));
+            if (itemToRestore != null)
             {
-                // Item not found in original order (new item added by this mod), place at the end
-                //LogCollector.Add(PropertyName, $"    FindPosition: {FormatItem(itemToPlace.Value)} not found in original order (new item), placing at end");
-                return currentFinalOrder.Count;
+                var oldOwner = itemToRestore.OwnerMod;
+                var originalRowId = itemToRestore.AlignmentRowId;
+                itemToRestore.IsRemoved = false;
+                itemToRestore.OwnerMod = modName;
+                itemToRestore.AlignmentRowId = declaredRowId;
+                itemToRestore.AlignmentOwnerMod = modName;
+                activeItems.Add(itemToRestore);
+                consumedActiveItems.Add(itemToRestore);
+                ReplaceAlignedRowValue(
+                    modName,
+                    recordMod,
+                    declaredItem,
+                    originalRowId,
+                    itemToRestore,
+                    listPropertyContext);
+                LogCollector.Add(
+                    PropertyName,
+                    $"[{PropertyName}] {modName}: Adding back previously removed item {FormatItem(declaredItem)} (was owned by {oldOwner}, new owner: {itemToRestore.OwnerMod}) Success");
+                continue;
             }
 
-            //LogCollector.Add(PropertyName, $"    FindPosition: {FormatItem(itemToPlace.Value)} - found {originalBeforeItems.Count} items that were originally before it");
-            //LogCollector.Add(PropertyName, $"      Original before items: {string.Join(", ", originalBeforeItems.Select(item => FormatItem(item.Value)))}");
-
-            // Find the position after the last "before" item that's already in finalOrder.
-            // Use reference equality for duplicates: find the exact instance already placed.
-            int position = 0;
-            foreach (var beforeItem in originalBeforeItems)
+            var inaccessibleRemovedItem = removedIdentityItems.FirstOrDefault();
+            if (inaccessibleRemovedItem != null)
             {
-                int beforeIndex = currentFinalOrder.FindIndex(item => ReferenceEquals(item, beforeItem));
-                if (beforeIndex != -1)
-                {
-                    // This "before" item is already placed, position should be after it
-                    position = Math.Max(position, beforeIndex + 1);
-                    //LogCollector.Add(PropertyName, $"        Found 'before' item {FormatItem(beforeItem.Value)} at position {beforeIndex}, updating position to {position}");
-                }
+                LogCollector.Add(
+                    PropertyName,
+                    $"[{PropertyName}] {modName}: Cannot add back previously removed item {FormatItem(declaredItem)} - no permission (owned by {inaccessibleRemovedItem.OwnerMod})");
+                continue;
             }
 
-            // Ensure we don't exceed the current list length
-            position = Math.Min(position, currentFinalOrder.Count);
-
-            //LogCollector.Add(PropertyName, $"    FindPosition: Final position for {FormatItem(itemToPlace.Value)}: {position}");
-            return position;
+            var newItem = new ListPropertyValueContext<T>(declaredItem, modName)
+            {
+                AlignmentRowId = declaredRowId,
+                AlignmentOwnerMod = modName
+            };
+            forwardValueContexts.Add(newItem);
+            activeItems.Add(newItem);
+            consumedActiveItems.Add(newItem);
+            LogCollector.Add(
+                PropertyName,
+                $"[{PropertyName}] {modName}: Adding new item {FormatItem(declaredItem)} (new owner: {modName}) Success");
         }
 
-        /// <summary>
-        /// Finds the position for a new item based on the mod's declared order.
-        /// When declaredIndex is provided (e.g. from sortedNewItems iteration), uses it so that
-        /// duplicate values get correct placement: second occurrence goes after first, not at same slot.
-        /// </summary>
-        /// <param name="newItem">The new item we want to place</param>
-        /// <param name="recordItems">The mod's declared items in order</param>
-        /// <param name="currentFinalOrder">The current state of the final order being built</param>
-        /// <param name="declaredIndex">Optional: index in recordItems this item corresponds to (for occurrence-aware placement)</param>
-        /// <returns>The position (index) to insert the item</returns>
-        private int FindPositionForNewItem(
-            ListPropertyValueContext<T> newItem,
-            List<T> recordItems,
-            List<ListPropertyValueContext<T>> currentFinalOrder,
-            int? declaredIndex = null)
+        foreach (var item in activeItems.Where(item => !consumedActiveItems.Contains(item)))
         {
-            int index = declaredIndex ?? recordItems.FindIndex(item => IsItemEqual(item, newItem.Value));
-            if (index < 0)
+            if (!HasPermissionsToModify(recordMod, item.OwnerMod))
             {
-                return currentFinalOrder.Count;
+                LogCollector.Add(
+                    PropertyName,
+                    $"[{PropertyName}] {modName}: Cannot remove item not in record {FormatItem(item.Value)} - no permission. Current owner: {item.OwnerMod}");
+                continue;
             }
 
-            // Find all items that should be before this new item according to mod's declared order
-            var declaredBeforeItems = new List<T>();
-            for (int i = 0; i < index; i++)
+            var oldOwner = item.OwnerMod;
+            item.IsRemoved = true;
+            item.OwnerMod = modName;
+            LogCollector.Add(
+                PropertyName,
+                $"[{PropertyName}] {modName}: Removing item not in record {FormatItem(item.Value)} (was owned by {oldOwner}, new owner: {item.OwnerMod}) Success");
+        }
+
+        OrderActiveItemsByAlignmentRows(listPropertyContext, forwardValueContexts);
+    }
+
+    private void ReplaceAlignedRowValue(
+        string modName,
+        ISkyrimModGetter recordMod,
+        T declaredItem,
+        int? originalRowId,
+        ListPropertyValueContext<T> forwardItem,
+        ListPropertyContext<T> listPropertyContext)
+    {
+        if (IsItemContentEqual(forwardItem.Value, declaredItem)) return;
+
+        var originalItem = originalRowId == null
+            ? null
+            : listPropertyContext.OriginalValueContexts?.FirstOrDefault(item =>
+                item.AlignmentRowId == originalRowId);
+        var returnsToOriginal = originalItem != null
+            && IsItemContentEqual(originalItem.Value, declaredItem);
+        if (returnsToOriginal && !HasPermissionsToModify(recordMod, forwardItem.OwnerMod))
+        {
+            LogCollector.Add(
+                PropertyName,
+                $"[{PropertyName}] {modName}: Cannot revert aligned row {FormatItem(declaredItem)} - no permission. Current owner: {forwardItem.OwnerMod}");
+            return;
+        }
+
+        var oldOwner = forwardItem.OwnerMod;
+        forwardItem.Value = declaredItem;
+        forwardItem.OwnerMod = modName;
+        LogCollector.Add(
+            PropertyName,
+            $"[{PropertyName}] {modName}: Replacing aligned row value {FormatItem(declaredItem)} (was owned by {oldOwner}, new owner: {forwardItem.OwnerMod}) Success");
+    }
+
+    private static void OrderActiveItemsByAlignmentRows(
+        ListPropertyContext<T> listPropertyContext,
+        List<ListPropertyValueContext<T>> forwardValueContexts)
+    {
+        var activeItems = forwardValueContexts.Where(item => !item.IsRemoved).ToList();
+        var rowPositions = listPropertyContext.AlignmentRows
+            .Select((row, index) => (row.Id, index))
+            .ToDictionary(entry => entry.Id, entry => entry.index);
+        var priorPositions = new Dictionary<ListPropertyValueContext<T>, int>(
+            ReferenceEqualityComparer.Instance);
+        for (var index = 0; index < forwardValueContexts.Count; index++)
+        {
+            priorPositions[forwardValueContexts[index]] = index;
+        }
+        var orderedActiveItems = activeItems
+            .OrderBy(item => item.AlignmentRowId is { } rowId
+                && rowPositions.TryGetValue(rowId, out var rowPosition)
+                    ? rowPosition
+                    : int.MaxValue)
+            .ThenBy(item => priorPositions[item])
+            .ToList();
+        var removedItems = forwardValueContexts.Where(item => item.IsRemoved).ToList();
+
+        forwardValueContexts.Clear();
+        forwardValueContexts.AddRange(orderedActiveItems);
+        forwardValueContexts.AddRange(removedItems);
+    }
+
+    protected virtual void ProcessHandlerSpecificLogic(
+        IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> context,
+        IPatcherState<ISkyrimMod, ISkyrimModGetter> state,
+        ListPropertyContext<T> listPropertyContext,
+        List<T> recordItems,
+        List<ListPropertyValueContext<T>> currentForwardItems)
+    {
+    }
+
+    private void ProcessSameIdentityReplacements(
+        IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> context,
+        ISkyrimModGetter recordMod,
+        IReadOnlyList<T> recordItems,
+        ListPropertyContext<T> listPropertyContext,
+        List<ListPropertyValueContext<T>> forwardItems)
+    {
+        var originalItems = listPropertyContext.OriginalValueContexts?
+            .Select(item => item.Value)
+            .ToList() ?? [];
+        var consumed = new HashSet<ListPropertyValueContext<T>>(ReferenceEqualityComparer.Instance);
+
+        foreach (var recordItem in recordItems)
+        {
+            var forwardItem = forwardItems.FirstOrDefault(item =>
+                !item.IsRemoved
+                && !consumed.Contains(item)
+                && IsItemIdentityEqual(item.Value, recordItem));
+            if (forwardItem == null) continue;
+            consumed.Add(forwardItem);
+
+            if (IsItemContentEqual(forwardItem.Value, recordItem)) continue;
+
+            var originalItem = originalItems.FirstOrDefault(item =>
+                IsItemIdentityEqual(item, recordItem));
+            var returnsToOriginal = originalItem != null
+                && IsItemContentEqual(originalItem, recordItem);
+            if (returnsToOriginal && !HasPermissionsToModify(recordMod, forwardItem.OwnerMod))
             {
-                declaredBeforeItems.Add(recordItems[i]);
+                LogCollector.Add(
+                    PropertyName,
+                    $"[{PropertyName}] {context.ModKey}: Cannot revert keyed item {FormatItem(recordItem)} - no permission. Current owner: {forwardItem.OwnerMod}");
+                continue;
             }
 
-            //LogCollector.Add(PropertyName, $"      Declared before items: {string.Join(", ", declaredBeforeItems.Select(item => FormatItem(item)))}");
+            var oldOwner = forwardItem.OwnerMod;
+            forwardItem.Value = recordItem;
+            forwardItem.OwnerMod = context.ModKey.ToString();
+            LogCollector.Add(
+                PropertyName,
+                $"[{PropertyName}] {context.ModKey}: Replacing keyed item {FormatItem(recordItem)} (was owned by {oldOwner}, new owner: {forwardItem.OwnerMod}) Success");
+        }
+    }
 
-            // Find the position after the last "before" item that's already in finalOrder.
-            // Use FindLastIndex so duplicate values (e.g. two 0697D3) place after the last occurrence,
-            // not the first (which gave position=1 instead of 2 for 0EA307).
-            int position = 0;
-            foreach (var beforeItem in declaredBeforeItems)
+    private void SortActiveItems(
+        IPatcherState<ISkyrimMod, ISkyrimModGetter> state,
+        List<ListPropertyValueContext<T>> forwardItems)
+    {
+        var loadOrder = state.RawLoadOrder
+            .Select((listing, index) => (listing.ModKey, index))
+            .GroupBy(entry => entry.ModKey)
+            .ToDictionary(group => group.Key, group => group.First().index);
+        var priorPositions = new Dictionary<ListPropertyValueContext<T>, int>(ReferenceEqualityComparer.Instance);
+        for (var index = 0; index < forwardItems.Count; index++)
+        {
+            priorPositions[forwardItems[index]] = index;
+        }
+        var sortKeyComparer = new XEditSortKeyComparer(loadOrder);
+        var activeItems = forwardItems
+            .Where(item => !item.IsRemoved)
+            .OrderBy(
+                item => GetSortKey(item.Value),
+                sortKeyComparer)
+            .ThenBy(item => priorPositions[item])
+            .ToList();
+        var removedItems = forwardItems.Where(item => item.IsRemoved).ToList();
+
+        forwardItems.Clear();
+        forwardItems.AddRange(activeItems);
+        forwardItems.AddRange(removedItems);
+    }
+
+    /// <summary>
+    /// Full semantic equality used for additions, removals, ownership, and the
+    /// final value comparison.
+    /// </summary>
+    protected virtual bool IsItemEqual(T? item1, T? item2)
+    {
+        if (item1 == null && item2 == null) return true;
+        if (item1 == null || item2 == null) return false;
+        return Equals(item1, item2);
+    }
+
+    /// <summary>
+    /// Full value equality. Sorted keyed handlers override identity separately so
+    /// edits to non-key data remain changes to one logical entry.
+    /// </summary>
+    protected virtual bool IsItemContentEqual(T? item1, T? item2)
+        => IsItemEqual(item1, item2);
+
+    /// <summary>
+    /// Logical entry identity used for ownership, additions, removals, and
+    /// same-key replacement. The default preserves the legacy full-value identity.
+    /// </summary>
+    protected virtual bool IsItemIdentityEqual(T? item1, T? item2)
+        => IsItemEqual(item1, item2);
+
+    /// <summary>
+    /// Logical row identity used only for progressive alignment. By default it
+    /// is semantic equality; handlers such as Conditions override it with the
+    /// corresponding xEdit alignment sort key.
+    /// </summary>
+    protected virtual bool IsAlignmentEqual(T? item1, T? item2)
+        => IsItemIdentityEqual(item1, item2);
+
+    /// <summary>
+    /// Creates an independent mutable value for the forward context when a handler
+    /// updates item fields in place. Immutable/getter-only values can share the value
+    /// object while their ownership and removal context remains independent.
+    /// </summary>
+    protected virtual T CopyItemForForwardContext(T item) => item;
+
+    /// <summary>
+    /// xEdit StructSK components in declaration order. Scalar sorted handlers
+    /// return one component; composite handlers return every key field.
+    /// </summary>
+    protected virtual IReadOnlyList<object?> GetSortKey(T item)
+        => throw new InvalidOperationException(
+            $"Sorted list handler {GetType().Name} must define an xEdit sort key for {PropertyName}.");
+
+    protected virtual string FormatItem(T? item)
+        => DiagnosticValueFormatter.Format(item);
+
+    protected bool HasPermissionsToModify(ISkyrimModGetter mod, string? ownerMod)
+    {
+        if (ownerMod == null) return false;
+        return mod.MasterReferences.Any(master =>
+                   string.Equals(
+                       master.Master.ToString(),
+                       ownerMod,
+                       StringComparison.OrdinalIgnoreCase))
+               || string.Equals(
+                   mod.ModKey.ToString(),
+                   ownerMod,
+                   StringComparison.OrdinalIgnoreCase);
+    }
+
+    public virtual void InitializeContext(
+        IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> originalContext,
+        IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> winningContext,
+        IPropertyContext propertyContext)
+    {
+        if (propertyContext is not ListPropertyContext<T> listPropertyContext)
+        {
+            throw new InvalidOperationException(
+                $"Property context is not a list property context for {PropertyName}");
+        }
+
+        var originalList = GetValue(originalContext.Record);
+        var ownerMod = originalContext.ModKey.ToString();
+        var originalItems = (originalList ?? [])
+            .Select(item => new ListPropertyValueContext<T>(item, ownerMod))
+            .ToList();
+
+        listPropertyContext.AlignmentRows = [];
+        listPropertyContext.NextAlignmentRowId = 0;
+
+        if (Semantics is ListSemantics.AlignedOrdered or ListSemantics.ExactOrdered)
+        {
+            foreach (var item in originalItems)
             {
-                int beforeIndex = currentFinalOrder.FindLastIndex(item => IsItemEqual(item.Value, beforeItem));
-                if (beforeIndex != -1)
+                var rowId = listPropertyContext.NextAlignmentRowId++;
+                item.AlignmentRowId = rowId;
+                item.AlignmentOwnerMod = ownerMod;
+                if (Semantics == ListSemantics.AlignedOrdered)
                 {
-                    position = Math.Max(position, beforeIndex + 1);
+                    listPropertyContext.AlignmentRows.Add(
+                        new ListAlignmentRow<T>(rowId, item.Value));
                 }
             }
-
-            // Ensure we don't exceed the current list length
-            position = Math.Min(position, currentFinalOrder.Count);
-
-            //LogCollector.Add(PropertyName, $"    FindPositionForNewItem: Final position for {FormatItem(newItem.Value)}: {position}");
-            return position;
         }
 
-        /// <summary>
-        /// Gets the item that comes before the specified item in the given list.
-        /// Returns null if the item is first or not found.
-        /// Uses ReferenceEquals for correct duplicate handling.
-        /// </summary>
-        private ListPropertyValueContext<T>? GetItemBefore(
-            ListPropertyValueContext<T> item,
-            List<ListPropertyValueContext<T>> list)
-        {
-            int index = list.FindIndex(i => ReferenceEquals(i, item));
-            if (index <= 0) return null;
-            return list[index - 1];
-        }
-
-        /// <summary>
-        /// Gets the item that comes after the specified item in the given list.
-        /// Returns null if the item is last or not found.
-        /// Uses ReferenceEquals for correct duplicate handling.
-        /// </summary>
-        private ListPropertyValueContext<T>? GetItemAfter(
-            ListPropertyValueContext<T> item,
-            List<ListPropertyValueContext<T>> list)
-        {
-            int index = list.FindIndex(i => ReferenceEquals(i, item));
-            if (index < 0 || index >= list.Count - 1) return null;
-            return list[index + 1];
-        }
-
-        /// <summary>
-        /// Compares two items for equality, handling null values.
-        /// </summary>
-        private bool AreItemsEqual(ListPropertyValueContext<T>? item1, ListPropertyValueContext<T>? item2)
-        {
-            if (item1 == null && item2 == null) return true;
-            if (item1 == null || item2 == null) return false;
-            return IsItemEqual(item1.Value, item2.Value);
-        }
-
-        /// <summary>
-        /// Custom equality comparer that wraps the IsItemEqual method for use with collections.
-        /// This allows us to use custom equality logic in LINQ operations and dictionary lookups.
-        /// </summary>
-        private class ItemEqualityComparer<TItem> : IEqualityComparer<TItem>
-        {
-            private readonly Func<TItem, TItem, bool> _comparer;
-
-            public ItemEqualityComparer(Func<TItem, TItem, bool> comparer)
+        // Original ownership/removal state must remain immutable for reversion
+        // detection. Every semantic gets independent context objects; handlers that
+        // mutate item fields in place override CopyItemForForwardContext as well.
+        var forwardItems = originalItems
+            .Select(item => new ListPropertyValueContext<T>(
+                CopyItemForForwardContext(item.Value),
+                item.OwnerMod)
             {
-                _comparer = comparer;
-            }
+                AlignmentRowId = item.AlignmentRowId,
+                AlignmentOwnerMod = item.AlignmentOwnerMod
+            })
+            .ToList();
+        listPropertyContext.OriginalValueContexts = originalItems;
+        listPropertyContext.ForwardValueContexts = forwardItems;
 
-            public bool Equals(TItem? x, TItem? y)
-            {
-                if (x == null && y == null) return true;
-                if (x == null || y == null) return false;
-                return _comparer(x, y);
-            }
+        listPropertyContext.CanBeNull = CanBeNull || originalList == null;
+        listPropertyContext.OriginalIsNull = originalList == null;
+        listPropertyContext.ForwardIsNull = listPropertyContext.OriginalIsNull;
+        listPropertyContext.ForwardPresenceOwnerMod = ownerMod;
+        listPropertyContext.IsResolved = false;
 
-            public int GetHashCode(TItem obj)
-            {
-                return obj?.GetHashCode() ?? 0;
-            }
-        }
-
-        /// <summary>
-        /// Process any handler-specific logic after the standard list processing is complete.
-        /// </summary>
-        /// <param name="context">The mod context</param>
-        /// <param name="state">The patcher state</param>
-        /// <param name="listPropertyContext">The property context</param>
-        /// <param name="recordItems">The current items in the record</param>
-        /// <param name="currentForwardItems">The current forward items</param>
-        protected virtual void ProcessHandlerSpecificLogic(
-            IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> context,
-            IPatcherState<ISkyrimMod, ISkyrimModGetter> state,
-            ListPropertyContext<T> listPropertyContext,
-            List<T> recordItems,
-            List<ListPropertyValueContext<T>> currentForwardItems)
+        if (!((IPropertyHandler)this).AreValuesEqual(
+                listPropertyContext.GetForwardValue(),
+                originalList))
         {
-            // Base implementation does nothing
+            throw new InvalidOperationException(
+                $"List context initialization changed the representation of {PropertyName}");
         }
+    }
 
-        protected virtual bool IsItemEqual(T? item1, T? item2)
+    private List<(T Item, List<ListPropertyValueContext<T>> Items)> GroupValueContexts(
+        IEnumerable<ListPropertyValueContext<T>> contexts)
+    {
+        var groups = new List<(T Item, List<ListPropertyValueContext<T>> Items)>();
+        foreach (var context in contexts)
         {
-            if (item1 == null && item2 == null)
+            var groupIndex = groups.FindIndex(group => IsItemIdentityEqual(group.Item, context.Value));
+            if (groupIndex < 0)
             {
-                return true;
-            }
-
-            if (item1 == null || item2 == null)
-            {
-                return false;
-            }
-
-            return Equals(item1, item2);
-        }
-
-        /// <summary>
-        /// Format the item for display in the log.
-        /// </summary>
-        /// <param name="item"></param>
-        /// <returns>The formatted item</returns>
-        protected virtual string FormatItem(T? item)
-        {
-            return item?.ToString() ?? "null";
-        }
-
-        /// <summary>
-        /// Check if the mod can modify an item. It is able to do so if has the owner mod in its master list
-        /// or if the mod is the owner mod.
-        /// </summary>
-        /// <param name="mod">The mod to check</param>
-        /// <param name="ownerMod">The mod that owns the item</param>
-        /// <returns></returns>
-        protected bool HasPermissionsToModify(ISkyrimModGetter mod, string? ownerMod)
-        {
-            if (ownerMod == null)
-            {
-                return false;
-            }
-            return mod?.MasterReferences.Any(m => string.Equals(m.Master.ToString(), ownerMod, StringComparison.OrdinalIgnoreCase)) == true
-                || string.Equals(mod?.ModKey.ToString(), ownerMod, StringComparison.OrdinalIgnoreCase);
-        }
-
-        /// <summary>
-        /// Initialize the context for the list property.
-        /// </summary>
-        /// <param name="originalContext">The original context</param>
-        /// <param name="winningContext">The winning context</param>
-        /// <param name="propertyContext">The property context</param>
-        public virtual void InitializeContext(
-            IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> originalContext,
-            IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> winningContext,
-            IPropertyContext propertyContext)
-        {
-            // InitializeContext for {PropertyName}
-
-            if (propertyContext is not ListPropertyContext<T> listPropertyContext)
-            {
-                throw new InvalidOperationException($"Error: Property context is not a list property context for {PropertyName}");
-            }
-            List<T>? originalList = GetValue(originalContext.Record);
-            var listItems = originalList == null ? new List<ListPropertyValueContext<T>>() :
-                originalList
-                    .Select((item, index) =>
-                    {
-                        var listItem = new ListPropertyValueContext<T>(item, originalContext.ModKey.ToString());
-                        listItem.OrderIndex = index; // Set initial order index
-                        return listItem;
-                    })
-                    .ToList();
-
-            listPropertyContext.OriginalValueContexts = listItems;
-            listPropertyContext.ForwardValueContexts = listItems;
-        }
-
-        // Non-generic interface implementations
-        void IPropertyHandler.SetValue(IMajorRecord record, object? value)
-        {
-            if (value is List<object> objectList)
-            {
-                // Convert List<object> back to List<T>
-                var typedList = objectList.Select(item => (T)item).ToList();
-                SetValue(record, typedList);
+                groups.Add((context.Value, [context]));
             }
             else
             {
-                SetValue(record, (List<T>?)value);
+                groups[groupIndex].Items.Add(context);
             }
         }
 
-        object? IPropertyHandler.GetValue(IMajorRecordGetter record)
+        return groups;
+    }
+
+    private List<(T Item, int Count)> GroupItems(IEnumerable<T> items)
+    {
+        var groups = new List<(T Item, int Count)>();
+        foreach (var item in items)
         {
-            return GetValue(record);
+            var groupIndex = groups.FindIndex(group => IsItemIdentityEqual(group.Item, item));
+            if (groupIndex < 0)
+            {
+                groups.Add((item, 1));
+            }
+            else
+            {
+                var group = groups[groupIndex];
+                groups[groupIndex] = (group.Item, group.Count + 1);
+            }
         }
 
-        bool IPropertyHandler.AreValuesEqual(object? value1, object? value2)
+        return groups;
+    }
+
+    void IPropertyHandler.SetValue(IMajorRecord record, object? value)
+    {
+        if (value is List<object> objectList)
         {
-            // Convert List<object> to List<T> if needed
-            List<T>? typedValue1 = null;
-            List<T>? typedValue2 = null;
+            SetValue(record, objectList.Select(item => (T)item).ToList());
+            return;
+        }
 
-            if (value1 is List<object> objectList1)
-            {
-                try
-                {
-                    typedValue1 = objectList1.Select(item => (T)item).ToList();
-                }
-                catch
-                {
-                    return false;
-                }
-            }
-            else
-            {
-                typedValue1 = (List<T>?)value1;
-            }
+        SetValue(record, (List<T>?)value);
+    }
 
-            if (value2 is List<object> objectList2)
-            {
-                try
-                {
-                    typedValue2 = objectList2.Select(item => (T)item).ToList();
-                }
-                catch
-                {
-                    return false;
-                }
-            }
-            else
-            {
-                typedValue2 = (List<T>?)value2;
-            }
+    object? IPropertyHandler.GetValue(IMajorRecordGetter record)
+        => GetValue(record);
 
-            // Call the generic version
+    bool IPropertyHandler.AreValuesEqual(object? value1, object? value2)
+    {
+        try
+        {
+            var typedValue1 = value1 is List<object> objectList1
+                ? objectList1.Select(item => (T)item).ToList()
+                : (List<T>?)value1;
+            var typedValue2 = value2 is List<object> objectList2
+                ? objectList2.Select(item => (T)item).ToList()
+                : (List<T>?)value2;
             return AreValuesEqual(typedValue1, typedValue2);
         }
-
-        // Non-generic interface implementation for context creation
-        IPropertyContext IPropertyHandler.CreatePropertyContext()
+        catch (InvalidCastException)
         {
-            return new ListPropertyContext<T>();
+            return false;
+        }
+    }
+
+    IPropertyContext IPropertyHandler.CreatePropertyContext()
+        => new ListPropertyContext<T> { CanBeNull = CanBeNull };
+
+    public virtual string FormatValue(object? value)
+    {
+        if (value is List<T> list)
+        {
+            return list.Count == 0
+                ? "Empty"
+                : string.Join(", ", list.Select(FormatItem));
         }
 
-        /// <summary>
-        /// Format a value for display in logs. Override this method to provide custom formatting for lists.
-        /// </summary>
-        /// <param name="value">The value to format</param>
-        /// <returns>The formatted value</returns>
-        public virtual string FormatValue(object? value)
+        if (value is List<object> objectList)
         {
-            if (value is List<T> list)
-            {
-                if (list == null || list.Count == 0)
-                    return "Empty";
-
-                return string.Join(", ", list.Select(item => FormatItem(item)));
-            }
-            else if (value is List<object> objectList)
-            {
-                // Convert List<object> to List<T> for formatting
-                var typedList = objectList.Select(item => (T)item).ToList();
-                return string.Join(", ", typedList.Select(item => FormatItem(item)));
-            }
-            return value?.ToString() ?? "null";
+            return objectList.Count == 0
+                ? "Empty"
+                : string.Join(", ", objectList.Cast<T>().Select(FormatItem));
         }
 
+        return DiagnosticValueFormatter.Format(value);
     }
 }

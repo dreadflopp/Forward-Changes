@@ -11,6 +11,10 @@ using System;
 
 namespace ForwardChanges.RecordHandlers
 {
+    // Migration note:
+    // - Generalized: EFSH texture fields share serialized asset-path comparison and copying behavior.
+    // - Kept specialized: EffectShaderData remains one typed aggregate handler for its coupled DATA payload.
+    // - Intentionally excluded: DATADataTypeState is serializer layout state, not an editable semantic field.
     public class EffectShaderRecordHandler : AbstractRecordHandler
     {
         public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()

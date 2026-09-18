@@ -2,6 +2,7 @@ using Mutagen.Bethesda.Plugins.Assets;
 using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Skyrim.Assets;
 using ForwardChanges.PropertyHandlers.Abstracts;
+using ForwardChanges.PropertyHandlers.General;
 
 namespace ForwardChanges.PropertyHandlers.MusicTrack
 {
@@ -32,7 +33,7 @@ namespace ForwardChanges.PropertyHandlers.MusicTrack
 
             var newValue = value == null || value.IsNull
                 ? null
-                : new AssetLink<SkyrimMusicAssetType>(value.DataRelativePath);
+                : AssetPathHelper.Copy(value);
 
             if (_propertyName == "TrackFilename")
             {
@@ -48,13 +49,13 @@ namespace ForwardChanges.PropertyHandlers.MusicTrack
         {
             if (value1 == null && value2 == null) return true;
             if (value1 == null || value2 == null) return false;
-            return value1.DataRelativePath == value2.DataRelativePath;
+            return AssetPathHelper.AreEqual(value1, value2);
         }
 
         public override string FormatValue(object? value)
         {
             return value is AssetLinkGetter<SkyrimMusicAssetType> assetLink
-                ? assetLink.DataRelativePath.ToString()
+                ? AssetPathHelper.Format(assetLink)
                 : value?.ToString() ?? "null";
         }
     }

@@ -15,6 +15,12 @@ namespace ForwardChanges.PropertyHandlers.Quest
     public class StagesHandler : AbstractListPropertyHandler<IQuestStageGetter>
     {
         public override string PropertyName => "Stages";
+        public override ListSemantics Semantics => ListSemantics.SortedKeyed;
+
+        protected override bool IsItemIdentityEqual(IQuestStageGetter? left, IQuestStageGetter? right) =>
+            left?.Index == right?.Index;
+
+        protected override IReadOnlyList<object?> GetSortKey(IQuestStageGetter item) => [item.Index];
 
         public override List<IQuestStageGetter>? GetValue(IMajorRecordGetter record)
         {
@@ -134,16 +140,15 @@ namespace ForwardChanges.PropertyHandlers.Quest
                     var canTakeOwnership = HasPermissionsToModify(recordMod, forwardContext.OwnerMod);
                     var previousOwner = forwardContext.OwnerMod;
 
-                    forwardContext.Value = recordStage.DeepCopy();
-
                     if (canTakeOwnership)
                     {
+                        forwardContext.Value = recordStage.DeepCopy();
                         forwardContext.OwnerMod = context.ModKey.ToString();
                         LogCollector.Add(PropertyName, $"[{PropertyName}] Updating stage Index {recordStage.Index} (taking ownership as '{context.ModKey}')");
                     }
                     else
                     {
-                        LogCollector.Add(PropertyName, $"[{PropertyName}] Updating stage Index {recordStage.Index} (ownership retained by '{previousOwner}' due permission restrictions)");
+                        LogCollector.Add(PropertyName, $"[{PropertyName}] Not updating stage Index {recordStage.Index} (owned by '{previousOwner}'; permission denied)");
                     }
                 }
             }
@@ -191,114 +196,17 @@ namespace ForwardChanges.PropertyHandlers.Quest
         {
             if (conditions1.Count != conditions2.Count) return false;
 
-            // Sort conditions by a consistent key for comparison (order-independent)
-            var sorted1 = conditions1.OrderBy(c =>
+            // xEdit represents CTDA as an ordered array. Reordering can change OR-group semantics.
+            for (int i = 0; i < conditions1.Count; i++)
             {
-                try
-                {
-                    var formKey = c.Data.Reference.FormKey.IsNull ? FormKey.Null : c.Data.Reference.FormKey;
-                    return $"{c.Data.Function}_{c.CompareOperator}_{formKey}";
-                }
-                catch
-                {
-                    return $"{c.Data.Function}_{c.CompareOperator}_{FormKey.Null}";
-                }
-            }).ToList();
-            var sorted2 = conditions2.OrderBy(c =>
-            {
-                try
-                {
-                    var formKey = c.Data.Reference.FormKey.IsNull ? FormKey.Null : c.Data.Reference.FormKey;
-                    return $"{c.Data.Function}_{c.CompareOperator}_{formKey}";
-                }
-                catch
-                {
-                    return $"{c.Data.Function}_{c.CompareOperator}_{FormKey.Null}";
-                }
-            }).ToList();
-
-            for (int i = 0; i < sorted1.Count; i++)
-            {
-                if (!AreConditionsEqual(sorted1[i], sorted2[i])) return false;
+                if (!AreConditionsEqual(conditions1[i], conditions2[i])) return false;
             }
             return true;
         }
 
         private bool AreConditionsEqual(IConditionGetter condition1, IConditionGetter condition2)
         {
-            // Compare all condition properties directly
-            if (condition1.CompareOperator != condition2.CompareOperator) return false;
-            if (condition1.Flags != condition2.Flags) return false;
-            if (!condition1.Unknown1.Span.SequenceEqual(condition2.Unknown1.Span)) return false;
-            if (condition1.Unknown2 != condition2.Unknown2) return false;
-
-            // Compare condition data properties
-            var data1 = condition1.Data;
-            var data2 = condition2.Data;
-
-            if (data1.Function != data2.Function) return false;
-            if (data1.RunOnType != data2.RunOnType) return false;
-            if (data1.RunOnTypeIndex != data2.RunOnTypeIndex) return false;
-            if (data1.UseAliases != data2.UseAliases) return false;
-            if (data1.UsePackageData != data2.UsePackageData) return false;
-
-            // Compare the Reference property
-            if (data1.Reference.FormKey != data2.Reference.FormKey) return false;
-
-            // For specific condition types that need special comparison logic
-            if (data1 is IGetStageDoneConditionDataGetter stageData1 && data2 is IGetStageDoneConditionDataGetter stageData2)
-            {
-                // For GetStageDone conditions, compare quest and stage
-                if (stageData1.Quest.Link.FormKey != stageData2.Quest.Link.FormKey) return false;
-                if (stageData1.Stage != stageData2.Stage) return false;
-            }
-            else
-            {
-                // For all other condition types, compare using reflection-based approach
-                if (!CompareConditionDataProperties(data1, data2)) return false;
-            }
-
-            return true;
-        }
-
-        /// <summary>
-        /// Compare condition data properties using reflection-based comparison like AbstractConditionsHandler
-        /// </summary>
-        private bool CompareConditionDataProperties(IConditionDataGetter data1, IConditionDataGetter data2)
-        {
-            // Use the same reflection-based approach as AbstractConditionsHandler
-            return CompareConditionReferences(data1, data2);
-        }
-
-        /// <summary>
-        /// Generic method to compare reference information between two condition data objects using reflection.
-        /// This is copied from AbstractConditionsHandler to ensure consistency.
-        /// </summary>
-        private bool CompareConditionReferences(IConditionDataGetter data1, IConditionDataGetter data2)
-        {
-            // Get all properties from both objects
-            var props1 = data1.GetType().GetProperties();
-            var props2 = data2.GetType().GetProperties();
-
-            // Compare properties that are not already compared above
-            foreach (var prop1 in props1)
-            {
-                if (prop1.Name == "Function" || prop1.Name == "RunOnType" || prop1.Name == "RunOnTypeIndex" ||
-                    prop1.Name == "UseAliases" || prop1.Name == "UsePackageData" || prop1.Name == "Reference")
-                {
-                    continue; // Already compared
-                }
-
-                var prop2 = props2.FirstOrDefault(p => p.Name == prop1.Name);
-                if (prop2 == null) continue;
-
-                var val1 = prop1.GetValue(data1);
-                var val2 = prop2.GetValue(data2);
-
-                if (!Equals(val1, val2)) return false;
-            }
-
-            return true;
+            return ConditionMixIn.Equals(condition1, condition2);
         }
     }
 }

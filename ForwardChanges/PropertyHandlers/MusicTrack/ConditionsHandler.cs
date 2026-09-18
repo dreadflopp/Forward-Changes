@@ -18,11 +18,7 @@ namespace ForwardChanges.PropertyHandlers.MusicTrack
 
         protected override void UpdateConditionsCollection(IMusicTrack record, List<IConditionGetter> conditions)
         {
-            if (record.Conditions == null)
-            {
-                return;
-            }
-
+            record.Conditions ??= [];
             record.Conditions.Clear();
             foreach (var condition in conditions)
             {
@@ -33,6 +29,11 @@ namespace ForwardChanges.PropertyHandlers.MusicTrack
 
                 record.Conditions.Add(condition.DeepCopy());
             }
+        }
+
+        protected override void SetConditionsNull(IMusicTrack record)
+        {
+            record.Conditions = null;
         }
     }
 }

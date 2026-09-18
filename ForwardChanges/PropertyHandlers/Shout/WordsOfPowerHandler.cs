@@ -6,11 +6,9 @@ using ForwardChanges.PropertyHandlers.Abstracts;
 
 namespace ForwardChanges.PropertyHandlers.Shout
 {
-    public class WordsOfPowerHandler : AbstractListPropertyHandler<IShoutWordGetter>
+    public class WordsOfPowerHandler : AbstractPropertyHandler<List<IShoutWordGetter>>
     {
         public override string PropertyName => "WordsOfPower";
-
-        protected override ListOrdering Ordering => ListOrdering.None;
 
         public override void SetValue(Mutagen.Bethesda.Plugins.Records.IMajorRecord record, List<IShoutWordGetter>? value)
         {
@@ -42,14 +40,14 @@ namespace ForwardChanges.PropertyHandlers.Shout
             return (record as IShoutGetter)?.WordsOfPower?.ToList();
         }
 
-        protected override bool IsItemEqual(IShoutWordGetter? item1, IShoutWordGetter? item2)
+        public override bool AreValuesEqual(List<IShoutWordGetter>? value1, List<IShoutWordGetter>? value2)
         {
-            if (item1 == null && item2 == null) return true;
-            if (item1 == null || item2 == null) return false;
-
-            return item1.Word.FormKey == item2.Word.FormKey
-                && item1.Spell.FormKey == item2.Spell.FormKey
-                && item1.RecoveryTime.Equals(item2.RecoveryTime);
+            if (ReferenceEquals(value1, value2)) return true;
+            if (value1 == null || value2 == null || value1.Count != value2.Count) return false;
+            return value1.Zip(value2).All(pair =>
+                pair.First.Word.FormKey == pair.Second.Word.FormKey
+                && pair.First.Spell.FormKey == pair.Second.Spell.FormKey
+                && pair.First.RecoveryTime.Equals(pair.Second.RecoveryTime));
         }
     }
 }

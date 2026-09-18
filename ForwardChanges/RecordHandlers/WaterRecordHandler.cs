@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Drawing;
 using Mutagen.Bethesda;
 using Mutagen.Bethesda.Plugins;
-using Mutagen.Bethesda.Plugins.Assets;
 using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Skyrim.Assets;
 using Mutagen.Bethesda.Synthesis;
@@ -20,7 +19,8 @@ namespace ForwardChanges.RecordHandlers;
 // Migration note:
 // - Generalized: WATR scalar/binary/link fields via reflection handlers.
 // - Kept specialized: none.
-// - Rationale: mutable surface is broad but directly representable with existing handler set.
+// - Intentionally excluded: UnusedNoisemaps, DNAMDataTypeState, and Unknown* fields are outside the semantic conflict surface.
+// - Rationale: semantic fields are forwarded while the winning record retains its binary DNAM layout.
 public class WaterRecordHandler : AbstractRecordHandler
 {
     public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()
@@ -29,7 +29,6 @@ public class WaterRecordHandler : AbstractRecordHandler
         { "MajorRecordFlagsRaw", new MajorRecordFlagsRawHandler() },
         { "SkyrimMajorRecordFlags", new SkyrimMajorRecordFlagsHandler() },
         { "Name", new NameHandler() },
-        { "UnusedNoisemaps", new SimpleReflectionListPropertyHandler<string, IWater, IWaterGetter>("UnusedNoisemaps", ListOrdering.None) },
         { "Opacity", new SimpleReflectionPropertyHandler<byte, IWater, IWaterGetter>("Opacity") },
         { "Flags", new SimpleReflectionPropertyHandler<Water.Flag?, IWater, IWaterGetter>("Flags") },
         { "MNAM", new SimpleReflectionBinaryDataPropertyHandler<IWater, IWaterGetter>("MNAM") },
@@ -38,23 +37,19 @@ public class WaterRecordHandler : AbstractRecordHandler
         { "Spell", new SimpleReflectionFormLinkPropertyHandler<ISpellGetter, IWater, IWaterGetter>("Spell") },
         { "ImageSpace", new SimpleReflectionFormLinkPropertyHandler<IImageSpaceGetter, IWater, IWaterGetter>("ImageSpace") },
         { "DamagePerSecond", new SimpleReflectionPropertyHandler<ushort?, IWater, IWaterGetter>("DamagePerSecond") },
-        { "Unknown", new SimpleReflectionBinaryDataPropertyHandler<IWater, IWaterGetter>("Unknown") },
         { "SpecularSunPower", new SimpleReflectionPropertyHandler<float, IWater, IWaterGetter>("SpecularSunPower") },
         { "WaterReflectivity", new SimpleReflectionPropertyHandler<float, IWater, IWaterGetter>("WaterReflectivity") },
         { "WaterFresnel", new SimpleReflectionPropertyHandler<float, IWater, IWaterGetter>("WaterFresnel") },
-        { "Unknown2", new SimpleReflectionPropertyHandler<int, IWater, IWaterGetter>("Unknown2") },
         { "FogAboveWaterDistanceNearPlane", new SimpleReflectionPropertyHandler<float, IWater, IWaterGetter>("FogAboveWaterDistanceNearPlane") },
         { "FogAboveWaterDistanceFarPlane", new SimpleReflectionPropertyHandler<float, IWater, IWaterGetter>("FogAboveWaterDistanceFarPlane") },
         { "ShallowColor", new SimpleReflectionPropertyHandler<Color, IWater, IWaterGetter>("ShallowColor") },
         { "DeepColor", new SimpleReflectionPropertyHandler<Color, IWater, IWaterGetter>("DeepColor") },
         { "ReflectionColor", new SimpleReflectionPropertyHandler<Color, IWater, IWaterGetter>("ReflectionColor") },
-        { "Unknown3", new SimpleReflectionBinaryDataPropertyHandler<IWater, IWaterGetter>("Unknown3") },
         { "DisplacementStartingSize", new SimpleReflectionPropertyHandler<float, IWater, IWaterGetter>("DisplacementStartingSize") },
         { "DisplacementFoce", new SimpleReflectionPropertyHandler<float, IWater, IWaterGetter>("DisplacementFoce") },
         { "DisplacementVelocity", new SimpleReflectionPropertyHandler<float, IWater, IWaterGetter>("DisplacementVelocity") },
         { "DisplacementFalloff", new SimpleReflectionPropertyHandler<float, IWater, IWaterGetter>("DisplacementFalloff") },
         { "DisplacementDampner", new SimpleReflectionPropertyHandler<float, IWater, IWaterGetter>("DisplacementDampner") },
-        { "Unknown4", new SimpleReflectionPropertyHandler<int, IWater, IWaterGetter>("Unknown4") },
         { "NoiseFalloff", new SimpleReflectionPropertyHandler<float, IWater, IWaterGetter>("NoiseFalloff") },
         { "NoiseLayerOneWindDirection", new SimpleReflectionPropertyHandler<float, IWater, IWaterGetter>("NoiseLayerOneWindDirection") },
         { "NoiseLayerTwoWindDirection", new SimpleReflectionPropertyHandler<float, IWater, IWaterGetter>("NoiseLayerTwoWindDirection") },
@@ -62,15 +57,12 @@ public class WaterRecordHandler : AbstractRecordHandler
         { "NoiseLayerOneWindSpeed", new SimpleReflectionPropertyHandler<float, IWater, IWaterGetter>("NoiseLayerOneWindSpeed") },
         { "NoiseLayerTwoWindSpeed", new SimpleReflectionPropertyHandler<float, IWater, IWaterGetter>("NoiseLayerTwoWindSpeed") },
         { "NoiseLayerThreeWindSpeed", new SimpleReflectionPropertyHandler<float, IWater, IWaterGetter>("NoiseLayerThreeWindSpeed") },
-        { "Unknown5", new SimpleReflectionBinaryDataPropertyHandler<IWater, IWaterGetter>("Unknown5") },
         { "FogAboveWaterAmount", new SimpleReflectionPropertyHandler<float, IWater, IWaterGetter>("FogAboveWaterAmount") },
-        { "Unknown6", new SimpleReflectionPropertyHandler<int, IWater, IWaterGetter>("Unknown6") },
         { "FogUnderWaterAmount", new SimpleReflectionPropertyHandler<float, IWater, IWaterGetter>("FogUnderWaterAmount") },
         { "FogUnderWaterDistanceNearPlane", new SimpleReflectionPropertyHandler<float, IWater, IWaterGetter>("FogUnderWaterDistanceNearPlane") },
         { "FogUnderWaterDistanceFarPlane", new SimpleReflectionPropertyHandler<float, IWater, IWaterGetter>("FogUnderWaterDistanceFarPlane") },
         { "WaterRefractionMagnitude", new SimpleReflectionPropertyHandler<float, IWater, IWaterGetter>("WaterRefractionMagnitude") },
         { "SpecularPower", new SimpleReflectionPropertyHandler<float, IWater, IWaterGetter>("SpecularPower") },
-        { "Unknown7", new SimpleReflectionPropertyHandler<int, IWater, IWaterGetter>("Unknown7") },
         { "SpecularRadius", new SimpleReflectionPropertyHandler<float, IWater, IWaterGetter>("SpecularRadius") },
         { "SpecularBrightness", new SimpleReflectionPropertyHandler<float, IWater, IWaterGetter>("SpecularBrightness") },
         { "NoiseLayerOneUvScale", new SimpleReflectionPropertyHandler<float, IWater, IWaterGetter>("NoiseLayerOneUvScale") },
@@ -91,11 +83,10 @@ public class WaterRecordHandler : AbstractRecordHandler
         { "GNAM", new SimpleReflectionBinaryDataPropertyHandler<IWater, IWaterGetter>("GNAM") },
         { "LinearVelocity", new SimpleReflectionPropertyHandler<P3Float?, IWater, IWaterGetter>("LinearVelocity") },
         { "AngularVelocity", new SimpleReflectionPropertyHandler<P3Float?, IWater, IWaterGetter>("AngularVelocity") },
-        { "NoiseLayerOneTexture", new SimpleReflectionPropertyHandler<AssetLinkGetter<SkyrimTextureAssetType>?, IWater, IWaterGetter>("NoiseLayerOneTexture") },
-        { "NoiseLayerTwoTexture", new SimpleReflectionPropertyHandler<AssetLinkGetter<SkyrimTextureAssetType>?, IWater, IWaterGetter>("NoiseLayerTwoTexture") },
-        { "NoiseLayerThreeTexture", new SimpleReflectionPropertyHandler<AssetLinkGetter<SkyrimTextureAssetType>?, IWater, IWaterGetter>("NoiseLayerThreeTexture") },
-        { "FlowNormalsNoiseTexture", new SimpleReflectionPropertyHandler<AssetLinkGetter<SkyrimTextureAssetType>?, IWater, IWaterGetter>("FlowNormalsNoiseTexture") },
-        { "DNAMDataTypeState", new SimpleReflectionPropertyHandler<Water.DNAMDataType, IWater, IWaterGetter>("DNAMDataTypeState") }
+        { "NoiseLayerOneTexture", new SimpleReflectionAssetLinkPropertyHandler<SkyrimTextureAssetType, IWater, IWaterGetter>("NoiseLayerOneTexture") },
+        { "NoiseLayerTwoTexture", new SimpleReflectionAssetLinkPropertyHandler<SkyrimTextureAssetType, IWater, IWaterGetter>("NoiseLayerTwoTexture") },
+        { "NoiseLayerThreeTexture", new SimpleReflectionAssetLinkPropertyHandler<SkyrimTextureAssetType, IWater, IWaterGetter>("NoiseLayerThreeTexture") },
+        { "FlowNormalsNoiseTexture", new SimpleReflectionAssetLinkPropertyHandler<SkyrimTextureAssetType, IWater, IWaterGetter>("FlowNormalsNoiseTexture") },
     };
 
     public override IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter>[] GetRecordContexts(

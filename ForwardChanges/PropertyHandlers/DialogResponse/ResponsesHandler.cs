@@ -20,7 +20,7 @@ namespace ForwardChanges.PropertyHandlers.DialogResponse
         }
 
         public override string PropertyName => "Responses";
-        protected override ListOrdering Ordering => ListOrdering.PreserveModOrder;
+        public override ListSemantics Semantics => ListSemantics.AlignedOrdered;
 
         public override void SetValue(IMajorRecord record, List<IDialogResponseGetter>? value)
         {

@@ -13,6 +13,7 @@ namespace ForwardChanges.RecordHandlers
     // Migration note:
     // - Generalized: scalar fields, form links, and decal via reflection handlers.
     // - Kept specialized: none.
+    // - Intentionally excluded: Unknown is outside the semantic conflict surface.
     // - Rationale: the interface surface is small and matches existing reflection-safe patterns.
     public class ImpactRecordHandler : AbstractRecordHandler
     {
@@ -29,7 +30,6 @@ namespace ForwardChanges.RecordHandlers
             { "SoundLevel", new SimpleReflectionPropertyHandler<SoundLevel, IImpact, IImpactGetter>("SoundLevel") },
             { "NoDecalData", new SimpleReflectionPropertyHandler<bool, IImpact, IImpactGetter>("NoDecalData") },
             { "Result", new SimpleReflectionPropertyHandler<Mutagen.Bethesda.Skyrim.Impact.ResultType, IImpact, IImpactGetter>("Result") },
-            { "Unknown", new SimpleReflectionPropertyHandler<short, IImpact, IImpactGetter>("Unknown") },
             { "Decal", new ComplexReflectionPropertyHandler<IDecalGetter, IImpact, IImpactGetter>("Decal") },
             { "TextureSet", new SimpleReflectionFormLinkPropertyHandler<ITextureSetGetter, IImpact, IImpactGetter>("TextureSet") },
             { "SecondaryTextureSet", new SimpleReflectionFormLinkPropertyHandler<ITextureSetGetter, IImpact, IImpactGetter>("SecondaryTextureSet") },

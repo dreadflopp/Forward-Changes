@@ -14,6 +14,11 @@ using ForwardChanges.PropertyHandlers.Interfaces;
 
 namespace ForwardChanges.RecordHandlers
 {
+    // Migration note:
+    // - Generalized: semantic MGEF scalar, link, list, and aggregate fields use shared handlers.
+    // - Kept specialized: flags, sounds, conditions, and archetype-specific behavior.
+    // - Intentionally excluded: Unknown1 is outside the semantic conflict surface.
+    // - Rationale: the winning override retains excluded engine-managed data.
     public class MagicEffectRecordHandler : AbstractRecordHandler
     {
         public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()
@@ -49,7 +54,6 @@ namespace ForwardChanges.RecordHandlers
             { "EquipAbility", new SimpleReflectionFormLinkPropertyHandler<ISpellGetter, IMagicEffect, IMagicEffectGetter>("EquipAbility") },
             { "ImageSpaceModifier", new SimpleReflectionFormLinkPropertyHandler<IImageSpaceAdapterGetter, IMagicEffect, IMagicEffectGetter>("ImageSpaceModifier") },
             { "PerkToApply", new SimpleReflectionFormLinkPropertyHandler<IPerkGetter, IMagicEffect, IMagicEffectGetter>("PerkToApply") },
-            { "Unknown1", new SimpleReflectionPropertyHandler<ushort, IMagicEffect, IMagicEffectGetter>("Unknown1") },
             { "TaperWeight", new SimpleReflectionPropertyHandler<float, IMagicEffect, IMagicEffectGetter>("TaperWeight") },
             { "MinimumSkillLevel", new SimpleReflectionPropertyHandler<uint, IMagicEffect, IMagicEffectGetter>("MinimumSkillLevel") },
             { "SpellmakingArea", new SimpleReflectionPropertyHandler<uint, IMagicEffect, IMagicEffectGetter>("SpellmakingArea") },
@@ -61,8 +65,8 @@ namespace ForwardChanges.RecordHandlers
             { "DualCastScale", new SimpleReflectionPropertyHandler<float, IMagicEffect, IMagicEffectGetter>("DualCastScale") },
             { "ScriptEffectAIScore", new SimpleReflectionPropertyHandler<float, IMagicEffect, IMagicEffectGetter>("ScriptEffectAIScore") },
             { "ScriptEffectAIDelayTime", new SimpleReflectionPropertyHandler<float, IMagicEffect, IMagicEffectGetter>("ScriptEffectAIDelayTime") },
-            { "CounterEffects", new SimpleReflectionListPropertyHandler<IFormLinkGetter<IMagicEffectGetter>, IMagicEffect, IMagicEffectGetter>("CounterEffects") },
-            { "Sounds", new SimpleReflectionListPropertyHandler<IMagicEffectSoundGetter, IMagicEffect, IMagicEffectGetter>("Sounds", ListOrdering.PreserveModOrder) },
+            { "CounterEffects", new SimpleReflectionListPropertyHandler<IFormLinkGetter<IMagicEffectGetter>, IMagicEffect, IMagicEffectGetter>("CounterEffects", ListSemantics.SortedKeyed) },
+            { "Sounds", new SimpleReflectionListPropertyHandler<IMagicEffectSoundGetter, IMagicEffect, IMagicEffectGetter>("Sounds", ListSemantics.SortedKeyed, keySelector: sound => sound.Type) },
             { "Archetype", new ArchetypeHandler() },
             { "Conditions", new ConditionsHandler() }
         };

@@ -12,6 +12,10 @@ using ForwardChanges.PropertyHandlers.Interfaces;
 
 namespace ForwardChanges.RecordHandlers
 {
+    // Migration note:
+    // - Generalized: scalar, translated-text, form-link, model, and VMAD fields use shared semantic handlers.
+    // - Kept specialized: destructible data remains atomic; record and major flags retain approved flag handlers.
+    // - Rationale: aggregate copying preserves nested binary/model state while independent fields remain mergeable.
     public class ActivatorRecordHandler : AbstractRecordHandler
     {
         private readonly Dictionary<string, IPropertyHandler> _propertyHandlers;
@@ -57,8 +61,5 @@ namespace ForwardChanges.RecordHandlers
                 .ResolveAllContexts<ISkyrimMod, ISkyrimModGetter, IActivator, IActivatorGetter>(state.LinkCache)
                 .ToArray();
         }
-
-        // GetOverrideRecord and ApplyForwardedProperties are now handled by the base class
-        // The base class automatically handles flag property coordination
     }
 }

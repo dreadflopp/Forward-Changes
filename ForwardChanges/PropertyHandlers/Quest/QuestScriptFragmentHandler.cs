@@ -6,7 +6,14 @@ namespace ForwardChanges.PropertyHandlers.Quest
 {
     public class QuestScriptFragmentHandler : AbstractListPropertyHandler<IQuestScriptFragmentGetter>
     {
-        public override string PropertyName => "QuestScriptFragments";
+        public override string PropertyName => "VirtualMachineAdapter.Fragments";
+        public override ListSemantics Semantics => ListSemantics.SortedKeyed;
+
+        protected override bool IsItemIdentityEqual(IQuestScriptFragmentGetter? left, IQuestScriptFragmentGetter? right) =>
+            left?.Stage == right?.Stage && left?.StageIndex == right?.StageIndex;
+
+        protected override IReadOnlyList<object?> GetSortKey(IQuestScriptFragmentGetter item) =>
+            [item.Stage, item.StageIndex];
 
         public override List<IQuestScriptFragmentGetter>? GetValue(IMajorRecordGetter record)
         {
@@ -19,8 +26,9 @@ namespace ForwardChanges.PropertyHandlers.Quest
 
         public override void SetValue(IMajorRecord record, List<IQuestScriptFragmentGetter>? value)
         {
-            if (record is IQuest questRecord && questRecord.VirtualMachineAdapter != null && value != null)
+            if (record is IQuest questRecord && value != null)
             {
+                questRecord.VirtualMachineAdapter ??= new QuestAdapter();
                 if (questRecord.VirtualMachineAdapter.Fragments != null)
                 {
                     questRecord.VirtualMachineAdapter.Fragments.Clear();

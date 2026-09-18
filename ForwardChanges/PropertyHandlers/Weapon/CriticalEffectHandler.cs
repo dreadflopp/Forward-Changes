@@ -7,13 +7,14 @@ namespace ForwardChanges.PropertyHandlers.Weapon
 {
     public class CriticalEffectHandler : AbstractPropertyHandler<IFormLinkGetter<ISpellGetter>>
     {
-        public override string PropertyName => "Effect";
+        public override string PropertyName => "Critical.Effect";
 
         public override void SetValue(IMajorRecord record, IFormLinkGetter<ISpellGetter>? value)
         {
             var weaponRecord = TryCastRecord<IWeapon>(record, PropertyName);
-            if (weaponRecord != null && weaponRecord.Critical != null)
+            if (weaponRecord != null)
             {
+                weaponRecord.Critical ??= new CriticalData();
                 if (value == null || value.FormKey.IsNull)
                 {
                     weaponRecord.Critical.Effect.Clear();

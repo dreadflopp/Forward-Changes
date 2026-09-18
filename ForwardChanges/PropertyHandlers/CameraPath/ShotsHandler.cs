@@ -8,6 +8,7 @@ namespace ForwardChanges.PropertyHandlers.CameraPath
     public class ShotsHandler : AbstractListPropertyHandler<IFormLinkGetter<ICameraShotGetter>>
     {
         public override string PropertyName => "Shots";
+        public override ListSemantics Semantics => ListSemantics.AlignedOrdered;
 
         public override List<IFormLinkGetter<ICameraShotGetter>>? GetValue(Mutagen.Bethesda.Plugins.Records.IMajorRecordGetter record)
         {

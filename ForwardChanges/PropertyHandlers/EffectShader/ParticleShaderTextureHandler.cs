@@ -4,6 +4,7 @@ using Mutagen.Bethesda.Plugins.Assets;
 using Mutagen.Bethesda.Skyrim.Assets;
 using ForwardChanges.PropertyHandlers.Abstracts;
 using ForwardChanges.PropertyHandlers.Interfaces;
+using ForwardChanges.PropertyHandlers.General;
 
 namespace ForwardChanges.PropertyHandlers.EffectShader
 {
@@ -41,7 +42,7 @@ namespace ForwardChanges.PropertyHandlers.EffectShader
         {
             if (value1 == null && value2 == null) return true;
             if (value1 == null || value2 == null) return false;
-            return EffectShaderTexturePathHelper.Normalize(value1) == EffectShaderTexturePathHelper.Normalize(value2);
+            return AssetPathHelper.AreEqual(value1, value2);
         }
 
         public override string FormatValue(object? value)

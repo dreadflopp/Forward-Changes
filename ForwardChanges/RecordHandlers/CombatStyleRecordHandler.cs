@@ -14,7 +14,8 @@ namespace ForwardChanges.RecordHandlers
     // Migration note:
     // - Generalized: all scalar/object fields via reflection handlers.
     // - Kept specialized: none.
-    // - Rationale: surface is scalar-heavy and safely covered by existing reflection handlers.
+    // - Intentionally excluded: CSGDDataTypeState is Mutagen serialization state, not an xEdit field.
+    // - Rationale: semantic fields are forwarded while the winning record retains its binary CSGD layout.
     public class CombatStyleRecordHandler : AbstractRecordHandler
     {
         public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()
@@ -38,7 +39,6 @@ namespace ForwardChanges.RecordHandlers
             { "LongRangeStrafeMult", new SimpleReflectionPropertyHandler<float?, ICombatStyle, ICombatStyleGetter>("LongRangeStrafeMult", 0.0001f) },
             { "Flight", new ComplexReflectionPropertyHandler<ICombatStyleFlightGetter, ICombatStyle, ICombatStyleGetter>("Flight") },
             { "Flags", new SimpleReflectionFlagPropertyHandler<Mutagen.Bethesda.Skyrim.CombatStyle.Flag, ICombatStyle, ICombatStyleGetter>("Flags") },
-            { "CSGDDataTypeState", new SimpleReflectionPropertyHandler<Mutagen.Bethesda.Skyrim.CombatStyle.CSGDDataType, ICombatStyle, ICombatStyleGetter>("CSGDDataTypeState") },
             { "MajorFlags", new SimpleReflectionFlagPropertyHandler<Mutagen.Bethesda.Skyrim.CombatStyle.MajorFlag, ICombatStyle, ICombatStyleGetter>("MajorFlags") }
         };
 

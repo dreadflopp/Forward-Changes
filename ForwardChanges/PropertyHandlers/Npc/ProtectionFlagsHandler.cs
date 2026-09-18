@@ -10,6 +10,13 @@ using ForwardChanges.PropertyHandlers.Interfaces;
 
 namespace ForwardChanges.PropertyHandlers.Npc
 {
+    internal enum ProtectionMergeAction
+    {
+        Ignore,
+        Accept,
+        AcceptAndResolve
+    }
+
     public class ProtectionFlagsHandler : AbstractPropertyHandler<ProtectionStatus>
     {
         public override string PropertyName => "Configuration.Flags";
@@ -33,9 +40,7 @@ namespace ForwardChanges.PropertyHandlers.Npc
         }
 
         /// <summary>
-        /// Set the protection state to the flags. Accepts ProtectionStatus or NpcConfiguration.Flag
-        /// If ProtectionStatus is provided, it modifies the flags to set the protection state.
-        /// If NpcConfiguration.Flag is provided, it sets the flags to the provided value.
+        /// Set the protection state while preserving all unrelated configuration flags.
         /// </summary>
         /// <param name="record"></param>
         /// <param name="value"></param>
@@ -89,10 +94,16 @@ namespace ForwardChanges.PropertyHandlers.Npc
         /// <param name="state"></param>
         /// <param name="propertyContext"></param>
         public override void UpdatePropertyContext(
-        IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> context,
-        IPatcherState<ISkyrimMod, ISkyrimModGetter> state,
+            IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> context,
+            IPatcherState<ISkyrimMod, ISkyrimModGetter> state,
             IPropertyContext propertyContext)
         {
+            if (PatcherSettings.ProtectionPolicy == ProtectionForwardingPolicy.StandardForwarding)
+            {
+                base.UpdatePropertyContext(context, state, propertyContext);
+                return;
+            }
+
             if (propertyContext is not SimplePropertyContext<ProtectionStatus> simplePropertyContext)
             {
                 throw new InvalidOperationException($"Property context is not a simple property context for {PropertyName}");
@@ -113,32 +124,120 @@ namespace ForwardChanges.PropertyHandlers.Npc
 
             var contextProtectionStatus = GetProtectionStatusFromFlags(npc.Configuration.Flags);
             var forwardValueProtectionStatus = forwardContext.Value;
-
-            if (contextProtectionStatus == ProtectionStatus.Essential)
+            var hasPermission = false;
+            if (PatcherSettings.ProtectionPolicy == ProtectionForwardingPolicy.PreferHigherWithAuthorizedDowngrades
+                && contextProtectionStatus < forwardValueProtectionStatus)
             {
-                simplePropertyContext.IsResolved = true;
-                forwardContext.Value = ProtectionStatus.Essential;
-                forwardContext.OwnerMod = context.ModKey.ToString();
-                LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: Protection state is essential, property is resolved");
+                var recordMod = state.LoadOrder[context.ModKey].Mod;
+                hasPermission = recordMod != null
+                                && HasPermissionToModify(recordMod, forwardContext.OwnerMod);
+            }
+
+            var action = EvaluatePolicy(
+                PatcherSettings.ProtectionPolicy,
+                forwardValueProtectionStatus,
+                contextProtectionStatus,
+                hasPermission);
+
+            if (action == ProtectionMergeAction.Ignore)
+            {
+                if (contextProtectionStatus < forwardValueProtectionStatus
+                    && PatcherSettings.ProtectionPolicy == ProtectionForwardingPolicy.PreferHigherWithAuthorizedDowngrades)
+                {
+                    LogCollector.Add(
+                        PropertyName,
+                        $"[{PropertyName}] {context.ModKey}: Cannot lower protection state " +
+                        $"{forwardValueProtectionStatus} -> {contextProtectionStatus} - no permission " +
+                        $"(owned by {forwardContext.OwnerMod})");
+                }
+                else
+                {
+                    LogCollector.Add(
+                        PropertyName,
+                        $"[{PropertyName}] {context.ModKey}: New state: {contextProtectionStatus} " +
+                        $"is not higher than current state: {forwardValueProtectionStatus}");
+                }
+
                 return;
             }
 
-            if (contextProtectionStatus > forwardValueProtectionStatus)
+            var previousOwner = forwardContext.OwnerMod;
+            forwardContext.Value = contextProtectionStatus;
+            forwardContext.OwnerMod = context.ModKey.ToString();
+
+            if (contextProtectionStatus < forwardValueProtectionStatus)
             {
-                forwardContext.Value = contextProtectionStatus;
-                forwardContext.OwnerMod = context.ModKey.ToString();
-                LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: New protection state: {forwardValueProtectionStatus} -> {contextProtectionStatus}");
-                if (contextProtectionStatus == ProtectionStatus.Essential)
-                {
-                    simplePropertyContext.IsResolved = true;
-                    LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: Protection state is essential, property is resolved");
-                    return;
-                }
+                LogCollector.Add(
+                    PropertyName,
+                    $"[{PropertyName}] {context.ModKey}: Authorized protection downgrade: " +
+                    $"{forwardValueProtectionStatus} -> {contextProtectionStatus} " +
+                    $"(was owned by {previousOwner}, new owner: {forwardContext.OwnerMod})");
             }
             else
             {
-                LogCollector.Add(PropertyName, $"[{PropertyName}] {context.ModKey}: New state: {contextProtectionStatus} is not higher than current state: {forwardValueProtectionStatus}");
+                LogCollector.Add(
+                    PropertyName,
+                    $"[{PropertyName}] {context.ModKey}: New protection state: " +
+                    $"{forwardValueProtectionStatus} -> {contextProtectionStatus} " +
+                    $"(new owner: {forwardContext.OwnerMod})");
             }
+
+            if (action == ProtectionMergeAction.AcceptAndResolve)
+            {
+                simplePropertyContext.IsResolved = true;
+                LogCollector.Add(
+                    PropertyName,
+                    $"[{PropertyName}] {context.ModKey}: Protection state is essential, property is resolved");
+            }
+        }
+
+        internal static ProtectionMergeAction EvaluatePolicy(
+            ProtectionForwardingPolicy policy,
+            ProtectionStatus currentStatus,
+            ProtectionStatus incomingStatus,
+            bool hasPermission)
+        {
+            return policy switch
+            {
+                ProtectionForwardingPolicy.HighestWins
+                    when incomingStatus == ProtectionStatus.Essential
+                    => ProtectionMergeAction.AcceptAndResolve,
+                ProtectionForwardingPolicy.HighestWins
+                    when incomingStatus > currentStatus
+                    => ProtectionMergeAction.Accept,
+                ProtectionForwardingPolicy.HighestWins
+                    => ProtectionMergeAction.Ignore,
+                ProtectionForwardingPolicy.PreferHigherWithAuthorizedDowngrades
+                    when incomingStatus > currentStatus
+                    => ProtectionMergeAction.Accept,
+                ProtectionForwardingPolicy.PreferHigherWithAuthorizedDowngrades
+                    when incomingStatus < currentStatus && hasPermission
+                    => ProtectionMergeAction.Accept,
+                ProtectionForwardingPolicy.PreferHigherWithAuthorizedDowngrades
+                    => ProtectionMergeAction.Ignore,
+                ProtectionForwardingPolicy.StandardForwarding
+                    => throw new InvalidOperationException(
+                        $"{nameof(ProtectionForwardingPolicy.StandardForwarding)} is handled by the base property handler."),
+                _ => throw new ArgumentOutOfRangeException(nameof(policy), policy, null)
+            };
+        }
+
+        private static bool HasPermissionToModify(ISkyrimModGetter mod, string? ownerMod)
+        {
+            if (ownerMod == null)
+            {
+                return false;
+            }
+
+            return string.Equals(
+                       mod.ModKey.ToString(),
+                       ownerMod,
+                       StringComparison.OrdinalIgnoreCase)
+                   || mod.MasterReferences.Any(master =>
+                       string.Equals(
+                           master.Master.ToString(),
+                           ownerMod,
+                           StringComparison.OrdinalIgnoreCase));
         }
     }
 }

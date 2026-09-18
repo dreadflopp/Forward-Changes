@@ -17,7 +17,14 @@ namespace ForwardChanges.PropertyHandlers.LeveledItem
     {
         public override string PropertyName => "Entries";
 
-        protected override ListOrdering Ordering => ListOrdering.None; // Order doesn't matter, but we sort for consistency
+        public override ListSemantics Semantics => ListSemantics.SortedKeyed;
+
+        protected override IReadOnlyList<object?> GetSortKey(ILeveledItemEntryGetter item)
+            => [item.Data?.Level ?? 0, item.Data?.Reference.FormKey ?? FormKey.Null];
+
+        protected override bool IsItemIdentityEqual(ILeveledItemEntryGetter? left, ILeveledItemEntryGetter? right) =>
+            left?.Data?.Level == right?.Data?.Level
+            && left?.Data?.Reference.FormKey == right?.Data?.Reference.FormKey;
 
         // Helper method to cast records (not available in AbstractListPropertyHandler)
         private static TRecord? TryCastRecord<TRecord>(IMajorRecord record, string propertyName) where TRecord : class

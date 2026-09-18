@@ -11,11 +11,17 @@ using System;
 
 namespace ForwardChanges.RecordHandlers
 {
+    // Migration note:
+    // - Generalized: inherited EditorID and reflection-safe WEAP aggregate leaves use shared handlers.
+    // - Kept specialized: model, script, destructible, description, and flag behavior that carries record-specific semantics.
+    // - Intentionally excluded: Unused*, Data.Unused*, Critical.Unused*, and Data.Unknown* are outside the semantic conflict surface.
+    // - Rationale: exact dotted registrations expose semantic leaves while preserving dedicated copy and flag behavior.
     public class WeaponRecordHandler : AbstractRecordHandler
     {
         public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()
         {
             // General properties (using existing handlers)
+            { "EditorID", new EditorIDHandler() },
             { "Name", new NameHandler() },
             { "MajorRecordFlagsRaw", new MajorRecordFlagsRawHandler() },
             { "SkyrimMajorRecordFlags", new SkyrimMajorRecordFlagsHandler() },
@@ -46,43 +52,35 @@ namespace ForwardChanges.RecordHandlers
             { "IdleSound", new SimpleReflectionFormLinkPropertyHandler<ISoundDescriptorGetter, IWeapon, IWeaponGetter>("IdleSound") },
             { "EquipSound", new SimpleReflectionFormLinkPropertyHandler<ISoundDescriptorGetter, IWeapon, IWeaponGetter>("EquipSound") },
             { "UnequipSound", new SimpleReflectionFormLinkPropertyHandler<ISoundDescriptorGetter, IWeapon, IWeaponGetter>("UnequipSound") },
-            { "Value", new ValueHandler() },
-            { "Weight", new WeightHandler() },
-            { "Damage", new DamageHandler() },
+            { "BasicStats.Value", new ValueHandler() },
+            { "BasicStats.Weight", new WeightHandler() },
+            { "BasicStats.Damage", new SimpleReflectionPropertyHandler<ushort, IWeapon, IWeaponGetter>("BasicStats.Damage") },
             { "DetectionSoundLevel", new SimpleReflectionPropertyHandler<SoundLevel?, IWeapon, IWeaponGetter>("DetectionSoundLevel") },
             { "Template", new SimpleReflectionFormLinkPropertyHandler<IWeaponGetter, IWeapon, IWeaponGetter>("Template") },
-            { "AnimationType", new AnimationTypeHandler() },
-            { "Speed", new SpeedHandler() },
-            { "Reach", new ReachHandler() },
-            { "Flags", new WeaponDataFlagsHandler() },
-            { "SightFOV", new SightFOVHandler() },
-            { "Unknown", new UnknownHandler() },
-            { "BaseVATStoHitChance", new BaseVATStoHitChanceHandler() },
-            { "AttackAnimation", new AttackAnimationHandler() },
-            { "NumProjectiles", new NumProjectilesHandler() },
-            { "EmbeddedWeaponAV", new EmbeddedWeaponAVHandler() },
-            { "RangeMin", new RangeMinHandler() },
-            { "RangeMax", new RangeMaxHandler() },
-            { "OnHit", new OnHitHandler() },
-            { "AnimationAttackMult", new AnimationAttackMultHandler() },
-            { "Unknown2", new Unknown2Handler() },
-            { "RumbleLeftMotorStrength", new RumbleLeftMotorStrengthHandler() },
-            { "RumbleRightMotorStrength", new RumbleRightMotorStrengthHandler() },
-            { "RumbleDuration", new RumbleDurationHandler() },
-            { "Skill", new SkillHandler() },
-            { "Unknown4", new Unknown4Handler() },
-            { "Resist", new ResistHandler() },
-            { "Unknown5", new Unknown5Handler() },
-            { "Stagger", new StaggerHandler() },
+            { "Data.AnimationType", new SimpleReflectionPropertyHandler<WeaponAnimationType, IWeapon, IWeaponGetter>("Data.AnimationType") },
+            { "Data.Speed", new SimpleReflectionPropertyHandler<float, IWeapon, IWeaponGetter>("Data.Speed") },
+            { "Data.Reach", new SimpleReflectionPropertyHandler<float, IWeapon, IWeaponGetter>("Data.Reach") },
+            { "Data.Flags", new SimpleReflectionFlagPropertyHandler<WeaponData.Flag, IWeapon, IWeaponGetter>("Data.Flags", preserveUnknownBits: true) },
+            { "Data.SightFOV", new SimpleReflectionPropertyHandler<float, IWeapon, IWeaponGetter>("Data.SightFOV") },
+            { "Data.BaseVATStoHitChance", new SimpleReflectionPropertyHandler<byte, IWeapon, IWeaponGetter>("Data.BaseVATStoHitChance") },
+            { "Data.AttackAnimation", new SimpleReflectionPropertyHandler<WeaponData.AttackAnimationType, IWeapon, IWeaponGetter>("Data.AttackAnimation") },
+            { "Data.NumProjectiles", new SimpleReflectionPropertyHandler<byte, IWeapon, IWeaponGetter>("Data.NumProjectiles") },
+            { "Data.EmbeddedWeaponAV", new SimpleReflectionPropertyHandler<byte, IWeapon, IWeaponGetter>("Data.EmbeddedWeaponAV") },
+            { "Data.RangeMin", new SimpleReflectionPropertyHandler<float, IWeapon, IWeaponGetter>("Data.RangeMin") },
+            { "Data.RangeMax", new SimpleReflectionPropertyHandler<float, IWeapon, IWeaponGetter>("Data.RangeMax") },
+            { "Data.OnHit", new SimpleReflectionPropertyHandler<WeaponData.OnHitType, IWeapon, IWeaponGetter>("Data.OnHit") },
+            { "Data.AnimationAttackMult", new SimpleReflectionPropertyHandler<float, IWeapon, IWeaponGetter>("Data.AnimationAttackMult") },
+            { "Data.RumbleLeftMotorStrength", new SimpleReflectionPropertyHandler<float, IWeapon, IWeaponGetter>("Data.RumbleLeftMotorStrength") },
+            { "Data.RumbleRightMotorStrength", new SimpleReflectionPropertyHandler<float, IWeapon, IWeaponGetter>("Data.RumbleRightMotorStrength") },
+            { "Data.RumbleDuration", new SimpleReflectionPropertyHandler<float, IWeapon, IWeaponGetter>("Data.RumbleDuration") },
+            { "Data.Skill", new SimpleReflectionPropertyHandler<Skill?, IWeapon, IWeaponGetter>("Data.Skill") },
+            { "Data.Resist", new SimpleReflectionPropertyHandler<ActorValue, IWeapon, IWeaponGetter>("Data.Resist") },
+            { "Data.Stagger", new SimpleReflectionPropertyHandler<float, IWeapon, IWeaponGetter>("Data.Stagger") },
             // CriticalData
-            { "Versioning", new CriticalVersioningHandler() },
-            { "CriticalDamage", new CriticalDamageHandler() },
-            { "CriticalUnused", new CriticalUnusedHandler() },
-            { "PercentMult", new CriticalPercentMultHandler() },
-            { "CriticalFlags", new CriticalFlagsHandler() },
-            { "CriticalUnused3", new CriticalUnused3Handler() },
-            { "Effect", new CriticalEffectHandler() },
-            { "CriticalUnused4", new CriticalUnused4Handler() }
+            { "Critical.Damage", new SimpleReflectionPropertyHandler<ushort, IWeapon, IWeaponGetter>("Critical.Damage") },
+            { "Critical.PercentMult", new SimpleReflectionPropertyHandler<float, IWeapon, IWeaponGetter>("Critical.PercentMult") },
+            { "Critical.Flags", new SimpleReflectionFlagPropertyHandler<CriticalData.Flag, IWeapon, IWeaponGetter>("Critical.Flags", preserveUnknownBits: true) },
+            { "Critical.Effect", new CriticalEffectHandler() }
         };
 
         public override IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter>[] GetRecordContexts(

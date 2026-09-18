@@ -11,6 +11,10 @@ using System;
 
 namespace ForwardChanges.RecordHandlers
 {
+    // Migration note:
+    // - Generalized: MISC links, value/weight, model, VMAD, and common item fields use shared handlers.
+    // - Kept specialized: icons and destructible data remain typed aggregates; major flags retain the approved handler.
+    // - Rationale: generated aggregate copies preserve nested asset and binary state.
     public class MiscItemRecordHandler : AbstractRecordHandler
     {
         public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()

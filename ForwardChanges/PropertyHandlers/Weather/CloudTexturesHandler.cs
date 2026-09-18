@@ -38,7 +38,7 @@ namespace ForwardChanges.PropertyHandlers.Weather
             {
                 if (value != null && i < value.Count && value[i] != null)
                 {
-                    target[i] = new AssetLink<SkyrimTextureAssetType>(TexturePathHelper.Normalize(value[i]!.ToString() ?? string.Empty));
+                    target[i] = AssetPathHelper.Copy(value[i]);
                 }
                 else
                 {
@@ -68,7 +68,7 @@ namespace ForwardChanges.PropertyHandlers.Weather
                     return false;
                 }
 
-                if (TexturePathHelper.Normalize(v1.ToString() ?? string.Empty) != TexturePathHelper.Normalize(v2.ToString() ?? string.Empty))
+                if (!AssetPathHelper.AreEqual(v1, v2))
                 {
                     return false;
                 }
@@ -86,7 +86,7 @@ namespace ForwardChanges.PropertyHandlers.Weather
                     return "Empty";
                 }
 
-                return string.Join(", ", list.Select((item, idx) => $"{idx}={(item == null ? "null" : TexturePathHelper.Normalize(item.ToString() ?? string.Empty))}"));
+                return string.Join(", ", list.Select((item, idx) => $"{idx}={AssetPathHelper.Format(item)}"));
             }
 
             return value?.ToString() ?? "null";

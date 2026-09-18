@@ -7,6 +7,12 @@ namespace ForwardChanges.PropertyHandlers.Climate
     public class WeatherTypesHandler : AbstractListPropertyHandler<IWeatherTypeGetter>
     {
         public override string PropertyName => "WeatherTypes";
+        public override ListSemantics Semantics => ListSemantics.SortedKeyed;
+
+        protected override bool IsItemIdentityEqual(IWeatherTypeGetter? left, IWeatherTypeGetter? right) =>
+            left?.Weather.FormKey == right?.Weather.FormKey;
+
+        protected override IReadOnlyList<object?> GetSortKey(IWeatherTypeGetter item) => [item.Weather.FormKey];
 
         public override List<IWeatherTypeGetter>? GetValue(Mutagen.Bethesda.Plugins.Records.IMajorRecordGetter record)
         {

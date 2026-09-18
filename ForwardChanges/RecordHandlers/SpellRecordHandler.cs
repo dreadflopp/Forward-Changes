@@ -12,6 +12,9 @@ using System;
 
 namespace ForwardChanges.RecordHandlers
 {
+    // Effects migration note: generalized reconciliation to the shared exact-position
+    // atomic handler; spell collection access stays specialized because xEdit gives
+    // the outer Effects entries no stable row key.
     public class SpellRecordHandler : AbstractRecordHandler
     {
         public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()

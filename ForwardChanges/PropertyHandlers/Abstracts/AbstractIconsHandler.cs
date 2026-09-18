@@ -5,6 +5,7 @@ using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Plugins.Assets;
 using Mutagen.Bethesda.Skyrim.Assets;
 using ForwardChanges.PropertyHandlers.Abstracts;
+using ForwardChanges.PropertyHandlers.General;
 
 namespace ForwardChanges.PropertyHandlers.Abstracts
 {
@@ -43,13 +44,13 @@ namespace ForwardChanges.PropertyHandlers.Abstracts
                 // Copy LargeIconFilename
                 if (value.LargeIconFilename != null && !value.LargeIconFilename.IsNull)
                 {
-                    newIcons.LargeIconFilename = new AssetLink<SkyrimTextureAssetType>(value.LargeIconFilename.ToString());
+                    newIcons.LargeIconFilename = AssetPathHelper.Copy(value.LargeIconFilename)!;
                 }
 
                 // Copy SmallIconFilename
                 if (value.SmallIconFilename != null && !value.SmallIconFilename.IsNull)
                 {
-                    newIcons.SmallIconFilename = new AssetLink<SkyrimTextureAssetType>(value.SmallIconFilename.ToString());
+                    newIcons.SmallIconFilename = AssetPathHelper.Copy(value.SmallIconFilename);
                 }
 
                 SetIcons(typedRecord, newIcons);
@@ -66,10 +67,10 @@ namespace ForwardChanges.PropertyHandlers.Abstracts
             if (value1 == null || value2 == null) return false;
 
             // Compare LargeIconFilename
-            if (value1.LargeIconFilename?.ToString() != value2.LargeIconFilename?.ToString()) return false;
+            if (!AssetPathHelper.AreEqual(value1.LargeIconFilename, value2.LargeIconFilename)) return false;
 
             // Compare SmallIconFilename
-            if (value1.SmallIconFilename?.ToString() != value2.SmallIconFilename?.ToString()) return false;
+            if (!AssetPathHelper.AreEqual(value1.SmallIconFilename, value2.SmallIconFilename)) return false;
 
             return true;
         }

@@ -8,9 +8,16 @@ using ForwardChanges.RecordHandlers.Abstracts;
 using ForwardChanges.PropertyHandlers.Interfaces;
 using ForwardChanges.PropertyHandlers.Cell;
 using ForwardChanges.PropertyHandlers.General;
+using ForwardChanges.PropertyHandlers.Abstracts;
 
 namespace ForwardChanges.RecordHandlers
 {
+    // Migration note:
+    // - Generalized: semantic CELL fields use shared scalar, flag, link, and list handlers; obsolete one-field
+    //   CELL handlers replaced by these registrations were removed.
+    // - Kept specialized: lighting, ownership, encounter-zone, and occlusion structures retain typed handlers.
+    // - Intentionally excluded: WaterHeight and Landscape are runtime-managed; NavigationMeshes is navigation data.
+    // - Rationale: excluded fields remain exactly as authored by the winning override.
     public class CellRecordHandler : AbstractRecordHandler
     {
         private readonly Dictionary<string, IPropertyHandler> _propertyHandlers;
@@ -26,12 +33,10 @@ namespace ForwardChanges.RecordHandlers
                 { "Name", new NameHandler() },
                 { "Flags", new SimpleReflectionFlagPropertyHandler<Cell.Flag, ICell, ICellGetter>("Flags") },
                 { "MajorFlags", new SimpleReflectionFlagPropertyHandler<Cell.MajorFlag, ICell, ICellGetter>("MajorFlags") },
-
-                { "Regions", new SimpleReflectionListPropertyHandler<IFormLinkGetter<IRegionGetter>, ICell, ICellGetter>("Regions") },
+                { "Regions", new SimpleReflectionListPropertyHandler<IFormLinkGetter<IRegionGetter>, ICell, ICellGetter>("Regions", ListSemantics.SortedKeyed) },
                 { "Location", new SimpleReflectionFormLinkPropertyHandler<ILocationGetter, ICell, ICellGetter>("Location") },
                 { "Owner", new SimpleReflectionFormLinkPropertyHandler<IOwnerGetter, ICell, ICellGetter>("Owner") },
                 { "Water", new SimpleReflectionFormLinkPropertyHandler<IWaterGetter, ICell, ICellGetter>("Water") },
-                //{ "WaterHeight", new WaterHeightHandler() },
                 { "Lighting", new LightingHandler() },
                 { "LightingTemplate", new SimpleReflectionFormLinkPropertyHandler<ILightingTemplateGetter, ICell, ICellGetter>("LightingTemplate") },
                 { "AcousticSpace", new SimpleReflectionFormLinkPropertyHandler<IAcousticSpaceGetter, ICell, ICellGetter>("AcousticSpace") },
@@ -50,8 +55,6 @@ namespace ForwardChanges.RecordHandlers
                 { "FactionRank", new SimpleReflectionPropertyHandler<int?, ICell, ICellGetter>("FactionRank") },
                 { "LockList", new SimpleReflectionFormLinkPropertyHandler<ILockListGetter, ICell, ICellGetter>("LockList") },
                 { "WaterEnvironmentMap", new WaterEnvironmentMapHandler() },
-                // { "Landscape", new LandscapeHandler() },
-                // { "NavigationMeshes", new NavigationMeshesHandler() },
 
             };
         }

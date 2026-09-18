@@ -7,12 +7,18 @@ using Mutagen.Bethesda.Plugins.Cache;
 using Mutagen.Bethesda.Strings;
 using ForwardChanges.PropertyHandlers.DialogResponse;
 using ForwardChanges.PropertyHandlers.General;
+using ForwardChanges.PropertyHandlers.Abstracts;
 using ForwardChanges.RecordHandlers.Abstracts;
 using ForwardChanges.PropertyHandlers.Interfaces;
 using System;
 
 namespace ForwardChanges.RecordHandlers
 {
+    // Migration note:
+    // - Generalized: DATA uses the shared binary deep-copy handler.
+    // - Kept specialized: response, condition, script, and flag handlers retain merge and record-specific behavior.
+    // - Intentionally excluded: PreviousDialog is runtime/structural linkage; UnknownData is an opaque SCHR/QNAM/NEXT payload.
+    // - Rationale: excluded fields remain from the winning override instead of being synthesized across plugins.
     public class DialogResponseRecordHandler : AbstractRecordHandler
     {
         public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()
@@ -20,14 +26,14 @@ namespace ForwardChanges.RecordHandlers
             { "EditorID", new EditorIDHandler() },
             { "MajorRecordFlagsRaw", new MajorRecordFlagsRawHandler() },
             { "SkyrimMajorRecordFlags", new SkyrimMajorRecordFlagsHandler() },
+            { "DATA", new SimpleReflectionBinaryDataPropertyHandler<IDialogResponses, IDialogResponsesGetter>("DATA") },
             { "VirtualMachineAdapter", new VirtualMachineAdapterHandler() },
             { "Flags", new FlagsHandler() },
             { "MajorFlags", new MajorFlagsHandler() },
             { "ResetHours", new SimpleReflectionPropertyHandler<float, IDialogResponses, IDialogResponsesGetter>("Flags.ResetHours") },
             { "Topic", new SimpleReflectionFormLinkPropertyHandler<IDialogTopicGetter, IDialogResponses, IDialogResponsesGetter>("Topic") },
-            { "PreviousDialog", new SimpleReflectionFormLinkPropertyHandler<IDialogResponsesGetter, IDialogResponses, IDialogResponsesGetter>("PreviousDialog") },
             { "FavorLevel", new SimpleReflectionPropertyHandler<FavorLevel?, IDialogResponses, IDialogResponsesGetter>("FavorLevel") },
-            { "LinkTo", new SimpleReflectionListPropertyHandler<IFormLinkGetter<IDialogGetter>, IDialogResponses, IDialogResponsesGetter>("LinkTo") },
+            { "LinkTo", new SimpleReflectionListPropertyHandler<IFormLinkGetter<IDialogTopicGetter>, IDialogResponses, IDialogResponsesGetter>("LinkTo", ListSemantics.AlignedOrdered) },
             { "ResponseData", new SimpleReflectionFormLinkPropertyHandler<IDialogResponsesGetter, IDialogResponses, IDialogResponsesGetter>("ResponseData") },
             { "Responses", new ResponsesHandler(normalizeTrailingWhitespace: true) },
             { "Conditions", new ConditionsHandler() },

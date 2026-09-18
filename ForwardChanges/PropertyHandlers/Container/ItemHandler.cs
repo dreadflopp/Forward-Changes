@@ -16,6 +16,23 @@ namespace ForwardChanges.PropertyHandlers.Container
     public class ItemHandler : AbstractListPropertyHandler<ContainerEntry>
     {
         public override string PropertyName => "Items";
+        public override ListSemantics Semantics => ListSemantics.SortedKeyed;
+
+        protected override bool IsItemIdentityEqual(ContainerEntry? left, ContainerEntry? right) =>
+            left?.Item.Item.FormKey == right?.Item.Item.FormKey;
+
+        protected override IReadOnlyList<object?> GetSortKey(ContainerEntry item) => [item.Item.Item.FormKey];
+
+        protected override ContainerEntry CopyItemForForwardContext(ContainerEntry item) => CopyItem(item);
+
+        private static ContainerEntry CopyItem(IContainerEntryGetter item) => new()
+        {
+            Item = new ContainerItem
+            {
+                Item = new FormLink<IItemGetter>(item.Item.Item.FormKey),
+                Count = item.Item.Count
+            }
+        };
 
         public override void SetValue(IMajorRecord record, List<ContainerEntry>? value)
         {
@@ -33,14 +50,7 @@ namespace ForwardChanges.PropertyHandlers.Container
         {
             if (record is IContainerGetter container)
             {
-                return container.Items?.Select(item => new ContainerEntry
-                {
-                    Item = new ContainerItem
-                    {
-                        Item = new FormLink<IItemGetter>(item.Item.Item.FormKey),
-                        Count = item.Item.Count
-                    }
-                }).ToList();
+                return container.Items?.Select(CopyItem).ToList();
             }
 
             Console.WriteLine($"Error: Record does not implement IContainerGetter for {PropertyName}");

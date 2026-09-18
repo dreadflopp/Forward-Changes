@@ -17,8 +17,13 @@ namespace ForwardChanges.RecordHandlers
 {
     // Migration note:
     // - Generalized: placed-object location links continue to use the shared reflection form-link handler.
-    // - Specialized: placed-object complex/list behavior remains specialized; Mutagen 0.54.4 now exposes LocationReference as ILocationGetter.
-    // - Rationale: only the generated link target changed, so no record-specific behavior needed replacement.
+    //   XLRL/LocationReference intentionally stays on this conflict-aware path: a newly added value that
+    //   survives into the winner already produces no patch, while a later removal remains a real conflict,
+    //   matching xEdit's cpBenignIfAdded behavior.
+    // - Specialized: placement keeps whole-object forwarding and now formats its position/rotation explicitly; complex/list behavior remains specialized.
+    // - Nullable aggregates: list presence is inferred from Mutagen metadata, and VMAD preserves absent versus present-empty state.
+    // - Intentionally excluded: Unknown is outside the semantic conflict surface.
+    // - Rationale: PlacementBinaryOverlay has no useful ToString(), so the record-specific formatter prevents type-name-only logs.
     public class PlacedObjectRecordHandler : AbstractRecordHandler
     {
         public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()
@@ -32,19 +37,18 @@ namespace ForwardChanges.RecordHandlers
             { "LocationReference", new SimpleReflectionFormLinkPropertyHandler<ILocationGetter, IPlacedObject, IPlacedObjectGetter>("LocationReference") },
             { "Placement.Position", new SimpleReflectionPropertyHandler<P3Float?, IPlacedObject, IPlacedObjectGetter>("Placement.Position", P3FloatComparison.PositionEpsilon) },
             { "Placement.Rotation", new SimpleReflectionPropertyHandler<P3Float?, IPlacedObject, IPlacedObjectGetter>("Placement.Rotation", P3FloatComparison.RotationEpsilon) },
-            { "LinkedReferences", new SimpleReflectionListPropertyHandler<ILinkedReferencesGetter, IPlacedObject, IPlacedObjectGetter>("LinkedReferences", ListOrdering.PreserveModOrder) },
-            { "LinkedRooms", new SimpleReflectionListPropertyHandler<IFormLinkGetter<IPlacedObjectGetter>, IPlacedObject, IPlacedObjectGetter>("LinkedRooms", ListOrdering.None) },
+            { "LinkedReferences", new SimpleReflectionListPropertyHandler<ILinkedReferencesGetter, IPlacedObject, IPlacedObjectGetter>("LinkedReferences", ListSemantics.SortedKeyed, keySelector: entry => entry.KeywordOrReference.FormKey) },
+            { "LinkedRooms", new SimpleReflectionListPropertyHandler<IFormLinkGetter<IPlacedObjectGetter>, IPlacedObject, IPlacedObjectGetter>("LinkedRooms", ListSemantics.SortedKeyed) },
             { "ImageSpace", new SimpleReflectionFormLinkPropertyHandler<IImageSpaceGetter, IPlacedObject, IPlacedObjectGetter>("ImageSpace") },
             { "LightingTemplate", new SimpleReflectionFormLinkPropertyHandler<ILightingTemplateGetter, IPlacedObject, IPlacedObjectGetter>("LightingTemplate") },
-            { "Unknown", new SimpleReflectionPropertyHandler<short, IPlacedObject, IPlacedObjectGetter>("Unknown") },
             { "BoundHalfExtents", new SimpleReflectionPropertyHandler<P3Float?, IPlacedObject, IPlacedObjectGetter>("BoundHalfExtents") },
             { "Primitive", new ComplexReflectionPropertyHandler<IPlacedPrimitiveGetter, IPlacedObject, IPlacedObjectGetter>("Primitive") },
             { "OcclusionPlane", new ComplexReflectionPropertyHandler<IBoundingGetter, IPlacedObject, IPlacedObjectGetter>("OcclusionPlane") },
-            { "Portals", new SimpleReflectionListPropertyHandler<IPortalGetter, IPlacedObject, IPlacedObjectGetter>("Portals", ListOrdering.PreserveModOrder) },
+            { "Portals", new AtomicReflectionListPropertyHandler<IPortalGetter, IPlacedObject, IPlacedObjectGetter>("Portals") },
             { "RoomPortal", new ComplexReflectionPropertyHandler<IBoundingGetter, IPlacedObject, IPlacedObjectGetter>("RoomPortal") },
             { "Radius", new SimpleReflectionPropertyHandler<float?, IPlacedObject, IPlacedObjectGetter>("Radius") },
-            { "Reflections", new SimpleReflectionListPropertyHandler<IWaterReflectionGetter, IPlacedObject, IPlacedObjectGetter>("Reflections", ListOrdering.None) },
-            { "LitWater", new SimpleReflectionListPropertyHandler<IFormLinkGetter<IPlacedObjectGetter>, IPlacedObject, IPlacedObjectGetter>("LitWater", ListOrdering.None) },
+            { "Reflections", new SimpleReflectionListPropertyHandler<IWaterReflectionGetter, IPlacedObject, IPlacedObjectGetter>("Reflections", ListSemantics.SortedKeyed, keySelector: entry => entry.Water.FormKey) },
+            { "LitWater", new SimpleReflectionListPropertyHandler<IFormLinkGetter<IPlacedObjectGetter>, IPlacedObject, IPlacedObjectGetter>("LitWater", ListSemantics.SortedKeyed) },
             { "Emittance", new SimpleReflectionFormLinkPropertyHandler<IEmittanceGetter, IPlacedObject, IPlacedObjectGetter>("Emittance") },
             { "TeleportMessageBox", new SimpleReflectionFormLinkPropertyHandler<IMessageGetter, IPlacedObject, IPlacedObjectGetter>("TeleportMessageBox") },
             { "MultiBoundReference", new SimpleReflectionFormLinkPropertyHandler<IPlacedObjectGetter, IPlacedObject, IPlacedObjectGetter>("MultiBoundReference") },
@@ -53,7 +57,7 @@ namespace ForwardChanges.RecordHandlers
             { "PersistentLocation", new SimpleReflectionFormLinkPropertyHandler<ILocationGetter, IPlacedObject, IPlacedObjectGetter>("PersistentLocation") },
             { "EncounterZone", new SimpleReflectionFormLinkPropertyHandler<IEncounterZoneGetter, IPlacedObject, IPlacedObjectGetter>("EncounterZone") },
             { "NavigationDoorLink", new ComplexReflectionPropertyHandler<INavigationDoorLinkGetter, IPlacedObject, IPlacedObjectGetter>("NavigationDoorLink") },
-            { "LocationRefTypes", new SimpleReflectionListPropertyHandler<IFormLinkGetter<ILocationReferenceTypeGetter>, IPlacedObject, IPlacedObjectGetter>("LocationRefTypes", ListOrdering.PreserveModOrder, canBeNull: true) },
+            { "LocationRefTypes", new SimpleReflectionListPropertyHandler<IFormLinkGetter<ILocationReferenceTypeGetter>, IPlacedObject, IPlacedObjectGetter>("LocationRefTypes", ListSemantics.AlignedOrdered, canBeNull: true) },
             { "IsMultiBoundPrimitive", new SimpleReflectionPropertyHandler<bool, IPlacedObject, IPlacedObjectGetter>("IsMultiBoundPrimitive") },
             { "IsIgnoredBySandbox", new SimpleReflectionPropertyHandler<bool, IPlacedObject, IPlacedObjectGetter>("IsIgnoredBySandbox") },
             { "IsOpenByDefault", new SimpleReflectionPropertyHandler<bool, IPlacedObject, IPlacedObjectGetter>("IsOpenByDefault") },
@@ -73,7 +77,7 @@ namespace ForwardChanges.RecordHandlers
             { "Alpha", new ComplexReflectionPropertyHandler<IAlphaGetter, IPlacedObject, IPlacedObjectGetter>("Alpha") },
             { "Patrol", new ComplexReflectionPropertyHandler<IPatrolGetter, IPlacedObject, IPlacedObjectGetter>("Patrol") },
             { "MapMarker", new ComplexReflectionPropertyHandler<IMapMarkerGetter, IPlacedObject, IPlacedObjectGetter>("MapMarker") },
-            { "Placement", new ComplexReflectionPropertyHandler<IPlacementGetter, IPlacedObject, IPlacedObjectGetter>("Placement") },
+            { "Placement", new PlacementHandler() },
             { "VirtualMachineAdapter", new SimpleReflectionVirtualMachineAdapterHandler<IPlacedObject, IPlacedObjectGetter>() },
             { "EnableParent", new ComplexReflectionPropertyHandler<IEnableParentGetter, IPlacedObject, IPlacedObjectGetter>("EnableParent") },
             { "WaterVelocity", new ComplexReflectionPropertyHandler<IWaterVelocityGetter, IPlacedObject, IPlacedObjectGetter>("WaterVelocity") },

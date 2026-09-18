@@ -13,6 +13,10 @@ using ForwardChanges.PropertyHandlers.Interfaces;
 
 namespace ForwardChanges.RecordHandlers;
 
+// Migration note:
+// - Generalized: OTFT Items uses the shared sorted/keyed FormLink list implementation.
+// - Kept specialized: none; header flags retain the established shared handlers.
+// - Rationale: xEdit sorts outfit entries by FormID, so declaration order does not establish ownership.
 public class OutfitRecordHandler : AbstractRecordHandler
 {
     public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()
@@ -20,7 +24,7 @@ public class OutfitRecordHandler : AbstractRecordHandler
         { "EditorID", new EditorIDHandler() },
         { "MajorRecordFlagsRaw", new MajorRecordFlagsRawHandler() },
         { "SkyrimMajorRecordFlags", new SkyrimMajorRecordFlagsHandler() },
-        { "Items", new SimpleReflectionListPropertyHandler<IFormLinkGetter<IOutfitTargetGetter>, IOutfit, IOutfitGetter>("Items", ListOrdering.None) }
+        { "Items", new SimpleReflectionListPropertyHandler<IFormLinkGetter<IOutfitTargetGetter>, IOutfit, IOutfitGetter>("Items", ListSemantics.SortedKeyed) }
     };
 
     public override IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter>[] GetRecordContexts(

@@ -1,7 +1,9 @@
 using System;
+using System.Linq;
 using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Plugins.Records;
 using ForwardChanges.PropertyHandlers.Abstracts;
+using ForwardChanges.PropertyHandlers.General;
 
 namespace ForwardChanges.PropertyHandlers.Abstracts
 {
@@ -34,25 +36,9 @@ namespace ForwardChanges.PropertyHandlers.Abstracts
                     return;
                 }
 
-                // Create a new Destructible instance
-                var newDestructible = new Destructible();
-
-                // Copy Data if it exists (the 4 properties we care about for property forwarding)
-                if (value.Data != null)
-                {
-                    newDestructible.Data = new DestructableData
-                    {
-                        Health = value.Data.Health,
-                        DESTCount = value.Data.DESTCount,
-                        VATSTargetable = value.Data.VATSTargetable,
-                        Unknown = value.Data.Unknown
-                    };
-                }
-
-                // Note: Stages are complex objects that are not commonly needed for property forwarding
-                // and would require specialized deep copying logic. For now, we focus on the simple Data properties.
-
-                SetDestructible(typedRecord, newDestructible);
+                // Destructible is one atomic property. Preserve its Data, Stages,
+                // stage models, and nested links when forwarding it.
+                SetDestructible(typedRecord, value.DeepCopy());
             }
             else
             {
@@ -65,20 +51,29 @@ namespace ForwardChanges.PropertyHandlers.Abstracts
             if (value1 == null && value2 == null) return true;
             if (value1 == null || value2 == null) return false;
 
-            // Compare Data (the 4 properties we care about for property forwarding)
-            if (value1.Data == null && value2.Data == null) { }
-            else if (value1.Data == null || value2.Data == null) return false;
-            else
+            return DestructibleMixIn.Equals(value1, value2);
+        }
+
+        public override string FormatValue(object? value)
+        {
+            if (value == null) return "null";
+            if (value is not IDestructibleGetter destructible) return base.FormatValue(value);
+
+            var data = destructible.Data == null
+                ? "null"
+                : $"Health={destructible.Data.Health}, DESTCount={destructible.Data.DESTCount}, VATSTargetable={destructible.Data.VATSTargetable}, Unknown={destructible.Data.Unknown}";
+            var stages = string.Join(", ", destructible.Stages.Select((stage, index) =>
             {
-                if (value1.Data.Health != value2.Data.Health) return false;
-                if (value1.Data.DESTCount != value2.Data.DESTCount) return false;
-                if (value1.Data.VATSTargetable != value2.Data.VATSTargetable) return false;
-                if (value1.Data.Unknown != value2.Data.Unknown) return false;
-            }
+                var stageData = stage.Data == null
+                    ? "Data=null"
+                    : $"HealthPercent={stage.Data.HealthPercent}, Index={stage.Data.Index}, ModelDamageStage={stage.Data.ModelDamageStage}, Flags={stage.Data.Flags}, SelfDamagePerSecond={stage.Data.SelfDamagePerSecond}, Explosion={stage.Data.Explosion.FormKey}, Debris={stage.Data.Debris.FormKey}, DebrisCount={stage.Data.DebrisCount}";
+                var model = stage.Model == null || stage.Model.File.IsNull
+                    ? "null"
+                    : AssetPathHelper.Format(stage.Model.File);
+                return $"#{index}({stageData}, Model={model})";
+            }));
 
-            // Note: Stages comparison is skipped as they are complex objects not commonly needed for property forwarding
-
-            return true;
+            return $"Destructible(Data: {data}, Stages[{destructible.Stages.Count}]: [{stages}])";
         }
 
         protected abstract IDestructibleGetter? GetDestructible(TRecordGetter record);

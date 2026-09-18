@@ -14,6 +14,7 @@ namespace ForwardChanges.RecordHandlers;
 // Migration note:
 // - Generalized: TREE fields via reflection-based handlers and existing shared property handlers.
 // - Kept specialized: none.
+// - Intentionally excluded: Unknown is outside the semantic conflict surface.
 // - Rationale: surface aligns with existing flora/static forwarding patterns.
 public class TreeRecordHandler : AbstractRecordHandler
 {
@@ -31,7 +32,6 @@ public class TreeRecordHandler : AbstractRecordHandler
         { "Name", new NameHandler() },
         { "TrunkFlexibility", new SimpleReflectionPropertyHandler<float, ITree, ITreeGetter>("TrunkFlexibility") },
         { "BranchFlexibility", new SimpleReflectionPropertyHandler<float, ITree, ITreeGetter>("BranchFlexibility") },
-        { "Unknown", new SimpleReflectionBinaryDataPropertyHandler<ITree, ITreeGetter>("Unknown") },
         { "LeafAmplitude", new SimpleReflectionPropertyHandler<float, ITree, ITreeGetter>("LeafAmplitude") },
         { "LeafFrequency", new SimpleReflectionPropertyHandler<float, ITree, ITreeGetter>("LeafFrequency") },
         { "MajorFlags", new SimpleReflectionFlagPropertyHandler<Tree.MajorFlag, ITree, ITreeGetter>("MajorFlags") }

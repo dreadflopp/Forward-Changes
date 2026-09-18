@@ -11,6 +11,11 @@ using ForwardChanges.RecordHandlers.Abstracts;
 
 namespace ForwardChanges.RecordHandlers;
 
+// Migration note:
+// - Generalized: semantic RELA fields use shared scalar, flag, and form-link handlers.
+// - Kept specialized: none.
+// - Intentionally excluded: Unknown is outside the semantic conflict surface.
+// - Rationale: the winning override retains excluded engine-managed data.
 public class RelationshipRecordHandler : AbstractRecordHandler
 {
     public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()
@@ -21,7 +26,6 @@ public class RelationshipRecordHandler : AbstractRecordHandler
         { "Parent", new SimpleReflectionFormLinkPropertyHandler<INpcGetter, IRelationship, IRelationshipGetter>("Parent") },
         { "Child", new SimpleReflectionFormLinkPropertyHandler<INpcGetter, IRelationship, IRelationshipGetter>("Child") },
         { "Rank", new SimpleReflectionPropertyHandler<Relationship.RankType, IRelationship, IRelationshipGetter>("Rank") },
-        { "Unknown", new SimpleReflectionPropertyHandler<byte, IRelationship, IRelationshipGetter>("Unknown") },
         { "Flags", new SimpleReflectionFlagPropertyHandler<Relationship.Flag, IRelationship, IRelationshipGetter>("Flags") },
         { "AssociationType", new SimpleReflectionFormLinkPropertyHandler<IAssociationTypeGetter, IRelationship, IRelationshipGetter>("AssociationType") },
         { "MajorFlags", new SimpleReflectionFlagPropertyHandler<Relationship.MajorFlag, IRelationship, IRelationshipGetter>("MajorFlags") }

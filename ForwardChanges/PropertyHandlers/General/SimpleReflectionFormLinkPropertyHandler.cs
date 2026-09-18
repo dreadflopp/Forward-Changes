@@ -30,12 +30,10 @@ namespace ForwardChanges.PropertyHandlers.General
             _propertyName = propertyName;
 
             // Find the property on the getter interface
-            _getterProperty = typeof(TRecordGetter).GetProperty(propertyName,
-                BindingFlags.Public | BindingFlags.Instance | BindingFlags.FlattenHierarchy);
+            _getterProperty = ReflectionPropertyResolver.Find(typeof(TRecordGetter), propertyName);
 
             // Find the property on the setter interface
-            _setterProperty = typeof(TRecord).GetProperty(propertyName,
-                BindingFlags.Public | BindingFlags.Instance | BindingFlags.FlattenHierarchy);
+            _setterProperty = ReflectionPropertyResolver.Find(typeof(TRecord), propertyName);
 
             if (_getterProperty == null)
             {

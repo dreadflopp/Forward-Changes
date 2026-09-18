@@ -11,37 +11,52 @@ using ForwardChanges.PropertyHandlers.Interfaces;
 
 namespace ForwardChanges.RecordHandlers
 {
+    // Migration note:
+    // - Generalized: independent links, assets, translated name, and flags use shared semantic handlers.
+    // - Kept specialized: LOD Data, World Map Offset, and Distant LOD use WRLD-aware aggregate/default handlers.
+    // - Intentionally excluded: MHDT MaxHeight is generated/no-copy height data; NNAM CanopyShadow is unused/cpIgnore;
+    //   object bounds and WRLD child-group/runtime data remain owned by the winning override.
+    // - Coupled forwarding: parent inheritance fields and fixed-dimension controls establish complete-record
+    //   ownership boundaries so null local values cannot be combined with incompatible inheritance flags.
+    // - Rationale: xEdit models these as removable/required structures, and generated Mutagen copies are required
+    //   to preserve overlay form links and aggregate payloads.
     public class WorldspaceRecordHandler : AbstractRecordHandler
     {
+        private static readonly IReadOnlySet<string> StructuralPropertyNames = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "Parent",
+            "Climate",
+            "Water",
+            "LodData",
+            "LandDefaults",
+            "MapData",
+            "Flags",
+            "FixedDimensionsCenterCell"
+        };
+
+        protected override IReadOnlySet<string> AtomicOwnershipTriggerProperties => StructuralPropertyNames;
+
         public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()
         {
             { "EditorID", new EditorIDHandler() },
-            { "MajorRecordFlagsRaw", new MajorRecordFlagsRawHandler() },
-            { "SkyrimMajorRecordFlags", new SkyrimMajorRecordFlagsHandler() },
-            { "MajorFlags", new MajorFlagsHandler() },
+            { "MajorRecordFlagsRaw", new MajorRecordFlagsRawHandler(typeof(SkyrimMajorRecord.SkyrimMajorRecordFlag), typeof(Worldspace.MajorFlag)) },
             { "Name", new NameHandler() },
-            { "MaxHeight", new ComplexReflectionPropertyHandler<IWorldspaceMaxHeightGetter, IWorldspace, IWorldspaceGetter>("MaxHeight") },
             { "Location", new SimpleReflectionFormLinkPropertyHandler<ILocationGetter, IWorldspace, IWorldspaceGetter>("Location") },
             { "Water", new SimpleReflectionFormLinkPropertyHandler<IWaterGetter, IWorldspace, IWorldspaceGetter>("Water") },
-            { "LodWater", new SimpleReflectionFormLinkPropertyHandler<IWaterGetter, IWorldspace, IWorldspaceGetter>("LodWater") },
-            { "LodWaterHeight", new SimpleReflectionPropertyHandler<float?, IWorldspace, IWorldspaceGetter>("LodWaterHeight") },
+            { "LodData", new LodDataHandler() },
             { "Music", new SimpleReflectionFormLinkPropertyHandler<IMusicTypeGetter, IWorldspace, IWorldspaceGetter>("Music") },
-            { "ObjectBoundsMin", new SimpleReflectionPropertyHandler<P2Float, IWorldspace, IWorldspaceGetter>("ObjectBoundsMin") },
-            { "ObjectBoundsMax", new SimpleReflectionPropertyHandler<P2Float, IWorldspace, IWorldspaceGetter>("ObjectBoundsMax") },
-            { "MapData", new ComplexReflectionPropertyHandler<IWorldspaceMapGetter, IWorldspace, IWorldspaceGetter>("MapData") },
+            { "MapData", new GeneratedCopyReflectionPropertyHandler<IWorldspaceMapGetter, WorldspaceMap, IWorldspace, IWorldspaceGetter>("MapData", value => value.DeepCopy(), WorldspaceMapMixIn.Equals) },
             { "MapImage", new MapImageHandler() },
             { "CloudModel", new CloudModelHandler() },
-            { "Flags", new FlagsHandler() },
-            { "WorldMapOffsetScale", new SimpleReflectionPropertyHandler<float, IWorldspace, IWorldspaceGetter>("WorldMapOffsetScale") },
-            { "WorldMapCellOffset", new WorldMapCellOffsetHandler() },
-            { "DistantLodMultiplier", new SimpleReflectionPropertyHandler<float?, IWorldspace, IWorldspaceGetter>("DistantLodMultiplier") },
+            { "Flags", new SimpleReflectionFlagPropertyHandler<Worldspace.Flag, IWorldspace, IWorldspaceGetter>("Flags", preserveUnknownBits: true) },
+            { "WorldMapOffset", new WorldMapOffsetHandler() },
+            { "DistantLodMultiplier", new DistantLodMultiplierHandler() },
             { "FixedDimensionsCenterCell", new SimpleReflectionPropertyHandler<P2Int16?, IWorldspace, IWorldspaceGetter>("FixedDimensionsCenterCell") },
             { "InteriorLighting", new SimpleReflectionFormLinkPropertyHandler<ILightingTemplateGetter, IWorldspace, IWorldspaceGetter>("InteriorLighting") },
             { "EncounterZone", new SimpleReflectionFormLinkPropertyHandler<IEncounterZoneGetter, IWorldspace, IWorldspaceGetter>("EncounterZone") },
-            { "Parent", new ComplexReflectionPropertyHandler<IWorldspaceParentGetter, IWorldspace, IWorldspaceGetter>("Parent") },
+            { "Parent", new GeneratedCopyReflectionPropertyHandler<IWorldspaceParentGetter, WorldspaceParent, IWorldspace, IWorldspaceGetter>("Parent", value => value.DeepCopy(), WorldspaceParentMixIn.Equals) },
             { "Climate", new SimpleReflectionFormLinkPropertyHandler<IClimateGetter, IWorldspace, IWorldspaceGetter>("Climate") },
-            { "LandDefaults", new ComplexReflectionPropertyHandler<IWorldspaceLandDefaultsGetter, IWorldspace, IWorldspaceGetter>("LandDefaults") },
-            { "CanopyShadow", new CanopyShadowHandler() },
+            { "LandDefaults", new GeneratedCopyReflectionPropertyHandler<IWorldspaceLandDefaultsGetter, WorldspaceLandDefaults, IWorldspace, IWorldspaceGetter>("LandDefaults", value => value.DeepCopy(), WorldspaceLandDefaultsMixIn.Equals) },
             { "WaterNoiseTexture", new WaterNoiseTextureHandler() },
             { "HdLodDiffuseTexture", new HdLodDiffuseTextureHandler() },
             { "HdLodNormalTexture", new HdLodNormalTextureHandler() },
@@ -65,7 +80,5 @@ namespace ForwardChanges.RecordHandlers
             return contexts;
         }
 
-        // GetOverrideRecord and ApplyForwardedProperties are now handled by the base class
-        // The base class automatically handles flag property coordination
     }
 }

@@ -11,6 +11,9 @@ namespace ForwardChanges.PropertyHandlers.ArmorAddon
     public class AdditionalRacesHandler : AbstractListPropertyHandler<IFormLinkGetter<IRaceGetter>>
     {
         public override string PropertyName => "AdditionalRaces";
+        public override ListSemantics Semantics => ListSemantics.SortedKeyed;
+
+        protected override IReadOnlyList<object?> GetSortKey(IFormLinkGetter<IRaceGetter> item) => [item.FormKey];
 
         public override void SetValue(IMajorRecord record, List<IFormLinkGetter<IRaceGetter>>? value)
         {

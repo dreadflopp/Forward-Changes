@@ -5,6 +5,7 @@ using Mutagen.Bethesda.Plugins.Cache;
 using Noggog;
 using ForwardChanges.Contexts;
 using ForwardChanges.PropertyHandlers.Interfaces;
+using ForwardChanges.PropertyHandlers.Formatting;
 using ForwardChanges.Contexts.Interfaces;
 using ForwardChanges;
 using System.Runtime.InteropServices;
@@ -82,7 +83,7 @@ namespace ForwardChanges.PropertyHandlers.Abstracts
         /// <returns>The formatted value</returns>
         public virtual string FormatValue(object? value)
         {
-            return value?.ToString() ?? "null";
+            return DiagnosticValueFormatter.Format(value);
         }
 
         public virtual void UpdatePropertyContext(

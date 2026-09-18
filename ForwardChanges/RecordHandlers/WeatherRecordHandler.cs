@@ -19,7 +19,8 @@ namespace ForwardChanges.RecordHandlers;
 // Migration note:
 // - Generalized: WTHR scalar/binary/link/complex fields plus CloudTextures/Clouds arrays via dedicated handlers.
 // - Kept specialized: none.
-// - Rationale: dedicated array handlers preserve fixed-slot mutable behavior for weather cloud data.
+// - Intentionally excluded: NAM0DataTypeState is serialization state; Unknown is outside the semantic conflict surface.
+// - Rationale: semantic fields are forwarded while the winning record retains its binary NAM0 layout.
 public class WeatherRecordHandler : AbstractRecordHandler
 {
     public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()
@@ -63,7 +64,6 @@ public class WeatherRecordHandler : AbstractRecordHandler
         { "FogDistanceDayMax", new SimpleReflectionPropertyHandler<float, IWeather, IWeatherGetter>("FogDistanceDayMax") },
         { "FogDistanceNightMax", new SimpleReflectionPropertyHandler<float, IWeather, IWeatherGetter>("FogDistanceNightMax") },
         { "WindSpeed", new SimpleReflectionPropertyHandler<Percent, IWeather, IWeatherGetter>("WindSpeed") },
-        { "Unknown", new SimpleReflectionPropertyHandler<ushort, IWeather, IWeatherGetter>("Unknown") },
         { "TransDelta", new SimpleReflectionPropertyHandler<float, IWeather, IWeatherGetter>("TransDelta") },
         { "SunGlare", new SimpleReflectionPropertyHandler<Percent, IWeather, IWeatherGetter>("SunGlare") },
         { "SunDamage", new SimpleReflectionPropertyHandler<Percent, IWeather, IWeatherGetter>("SunDamage") },
@@ -78,16 +78,15 @@ public class WeatherRecordHandler : AbstractRecordHandler
         { "VisualEffectEnd", new SimpleReflectionPropertyHandler<Percent, IWeather, IWeatherGetter>("VisualEffectEnd") },
         { "WindDirection", new SimpleReflectionPropertyHandler<float, IWeather, IWeatherGetter>("WindDirection") },
         { "WindDirectionRange", new SimpleReflectionPropertyHandler<float, IWeather, IWeatherGetter>("WindDirectionRange") },
-        { "Sounds", new SimpleReflectionListPropertyHandler<IWeatherSoundGetter, IWeather, IWeatherGetter>("Sounds", ListOrdering.None) },
-        { "SkyStatics", new SimpleReflectionListPropertyHandler<IFormLinkGetter<IStaticGetter>, IWeather, IWeatherGetter>("SkyStatics", ListOrdering.None) },
+        { "Sounds", new SimpleReflectionListPropertyHandler<IWeatherSoundGetter, IWeather, IWeatherGetter>("Sounds", ListSemantics.SortedKeyed, keySelector: sound => sound.Type) },
+        { "SkyStatics", new SimpleReflectionListPropertyHandler<IFormLinkGetter<IStaticGetter>, IWeather, IWeatherGetter>("SkyStatics", ListSemantics.SortedKeyed) },
         { "ImageSpaces", new ComplexReflectionPropertyHandler<IWeatherImageSpacesGetter, IWeather, IWeatherGetter>("ImageSpaces") },
         { "VolumetricLighting", new ComplexReflectionPropertyHandler<IWeatherVolumetricLightingGetter, IWeather, IWeatherGetter>("VolumetricLighting") },
         { "DirectionalAmbientLightingColors", new ComplexReflectionPropertyHandler<IWeatherAmbientColorSetGetter, IWeather, IWeatherGetter>("DirectionalAmbientLightingColors") },
         { "NAM2", new SimpleReflectionBinaryDataPropertyHandler<IWeather, IWeatherGetter>("NAM2") },
         { "NAM3", new SimpleReflectionBinaryDataPropertyHandler<IWeather, IWeatherGetter>("NAM3") },
-        { "Aurora", new ComplexReflectionPropertyHandler<IModelGetter, IWeather, IWeatherGetter>("Aurora") },
+        { "Aurora", new SimpleReflectionModelPropertyHandler<IWeather, IWeatherGetter>("Aurora") },
         { "SunGlareLensFlare", new SimpleReflectionFormLinkPropertyHandler<ILensFlareGetter, IWeather, IWeatherGetter>("SunGlareLensFlare") },
-        { "NAM0DataTypeState", new SimpleReflectionPropertyHandler<Weather.NAM0DataType, IWeather, IWeatherGetter>("NAM0DataTypeState") }
     };
 
     public override IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter>[] GetRecordContexts(

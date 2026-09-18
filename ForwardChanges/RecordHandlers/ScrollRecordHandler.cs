@@ -14,6 +14,9 @@ using ForwardChanges.RecordHandlers.Abstracts;
 
 namespace ForwardChanges.RecordHandlers;
 
+// Effects migration note: generalized reconciliation to the shared exact-position
+// atomic handler; scroll collection access stays specialized because xEdit gives
+// the outer Effects entries no stable row key.
 public class ScrollRecordHandler : AbstractRecordHandler
 {
     public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()
@@ -28,7 +31,7 @@ public class ScrollRecordHandler : AbstractRecordHandler
         { "EquipmentType", new SimpleReflectionFormLinkPropertyHandler<IEquipTypeGetter, IScroll, IScrollGetter>("EquipmentType") },
         { "Description", new ComplexReflectionPropertyHandler<ITranslatedStringGetter, IScroll, IScrollGetter>("Description") },
         { "Model", new ModelHandler() },
-        { "Destructible", new ComplexReflectionPropertyHandler<IDestructibleGetter, IScroll, IScrollGetter>("Destructible") },
+        { "Destructible", new GeneratedCopyReflectionPropertyHandler<IDestructibleGetter, Destructible, IScroll, IScrollGetter>("Destructible", value => value.DeepCopy(), DestructibleMixIn.Equals) },
         { "PickUpSound", new SimpleReflectionFormLinkPropertyHandler<ISoundDescriptorGetter, IScroll, IScrollGetter>("PickUpSound") },
         { "PutDownSound", new SimpleReflectionFormLinkPropertyHandler<ISoundDescriptorGetter, IScroll, IScrollGetter>("PutDownSound") },
         { "Value", new SimpleReflectionPropertyHandler<uint, IScroll, IScrollGetter>("Value") },

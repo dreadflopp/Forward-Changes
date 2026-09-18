@@ -8,6 +8,7 @@ namespace ForwardChanges.PropertyHandlers.DialogView
     public class BranchesHandler : AbstractListPropertyHandler<IFormLinkGetter<IDialogBranchGetter>>
     {
         public override string PropertyName => "Branches";
+        public override ListSemantics Semantics => ListSemantics.AlignedOrdered;
 
         public override List<IFormLinkGetter<IDialogBranchGetter>>? GetValue(Mutagen.Bethesda.Plugins.Records.IMajorRecordGetter record)
         {

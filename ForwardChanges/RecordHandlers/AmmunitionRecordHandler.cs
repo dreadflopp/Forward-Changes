@@ -15,7 +15,8 @@ namespace ForwardChanges.RecordHandlers
     // Migration note:
     // - Generalized: AMMO scalar/form-link fields and flags through reflection-based handlers.
     // - Kept specialized: Name/ObjectBounds/Model/Icons/Destructible/Keywords/Value/Weight and Skyrim flag handlers.
-    // - Rationale: follow existing item-record patterns while minimizing new specialized logic.
+    // - Intentionally excluded: DATADataTypeState is Mutagen serialization state, not an xEdit field.
+    // - Rationale: semantic fields are forwarded while the winning record retains its binary DATA layout.
     public class AmmunitionRecordHandler : AbstractRecordHandler
     {
         public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()
@@ -38,7 +39,6 @@ namespace ForwardChanges.RecordHandlers
             { "Value", new ValueHandler() },
             { "Weight", new WeightHandler() },
             { "ShortName", new SimpleReflectionPropertyHandler<string, IAmmunition, IAmmunitionGetter>("ShortName") },
-            { "DATADataTypeState", new SimpleReflectionPropertyHandler<Mutagen.Bethesda.Skyrim.Ammunition.DATADataType, IAmmunition, IAmmunitionGetter>("DATADataTypeState") },
             { "MajorFlags", new SimpleReflectionFlagPropertyHandler<Mutagen.Bethesda.Skyrim.Ammunition.MajorFlag, IAmmunition, IAmmunitionGetter>("MajorFlags") }
         };
 

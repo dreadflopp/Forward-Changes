@@ -12,20 +12,26 @@ using System;
 
 namespace ForwardChanges.RecordHandlers
 {
+    // Migration note:
+    // - Generalized: semantic scalar and link fields use shared reflection handlers.
+    // - Kept specialized/atomic: Model (file/data/alternate textures) and Lod (all four levels)
+    //   remain cohesive values because their members describe one mesh or LOD set.
+    // - Flag decision: the raw record-header handler is the sole storage path and owns common Skyrim plus STAT flags.
+    //   The snow DNAM flag retains its project-approved per-bit handler.
+    // - Intentionally excluded: Unused is serialization-only storage.
+    // - Rationale: unused storage is not an xEdit-visible conflict surface; retained fields have established deep-copy or flag behavior.
     public class StaticRecordHandler : AbstractRecordHandler
     {
         public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()
         {
             { "EditorID", new EditorIDHandler() },
-            { "MajorRecordFlagsRaw", new MajorRecordFlagsRawHandler() },
-            { "SkyrimMajorRecordFlags", new SkyrimMajorRecordFlagsHandler() },
+            { "MajorRecordFlagsRaw", new MajorRecordFlagsRawHandler(typeof(SkyrimMajorRecord.SkyrimMajorRecordFlag), typeof(Mutagen.Bethesda.Skyrim.Static.MajorFlag)) },
             { "ObjectBounds", new ObjectBoundsHandler() },
             { "Model", new ForwardChanges.PropertyHandlers.Static.ModelHandler() },
             { "MaxAngle", new SimpleReflectionPropertyHandler<float, IStatic, IStaticGetter>("MaxAngle", 0.0001f) },
             { "Material", new SimpleReflectionFormLinkPropertyHandler<IMaterialObjectGetter, IStatic, IStaticGetter>("Material") },
             { "Flags", new FlagsHandler() },
-            { "Lod", new LodHandler() },
-            { "MajorFlags", new MajorFlagsHandler() }
+            { "Lod", new LodHandler() }
         };
 
         public override IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter>[] GetRecordContexts(

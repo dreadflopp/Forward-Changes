@@ -60,6 +60,13 @@ namespace ForwardChanges
 
         private static bool ShouldEmit(string identifier, string line)
         {
+            // Warnings are actionable diagnostics and must bypass verbosity filtering.
+            if (line.Contains("[Warning]", StringComparison.OrdinalIgnoreCase)
+                || line.Contains("Warning:", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
             // Summary mode + non-deep: suppress ALL handler log lines.
             if (!_currentDetailedRecord && !_currentDeepDiveRecord)
             {

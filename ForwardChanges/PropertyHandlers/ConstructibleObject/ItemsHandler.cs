@@ -7,6 +7,12 @@ namespace ForwardChanges.PropertyHandlers.ConstructibleObject
     public class ItemsHandler : AbstractListPropertyHandler<IContainerEntryGetter>
     {
         public override string PropertyName => "Items";
+        public override ListSemantics Semantics => ListSemantics.SortedKeyed;
+
+        protected override bool IsItemIdentityEqual(IContainerEntryGetter? left, IContainerEntryGetter? right) =>
+            left?.Item.Item.FormKey == right?.Item.Item.FormKey;
+
+        protected override IReadOnlyList<object?> GetSortKey(IContainerEntryGetter item) => [item.Item.Item.FormKey];
 
         public override List<IContainerEntryGetter>? GetValue(Mutagen.Bethesda.Plugins.Records.IMajorRecordGetter record)
         {

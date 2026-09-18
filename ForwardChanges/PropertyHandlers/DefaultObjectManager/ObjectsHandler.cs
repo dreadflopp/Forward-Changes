@@ -8,6 +8,12 @@ namespace ForwardChanges.PropertyHandlers.DefaultObjectManager
     public class ObjectsHandler : AbstractListPropertyHandler<IDefaultObjectGetter>
     {
         public override string PropertyName => "Objects";
+        public override ListSemantics Semantics => ListSemantics.SortedKeyed;
+
+        protected override bool IsItemIdentityEqual(IDefaultObjectGetter? left, IDefaultObjectGetter? right) =>
+            left?.Use == right?.Use;
+
+        protected override IReadOnlyList<object?> GetSortKey(IDefaultObjectGetter item) => [item.Use.TypeInt];
 
         public override List<IDefaultObjectGetter>? GetValue(Mutagen.Bethesda.Plugins.Records.IMajorRecordGetter record)
         {

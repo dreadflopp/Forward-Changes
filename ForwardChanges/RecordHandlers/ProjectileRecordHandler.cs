@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using Mutagen.Bethesda;
-using Mutagen.Bethesda.Plugins.Assets;
 using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Skyrim.Assets;
 using Mutagen.Bethesda.Synthesis;
@@ -16,7 +15,8 @@ namespace ForwardChanges.RecordHandlers;
 // Migration note:
 // - Generalized: PROJ scalar/form-link/asset-link fields via reflection handlers.
 // - Kept specialized: none.
-// - Rationale: interface surface is direct and covered by existing generic/property handlers.
+// - Intentionally excluded: DATADataTypeState is Mutagen serialization state, not an xEdit field.
+// - Rationale: semantic fields are forwarded while the winning record retains its binary DATA layout.
 public class ProjectileRecordHandler : AbstractRecordHandler
 {
     public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()
@@ -27,7 +27,7 @@ public class ProjectileRecordHandler : AbstractRecordHandler
         { "ObjectBounds", new ObjectBoundsHandler() },
         { "Name", new NameHandler() },
         { "Model", new ModelHandler() },
-        { "Destructible", new ComplexReflectionPropertyHandler<IDestructibleGetter, IProjectile, IProjectileGetter>("Destructible") },
+        { "Destructible", new GeneratedCopyReflectionPropertyHandler<IDestructibleGetter, Destructible, IProjectile, IProjectileGetter>("Destructible", value => value.DeepCopy(), DestructibleMixIn.Equals) },
         { "Flags", new SimpleReflectionFlagPropertyHandler<Projectile.Flag, IProjectile, IProjectileGetter>("Flags") },
         { "Type", new SimpleReflectionPropertyHandler<Projectile.TypeEnum, IProjectile, IProjectileGetter>("Type") },
         { "Gravity", new SimpleReflectionPropertyHandler<float, IProjectile, IProjectileGetter>("Gravity") },
@@ -52,10 +52,9 @@ public class ProjectileRecordHandler : AbstractRecordHandler
         { "RelaunchInterval", new SimpleReflectionPropertyHandler<float, IProjectile, IProjectileGetter>("RelaunchInterval") },
         { "DecalData", new SimpleReflectionFormLinkPropertyHandler<ITextureSetGetter, IProjectile, IProjectileGetter>("DecalData") },
         { "CollisionLayer", new SimpleReflectionFormLinkPropertyHandler<ICollisionLayerGetter, IProjectile, IProjectileGetter>("CollisionLayer") },
-        { "MuzzleFlashModel", new SimpleReflectionPropertyHandler<AssetLinkGetter<SkyrimModelAssetType>, IProjectile, IProjectileGetter>("MuzzleFlashModel") },
+        { "MuzzleFlashModel", new SimpleReflectionAssetLinkPropertyHandler<SkyrimModelAssetType, IProjectile, IProjectileGetter>("MuzzleFlashModel") },
         { "TextureFilesHashes", new SimpleReflectionBinaryDataPropertyHandler<IProjectile, IProjectileGetter>("TextureFilesHashes") },
         { "SoundLevel", new SimpleReflectionPropertyHandler<uint, IProjectile, IProjectileGetter>("SoundLevel") },
-        { "DATADataTypeState", new SimpleReflectionPropertyHandler<Projectile.DATADataType, IProjectile, IProjectileGetter>("DATADataTypeState") }
     };
 
     public override IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter>[] GetRecordContexts(

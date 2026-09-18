@@ -3,6 +3,7 @@ using Mutagen.Bethesda;
 using Mutagen.Bethesda.Synthesis;
 using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Plugins.Records;
+using Mutagen.Bethesda.Plugins;
 using Mutagen.Bethesda.Plugins.Cache;
 using ForwardChanges.PropertyHandlers.CameraPath;
 using ForwardChanges.PropertyHandlers.General;
@@ -23,7 +24,7 @@ namespace ForwardChanges.RecordHandlers
             { "MajorRecordFlagsRaw", new MajorRecordFlagsRawHandler() },
             { "SkyrimMajorRecordFlags", new SkyrimMajorRecordFlagsHandler() },
             { "Conditions", new ConditionsHandler() },
-            { "RelatedPaths", new RelatedPathsHandler() },
+            { "RelatedPaths", new AtomicReflectionListPropertyHandler<IFormLinkGetter<ICameraPathGetter>, ICameraPath, ICameraPathGetter>("RelatedPaths") },
             { "Zoom", new SimpleReflectionPropertyHandler<Mutagen.Bethesda.Skyrim.CameraPath.ZoomType, ICameraPath, ICameraPathGetter>("Zoom") },
             { "ZoomMustHaveCameraShots", new SimpleReflectionPropertyHandler<bool, ICameraPath, ICameraPathGetter>("ZoomMustHaveCameraShots") },
             { "Shots", new ShotsHandler() }

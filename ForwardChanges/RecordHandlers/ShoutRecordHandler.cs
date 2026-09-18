@@ -13,6 +13,10 @@ using ForwardChanges.RecordHandlers.Abstracts;
 
 namespace ForwardChanges.RecordHandlers;
 
+// Migration note:
+// - Generalized: SHOU text, links, and metadata use shared semantic handlers.
+// - Kept specialized: WordsOfPower is an atomic non-alignable sequence; MajorFlags retains the approved flag handler.
+// - Rationale: xEdit marks the word sequence as declaration-ordered without a safe row identity.
 public class ShoutRecordHandler : AbstractRecordHandler
 {
     public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()

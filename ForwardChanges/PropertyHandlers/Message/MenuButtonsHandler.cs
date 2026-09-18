@@ -9,7 +9,7 @@ namespace ForwardChanges.PropertyHandlers.Message
     {
         public override string PropertyName => "MenuButtons";
 
-        protected override ListOrdering Ordering => ListOrdering.PreserveModOrder;
+        public override ListSemantics Semantics => ListSemantics.AlignedOrdered;
 
         public override void SetValue(Mutagen.Bethesda.Plugins.Records.IMajorRecord record, List<IMessageButtonGetter>? value)
         {

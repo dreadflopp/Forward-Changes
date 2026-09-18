@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using Mutagen.Bethesda;
-using Mutagen.Bethesda.Plugins.Assets;
 using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Synthesis;
 using Mutagen.Bethesda.Plugins.Records;
@@ -13,6 +12,11 @@ using ForwardChanges.PropertyHandlers.Interfaces;
 
 namespace ForwardChanges.RecordHandlers;
 
+// Migration note:
+// - Generalized: SPGD scalar, vector, asset-link, and enum fields use existing handlers.
+// - Kept specialized: none.
+// - Intentionally excluded: DATADataTypeState is Mutagen serialization state, not an xEdit field.
+// - Rationale: semantic fields are forwarded while the winning record retains its binary DATA layout.
 public class ShaderParticleGeometryRecordHandler : AbstractRecordHandler
 {
     public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()
@@ -32,8 +36,7 @@ public class ShaderParticleGeometryRecordHandler : AbstractRecordHandler
         { "Type", new SimpleReflectionPropertyHandler<ShaderParticleGeometry.TypeEnum, IShaderParticleGeometry, IShaderParticleGeometryGetter>("Type") },
         { "BoxSize", new SimpleReflectionPropertyHandler<uint, IShaderParticleGeometry, IShaderParticleGeometryGetter>("BoxSize") },
         { "ParticleDensity", new SimpleReflectionPropertyHandler<float, IShaderParticleGeometry, IShaderParticleGeometryGetter>("ParticleDensity") },
-        { "ParticleTexture", new SimpleReflectionPropertyHandler<AssetLinkGetter<SkyrimTextureAssetType>?, IShaderParticleGeometry, IShaderParticleGeometryGetter>("ParticleTexture") },
-        { "DATADataTypeState", new SimpleReflectionPropertyHandler<ShaderParticleGeometry.DATADataType, IShaderParticleGeometry, IShaderParticleGeometryGetter>("DATADataTypeState") }
+        { "ParticleTexture", new SimpleReflectionAssetLinkPropertyHandler<SkyrimTextureAssetType, IShaderParticleGeometry, IShaderParticleGeometryGetter>("ParticleTexture") },
     };
 
     public override IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter>[] GetRecordContexts(

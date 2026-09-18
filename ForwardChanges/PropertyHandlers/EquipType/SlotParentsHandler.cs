@@ -9,6 +9,7 @@ namespace ForwardChanges.PropertyHandlers.EquipType
     public class SlotParentsHandler : AbstractListPropertyHandler<IFormLinkGetter<IEquipTypeGetter>>
     {
         public override string PropertyName => "SlotParents";
+        public override ListSemantics Semantics => ListSemantics.AlignedOrdered;
 
         public override List<IFormLinkGetter<IEquipTypeGetter>>? GetValue(Mutagen.Bethesda.Plugins.Records.IMajorRecordGetter record)
         {

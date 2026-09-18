@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Collections;
+using System.Collections.Concurrent;
 using Mutagen.Bethesda;
 using Mutagen.Bethesda.Synthesis;
 using Mutagen.Bethesda.Skyrim;
@@ -14,8 +15,21 @@ namespace ForwardChanges.RecordHandlers.Abstracts
 {
     public abstract class AbstractRecordHandler : IRecordHandler
     {
+        private static readonly ConcurrentDictionary<string, byte> EmittedFormatterWarnings = new(StringComparer.Ordinal);
+        private static readonly ConcurrentDictionary<string, byte> AuditedFormatterTypes = new(StringComparer.Ordinal);
+
+        protected static IReadOnlySet<string> EmptyAtomicOwnershipTriggerProperties { get; } =
+            new HashSet<string>(StringComparer.Ordinal);
+
         // Abstract property that all record handlers must implement
         public abstract Dictionary<string, IPropertyHandler> PropertyHandlers { get; }
+
+        /// <summary>
+        /// Properties whose change between adjacent overrides makes the newer override
+        /// the complete ownership baseline for this record. Empty by default.
+        /// </summary>
+        protected virtual IReadOnlySet<string> AtomicOwnershipTriggerProperties =>
+            EmptyAtomicOwnershipTriggerProperties;
 
         protected Dictionary<string, IPropertyContext> PropertyContexts { get; private set; } = [];
 
@@ -45,10 +59,13 @@ namespace ForwardChanges.RecordHandlers.Abstracts
                 return false;
             }
 
-            // If formatter output equals runtime ToString and looks like a type name,
-            // we almost certainly failed to produce a meaningful value representation.
-            var runtimeToString = value.ToString() ?? string.Empty;
-            if (string.Equals(formatted, runtimeToString, StringComparison.Ordinal) && IsLikelyTypeNameString(formatted))
+            // Do not call value.ToString() here: formatter auditing must be observational and
+            // some generated/runtime values have unsafe or low-fidelity ToString implementations.
+            var runtimeType = value.GetType();
+            var isBareRuntimeTypeName = string.Equals(formatted, runtimeType.FullName, StringComparison.Ordinal)
+                || string.Equals(formatted, runtimeType.Name, StringComparison.Ordinal)
+                || string.Equals(formatted, runtimeType.ToString(), StringComparison.Ordinal);
+            if (isBareRuntimeTypeName && IsLikelyTypeNameString(formatted))
             {
                 return true;
             }
@@ -70,12 +87,67 @@ namespace ForwardChanges.RecordHandlers.Abstracts
             bool deepDiveRecord)
         {
             var formatted = handler.FormatValue(value);
-            if (IsLowFidelityFormat(value, formatted))
+            EmitLowFidelityWarning(propertyName, handler, value, formatted, stage);
+
+            return LoggingSettings.ForLog(formatted, deepDiveRecord);
+        }
+
+        private static void EmitLowFidelityWarning(
+            string propertyName,
+            IPropertyHandler handler,
+            object? value,
+            string formatted,
+            string stage)
+        {
+            if (!IsLowFidelityFormat(value, formatted))
+            {
+                return;
+            }
+
+            var warningKey = $"{handler.GetType().FullName}|{propertyName}|{value!.GetType().FullName}";
+            if (EmittedFormatterWarnings.TryAdd(warningKey, 0))
             {
                 Console.WriteLine($"[Warning] [{propertyName}] {stage}: formatter returned a type-name fallback: {formatted}. Consider overriding FormatValue in {handler.GetType().Name}.");
             }
+        }
 
-            return LoggingSettings.ForLog(formatted, deepDiveRecord);
+        private static void AuditFormatterWarnings(
+            IReadOnlyList<IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter>> recordContexts,
+            IReadOnlyDictionary<string, IPropertyHandler> propertyHandlers)
+        {
+            foreach (var (propertyName, handler) in propertyHandlers)
+            {
+                var auditedRuntimeTypes = new HashSet<Type>();
+                foreach (var context in recordContexts)
+                {
+                    var value = handler.GetValue(context.Record);
+                    if (value == null || !auditedRuntimeTypes.Add(value.GetType()))
+                    {
+                        continue;
+                    }
+
+                    var auditKey = $"{handler.GetType().FullName}|{propertyName}|{value.GetType().FullName}";
+                    if (!AuditedFormatterTypes.TryAdd(auditKey, 0))
+                    {
+                        continue;
+                    }
+
+                    try
+                    {
+                        var formatted = handler.FormatValue(value);
+                        EmitLowFidelityWarning(
+                            propertyName,
+                            handler,
+                            value,
+                            formatted,
+                            $"formatter audit ({context.ModKey})");
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"[Warning] [{propertyName}] formatter audit ({context.ModKey}): FormatValue threw {ex.GetType().Name}: {ex.Message}");
+                    }
+                }
+            }
         }
 
 
@@ -96,6 +168,59 @@ namespace ForwardChanges.RecordHandlers.Abstracts
                 PropertyContexts[propertyName] = propertyContext;
                 handler.InitializeContext(originalContext, winningContext, propertyContext);
             }
+        }
+
+        /// <summary>
+        /// Returns the configured atomic trigger properties which changed between two
+        /// adjacent override versions, using each property's semantic equality.
+        /// </summary>
+        protected IReadOnlyList<string> GetChangedAtomicOwnershipTriggerProperties(
+            IMajorRecordGetter previousRecord,
+            IMajorRecordGetter currentRecord)
+        {
+            if (AtomicOwnershipTriggerProperties.Count == 0)
+            {
+                return [];
+            }
+
+            var changedProperties = new List<string>();
+            foreach (var propertyName in AtomicOwnershipTriggerProperties)
+            {
+                if (!PropertyHandlers.TryGetValue(propertyName, out var handler))
+                {
+                    throw new InvalidOperationException(
+                        $"Atomic ownership trigger property '{propertyName}' has no registered handler in {GetType().Name}.");
+                }
+
+                var previousValue = handler.GetValue(previousRecord);
+                var currentValue = handler.GetValue(currentRecord);
+                if (!handler.AreValuesEqual(previousValue, currentValue))
+                {
+                    changedProperties.Add(propertyName);
+                }
+            }
+
+            return changedProperties;
+        }
+
+        /// <summary>
+        /// Replaces every property context with the current override's exact snapshot
+        /// when an atomic trigger changed. Passing the same context as original and
+        /// winning assigns all property ownership to that override.
+        /// </summary>
+        protected IReadOnlyList<string> ResetPropertyContextsIfAtomicOwnershipTriggered(
+            IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> previousContext,
+            IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> currentContext)
+        {
+            var changedProperties = GetChangedAtomicOwnershipTriggerProperties(
+                previousContext.Record,
+                currentContext.Record);
+            if (changedProperties.Count > 0)
+            {
+                InitializePropertyContexts(currentContext, currentContext);
+            }
+
+            return changedProperties;
         }
 
         /// <summary>
@@ -127,6 +252,9 @@ namespace ForwardChanges.RecordHandlers.Abstracts
                     // Get all contexts for this record in load order using concrete handler
                     var recordContexts = GetRecordContexts(winningContext, state);
 
+                    // Formatter diagnostics are warnings, so they must not depend on Detailed logging.
+                    AuditFormatterWarnings(recordContexts, PropertyHandlers);
+
                     if (recordContexts.Length <= 2)
                     {
                         Console.WriteLine("Breaking early: 2 or less contexts");
@@ -146,36 +274,42 @@ namespace ForwardChanges.RecordHandlers.Abstracts
                     // Initialize property states and quick initial check for simple properties
                     var originalContext = recordContexts.Last();
                     Console.WriteLine($"Original context: {originalContext.ModKey}");
-                    InitializePropertyContexts(originalContext, winningContext);
+                    var usesAtomicOwnership = AtomicOwnershipTriggerProperties.Count > 0;
+                    InitializePropertyContexts(
+                        originalContext,
+                        usesAtomicOwnership ? originalContext : winningContext);
 
                     // Quick initial check for simple properties
                     // all simple properties (not lists) should be resolved if the original and winning values are different
-                    bool allResolved = true;
-                    bool requiresPass1 = false;
-                    foreach (var (propName, handler) in PropertyHandlers)
+                    bool allResolved = !usesAtomicOwnership;
+                    bool requiresPass1 = usesAtomicOwnership;
+                    if (!usesAtomicOwnership)
                     {
-                        if (!handler.RequiresFullLoadOrderProcessing)
+                        foreach (var (propName, handler) in PropertyHandlers)
                         {
-                            var originalValue = handler.GetValue(originalContext.Record);
-                            var winningValue = handler.GetValue(winningContext.Record);
-                            var propContext = PropertyContexts[propName];
-
-                            if (!handler.AreValuesEqual(originalValue, winningValue))
+                            if (!handler.RequiresFullLoadOrderProcessing)
                             {
-                                propContext.IsResolved = true;
-                                if (detailedRecord && LoggingSettings.ShouldLogProperty(propName, deepDiveRecord))
+                                var originalValue = handler.GetValue(originalContext.Record);
+                                var winningValue = handler.GetValue(winningContext.Record);
+                                var propContext = PropertyContexts[propName];
+
+                                if (!handler.AreValuesEqual(originalValue, winningValue))
                                 {
-                                    LogCollector.Add(propName, $"[{propName}] {winningContext.Record.FormKey} Resolved, nothing to forward. Original: {FormatForLogWithWarning(propName, handler, originalValue, "quick-check original", deepDiveRecord)}, Winning: {FormatForLogWithWarning(propName, handler, winningValue, "quick-check winning", deepDiveRecord)}");
+                                    propContext.IsResolved = true;
+                                    if (detailedRecord && LoggingSettings.ShouldLogProperty(propName, deepDiveRecord))
+                                    {
+                                        LogCollector.Add(propName, $"[{propName}] {winningContext.Record.FormKey} Resolved, nothing to forward. Original: {FormatForLogWithWarning(propName, handler, originalValue, "quick-check original", deepDiveRecord)}, Winning: {FormatForLogWithWarning(propName, handler, winningValue, "quick-check winning", deepDiveRecord)}");
+                                    }
+                                }
+                                else
+                                {
+                                    allResolved = false;
                                 }
                             }
                             else
                             {
-                                allResolved = false;
+                                requiresPass1 = true;
                             }
-                        }
-                        else
-                        {
-                            requiresPass1 = true;
                         }
                     }
 
@@ -207,11 +341,24 @@ namespace ForwardChanges.RecordHandlers.Abstracts
                         if (detailedRecord) Console.WriteLine("Processing first pass");
 
                         // iterate from original to winning
+                        var chronologicalPreviousContext = originalContext;
                         foreach (var context in recordContexts.Reverse().Skip(1))
                         {
                             // bugfix, skip if context is output mod
                             if (context.ModKey.ToString() == state.PatchMod.ModKey.ToString())
                             {
+                                continue;
+                            }
+
+                            var changedAtomicProperties = ResetPropertyContextsIfAtomicOwnershipTriggered(
+                                chronologicalPreviousContext,
+                                context);
+                            if (changedAtomicProperties.Count > 0)
+                            {
+                                Console.WriteLine(
+                                    $"Atomic ownership reset: {context.ModKey} owns the complete record because " +
+                                    $"{string.Join(", ", changedAtomicProperties)} changed");
+                                chronologicalPreviousContext = context;
                                 continue;
                             }
 
@@ -229,6 +376,8 @@ namespace ForwardChanges.RecordHandlers.Abstracts
 
                                 handler.UpdatePropertyContext(context, state, propContext);
                             }
+
+                            chronologicalPreviousContext = context;
                         }
 
                         // Process properties after pass 1. Every property should be resolved after pass 1
@@ -402,9 +551,47 @@ namespace ForwardChanges.RecordHandlers.Abstracts
                                 propertyName,
                                 $"[{propertyName}]     {context.ModKey}: {FormatForLogWithWarning(propertyName, handler, value, $"context {context.ModKey}", deepDiveRecord)}");
                         }
-                        LogCollector.AddDecisionAudit(propertyName, $"[{propertyName}]   Original value: {FormatForLogWithWarning(propertyName, handler, originalValue, "final-decision original", deepDiveRecord)}");
-                        LogCollector.AddDecisionAudit(propertyName, $"[{propertyName}]   Winning value: {FormatForLogWithWarning(propertyName, handler, winningValue, "final-decision winning", deepDiveRecord)}");
-                        LogCollector.AddDecisionAudit(propertyName, $"[{propertyName}]   Computed value: {FormatForLogWithWarning(propertyName, handler, forwardValue, "final-decision forward", deepDiveRecord)}");
+
+                        if (deepDiveRecord && handler is IDiagnosticDiffPropertyHandler diagnosticDiff)
+                        {
+                            LogCollector.AddDecisionAudit(propertyName, $"[{propertyName}]   Changes (original -> winning):");
+                            for (var index = contextValues.Length - 2; index >= 0; index--)
+                            {
+                                var older = contextValues[index + 1];
+                                var newer = contextValues[index];
+                                var difference = diagnosticDiff.FormatDifference(older.Value, newer.Value);
+                                if (string.Equals(difference, "No semantic changes", StringComparison.Ordinal))
+                                {
+                                    continue;
+                                }
+
+                                LogCollector.AddDecisionAudit(
+                                    propertyName,
+                                    $"[{propertyName}]     {older.Context.ModKey} -> {newer.Context.ModKey}: {difference}");
+                            }
+
+                            var matchingContext = contextValues.FirstOrDefault(entry =>
+                                handler.AreValuesEqual(forwardValue, entry.Value));
+                            if (matchingContext.Context != null)
+                            {
+                                LogCollector.AddDecisionAudit(
+                                    propertyName,
+                                    $"[{propertyName}]   Computed = {matchingContext.Context.ModKey} " +
+                                    $"({diagnosticDiff.FormatIdentity(forwardValue)})");
+                            }
+                            else
+                            {
+                                LogCollector.AddDecisionAudit(
+                                    propertyName,
+                                    $"[{propertyName}]   Computed: {FormatForLogWithWarning(propertyName, handler, forwardValue, "final-decision forward", deepDiveRecord)}");
+                            }
+                        }
+                        else
+                        {
+                            LogCollector.AddDecisionAudit(propertyName, $"[{propertyName}]   Original value: {FormatForLogWithWarning(propertyName, handler, originalValue, "final-decision original", deepDiveRecord)}");
+                            LogCollector.AddDecisionAudit(propertyName, $"[{propertyName}]   Winning value: {FormatForLogWithWarning(propertyName, handler, winningValue, "final-decision winning", deepDiveRecord)}");
+                            LogCollector.AddDecisionAudit(propertyName, $"[{propertyName}]   Computed value: {FormatForLogWithWarning(propertyName, handler, forwardValue, "final-decision forward", deepDiveRecord)}");
+                        }
                         LogCollector.AddDecisionAudit(
                             propertyName,
                             $"[{propertyName}]   Decision: {(shouldForward ? "FORWARD (computed value differs from winning)" : "KEEP WINNING (computed value equals winning)")}");
@@ -470,6 +657,23 @@ namespace ForwardChanges.RecordHandlers.Abstracts
         {
             bool hasMajorRecordFlagsRaw = propertiesToForward.TryGetValue("MajorRecordFlagsRaw", out var majorRecordFlagsRawValue);
             bool hasSkyrimMajorRecordFlags = propertiesToForward.TryGetValue("SkyrimMajorRecordFlags", out var skyrimMajorRecordFlagsValue);
+
+            // Migrated handlers expose one composite raw-header path containing the
+            // common Skyrim flags and any record-specific aliases. Let that sole
+            // handler apply its owned-bit mask directly; running it through the old
+            // two-view coordination would reintroduce the winning Skyrim bits and
+            // make legitimate flag clears impossible.
+            if (hasMajorRecordFlagsRaw && !PropertyHandlers.ContainsKey("SkyrimMajorRecordFlags"))
+            {
+                if (majorRecordFlagsRawValue is int compositeFlags &&
+                    PropertyHandlers.TryGetValue("MajorRecordFlagsRaw", out var compositeHandler))
+                {
+                    compositeHandler.SetValue(record, compositeFlags);
+                }
+
+                propertiesToForward.Remove("MajorRecordFlagsRaw");
+                return;
+            }
 
             // Always handle flags if either is being set, OR if SkyrimMajorRecordFlags is being set (to preserve MajorRecordFlagsRaw)
             if (hasMajorRecordFlagsRaw || hasSkyrimMajorRecordFlags)

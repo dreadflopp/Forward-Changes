@@ -7,17 +7,22 @@ using ForwardChanges.RecordHandlers.Abstracts;
 using ForwardChanges.PropertyHandlers.General;
 using ForwardChanges.PropertyHandlers.TextureSet;
 using ForwardChanges.PropertyHandlers.Interfaces;
-using TextureSetFlag = Mutagen.Bethesda.Skyrim.TextureSet.Flag;
 
 namespace ForwardChanges.RecordHandlers
 {
+    // Migration note:
+    // - Independent: TX00-TX07 texture slots remain separately forwardable Skyrim fields.
+    // - Kept specialized/atomic: the complete DODT decal payload remains one cohesive value.
+    // - Flag decision: the raw record-header handler is the sole header storage path; nullable
+    //   TXST DNAM presence and its individual bits are handled together by the typed flag handler.
+    // - Rationale: texture slots can be intentionally supplied independently, while partial decal
+    //   geometry/settings and scalar flag replacement can create invalid or lost combinations.
     public class TextureSetRecordHandler : AbstractRecordHandler
     {
         public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()
         {
             { "EditorID", new EditorIDHandler() },
-            { "MajorRecordFlagsRaw", new MajorRecordFlagsRawHandler() },
-            { "SkyrimMajorRecordFlags", new SkyrimMajorRecordFlagsHandler() },
+            { "MajorRecordFlagsRaw", new MajorRecordFlagsRawHandler(typeof(SkyrimMajorRecord.SkyrimMajorRecordFlag)) },
             { "ObjectBounds", new ObjectBoundsHandler() },
             { "Diffuse", new DiffuseHandler() },
             { "NormalOrGloss", new NormalOrGlossHandler() },
@@ -27,8 +32,11 @@ namespace ForwardChanges.RecordHandlers
             { "Environment", new EnvironmentHandler() },
             { "Multilayer", new MultilayerHandler() },
             { "BacklightMaskOrSpecular", new BacklightMaskOrSpecularHandler() },
-            { "Decal", new ComplexReflectionPropertyHandler<IDecalGetter, ITextureSet, ITextureSetGetter>("Decal") },
-            { "Flags", new SimpleReflectionPropertyHandler<TextureSetFlag?, ITextureSet, ITextureSetGetter>("Flags") },
+            { "Decal", new GeneratedCopyReflectionPropertyHandler<IDecalGetter, Decal, ITextureSet, ITextureSetGetter>(
+                "Decal",
+                value => value.DeepCopy(),
+                DecalMixIn.Equals) },
+            { "Flags", new FlagsHandler() },
         };
 
 

@@ -12,6 +12,9 @@ using System;
 
 namespace ForwardChanges.RecordHandlers
 {
+    // Effects migration note: generalized reconciliation to the shared exact-position
+    // atomic handler; record access and flag handling stay specialized because xEdit's
+    // outer Effects array has no row key and flags require approved flag handlers.
     public class ObjectEffectRecordHandler : AbstractRecordHandler
     {
         public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()

@@ -8,6 +8,7 @@ using Mutagen.Bethesda.Plugins;
 using Mutagen.Bethesda.Plugins.Records;
 using ForwardChanges.PropertyHandlers.Abstracts;
 using ForwardChanges.PropertyHandlers.Interfaces;
+using ForwardChanges.PropertyHandlers.Formatting;
 using Noggog;
 
 namespace ForwardChanges.PropertyHandlers.General
@@ -19,7 +20,7 @@ namespace ForwardChanges.PropertyHandlers.General
     /// Features:
     /// - Automatic detection of FormLink vs complex object items
     /// - Deep copying for complex objects
-    /// - Configurable ordering (ordered vs unordered)
+    /// - Explicit list semantics; callers must classify every registration
     /// - Automatic item equality detection (FormKey for FormLinks, property comparison for complex objects)
     /// </summary>
     /// <typeparam name="TItem">The type of items in the list (e.g., IFormLinkGetter&lt;IPlacedObjectGetter&gt; or ILinkedReferencesGetter)</typeparam>
@@ -35,27 +36,32 @@ namespace ForwardChanges.PropertyHandlers.General
         private readonly PropertyInfo? _setterProperty;
         private readonly bool _isFormLinkList;
         private readonly bool _canBeNull;
+        private readonly Func<TItem, object?>? _keySelector;
         private readonly Type? _mutableItemType; // For complex objects, the mutable type (e.g., LinkedReferences)
 
-        public SimpleReflectionListPropertyHandler(string propertyName, ListOrdering ordering = ListOrdering.None, bool canBeNull = false)
+        public SimpleReflectionListPropertyHandler(
+            string propertyName,
+            ListSemantics semantics,
+            bool? canBeNull = null,
+            Func<TItem, object?>? keySelector = null)
         {
             _propertyName = propertyName;
-            _ordering = ordering;
-            _canBeNull = canBeNull;
+            _semantics = semantics;
+            _keySelector = keySelector;
 
             // Find the property on the getter interface
-            _getterProperty = typeof(TRecordGetter).GetProperty(propertyName,
-                BindingFlags.Public | BindingFlags.Instance | BindingFlags.FlattenHierarchy);
+            _getterProperty = ReflectionPropertyResolver.Find(typeof(TRecordGetter), propertyName);
 
             // Find the property on the setter interface
-            _setterProperty = typeof(TRecord).GetProperty(propertyName,
-                BindingFlags.Public | BindingFlags.Instance | BindingFlags.FlattenHierarchy);
+            _setterProperty = ReflectionPropertyResolver.Find(typeof(TRecord), propertyName);
 
             if (_getterProperty == null)
             {
                 throw new ArgumentException(
                     $"Property '{propertyName}' not found on {typeof(TRecordGetter).Name}");
             }
+
+            _canBeNull = canBeNull ?? ReflectionPropertyResolver.IsNullable(_getterProperty);
 
             // Detect if items are FormLinks
             _isFormLinkList = IsFormLinkType(typeof(TItem));
@@ -69,9 +75,10 @@ namespace ForwardChanges.PropertyHandlers.General
 
         public override string PropertyName => _propertyName;
 
-        private readonly ListOrdering _ordering;
+        private readonly ListSemantics _semantics;
 
-        protected override ListOrdering Ordering => _ordering;
+        public override ListSemantics Semantics => _semantics;
+        protected override bool CanBeNull => _canBeNull;
 
         public override List<TItem>? GetValue(IMajorRecordGetter record)
         {
@@ -202,27 +209,23 @@ namespace ForwardChanges.PropertyHandlers.General
                             var newList = CreateListInstance(listType, itemType);
                             if (newList != null)
                             {
-                                var addMethod = newList.GetType().GetMethod("Add");
-                                if (addMethod != null)
+                                foreach (var item in value)
                                 {
-                                    foreach (var item in value)
+                                    if (item == null) continue;
+
+                                    object? itemToAdd = null;
+                                    if (_isFormLinkList)
                                     {
-                                        if (item == null) continue;
+                                        itemToAdd = CreateFormLinkFromGetter(item);
+                                    }
+                                    else
+                                    {
+                                        itemToAdd = DeepCopyComplexObject(item);
+                                    }
 
-                                        object? itemToAdd = null;
-                                        if (_isFormLinkList)
-                                        {
-                                            itemToAdd = CreateFormLinkFromGetter(item);
-                                        }
-                                        else
-                                        {
-                                            itemToAdd = DeepCopyComplexObject(item);
-                                        }
-
-                                        if (itemToAdd != null)
-                                        {
-                                            addMethod.Invoke(newList, new[] { itemToAdd });
-                                        }
+                                    if (itemToAdd != null)
+                                    {
+                                        AddItem(newList, itemToAdd);
                                     }
                                 }
                                 _setterProperty.SetValue(typedRecord, newList);
@@ -252,30 +255,26 @@ namespace ForwardChanges.PropertyHandlers.General
                 // Add new items to existing list
                 if (value != null && currentList != null)
                 {
-                    var addMethod = currentList.GetType().GetMethod("Add");
-                    if (addMethod != null)
+                    foreach (var item in value)
                     {
-                        foreach (var item in value)
+                        if (item == null) continue;
+
+                        object? itemToAdd = null;
+
+                        if (_isFormLinkList)
                         {
-                            if (item == null) continue;
+                            // For FormLinks, create new FormLink from FormKey
+                            itemToAdd = CreateFormLinkFromGetter(item);
+                        }
+                        else
+                        {
+                            // For complex objects, create mutable instance and copy properties
+                            itemToAdd = DeepCopyComplexObject(item);
+                        }
 
-                            object? itemToAdd = null;
-
-                            if (_isFormLinkList)
-                            {
-                                // For FormLinks, create new FormLink from FormKey
-                                itemToAdd = CreateFormLinkFromGetter(item);
-                            }
-                            else
-                            {
-                                // For complex objects, create mutable instance and copy properties
-                                itemToAdd = DeepCopyComplexObject(item);
-                            }
-
-                            if (itemToAdd != null)
-                            {
-                                addMethod.Invoke(currentList, new[] { itemToAdd });
-                            }
+                        if (itemToAdd != null)
+                        {
+                            AddItem(currentList, itemToAdd);
                         }
                     }
                 }
@@ -292,27 +291,23 @@ namespace ForwardChanges.PropertyHandlers.General
                             var newList = CreateListInstance(listType, itemType);
                             if (newList != null)
                             {
-                                var addMethod = newList.GetType().GetMethod("Add");
-                                if (addMethod != null)
+                                foreach (var item in value)
                                 {
-                                    foreach (var item in value)
+                                    if (item == null) continue;
+
+                                    object? itemToAdd = null;
+                                    if (_isFormLinkList)
                                     {
-                                        if (item == null) continue;
+                                        itemToAdd = CreateFormLinkFromGetter(item);
+                                    }
+                                    else
+                                    {
+                                        itemToAdd = DeepCopyComplexObject(item);
+                                    }
 
-                                        object? itemToAdd = null;
-                                        if (_isFormLinkList)
-                                        {
-                                            itemToAdd = CreateFormLinkFromGetter(item);
-                                        }
-                                        else
-                                        {
-                                            itemToAdd = DeepCopyComplexObject(item);
-                                        }
-
-                                        if (itemToAdd != null)
-                                        {
-                                            addMethod.Invoke(newList, new[] { itemToAdd });
-                                        }
+                                    if (itemToAdd != null)
+                                    {
+                                        AddItem(newList, itemToAdd);
                                     }
                                 }
                                 _setterProperty.SetValue(typedRecord, newList);
@@ -339,11 +334,78 @@ namespace ForwardChanges.PropertyHandlers.General
                 var formKey2 = GetFormKey(item2);
                 return formKey1.Equals(formKey2);
             }
+            else if (typeof(TItem).IsValueType || item1 is string)
+            {
+                // Scalar items use typed equality. Reflecting over string would inspect its
+                // indexed Chars property and throw TargetParameterCountException.
+                return EqualityComparer<TItem>.Default.Equals(item1, item2);
+            }
             else
             {
                 // For complex objects, compare all properties
                 return CompareComplexObjects(item1, item2);
             }
+        }
+
+        protected override bool IsItemIdentityEqual(TItem? item1, TItem? item2)
+        {
+            if (_keySelector == null)
+            {
+                return base.IsItemIdentityEqual(item1, item2);
+            }
+
+            if (item1 == null || item2 == null)
+            {
+                return item1 == null && item2 == null;
+            }
+
+            return Equals(_keySelector(item1), _keySelector(item2));
+        }
+
+        protected override IReadOnlyList<object?> GetSortKey(TItem item)
+        {
+            if (_keySelector != null)
+            {
+                var key = _keySelector(item);
+                return key is IReadOnlyList<object?> composite ? composite : [key];
+            }
+
+            if (_isFormLinkList)
+            {
+                return [GetFormKey(item)];
+            }
+
+            if (item is string || item is IComparable || item.GetType().IsEnum)
+            {
+                return [item];
+            }
+
+            return base.GetSortKey(item);
+        }
+
+        private static void AddItem(object list, object item)
+        {
+            if (list is IList nonGenericList)
+            {
+                nonGenericList.Add(item);
+                return;
+            }
+
+            var addMethod = list.GetType()
+                .GetMethods(BindingFlags.Public | BindingFlags.Instance)
+                .FirstOrDefault(method =>
+                {
+                    if (method.Name != "Add") return false;
+                    var parameters = method.GetParameters();
+                    return parameters.Length == 1 && parameters[0].ParameterType.IsInstanceOfType(item);
+                });
+
+            if (addMethod == null)
+            {
+                throw new InvalidOperationException($"No compatible Add method found on {list.GetType().Name} for {item.GetType().Name}.");
+            }
+
+            addMethod.Invoke(list, new[] { item });
         }
 
         protected override string FormatItem(TItem? item)
@@ -565,6 +627,14 @@ namespace ForwardChanges.PropertyHandlers.General
         /// </summary>
         private object? DeepCopyComplexObject(TItem getter)
         {
+            // Immutable scalar reference types do not need mutable-type discovery.
+            // In particular, string lists otherwise lose every item because there is
+            // no generated mutable counterpart named "String".
+            if (getter is string)
+            {
+                return getter;
+            }
+
             if (_mutableItemType == null)
             {
                 Console.WriteLine($"Warning: Could not find mutable type for {typeof(TItem).Name}, returning null");
@@ -616,6 +686,14 @@ namespace ForwardChanges.PropertyHandlers.General
                     if (propType.IsGenericType && propType.GetGenericTypeDefinition() == typeof(Nullable<>))
                     {
                         propType = propType.GetGenericArguments()[0];
+                    }
+
+                    // Mutagen getter interfaces expose binary payloads as ReadOnlyMemorySlice<byte>
+                    // while mutable implementations accept MemorySlice<byte>.
+                    if (value is ReadOnlyMemorySlice<byte> byteSlice && propType == typeof(MemorySlice<byte>))
+                    {
+                        mutableProp.SetValue(mutableInstance, new MemorySlice<byte>(byteSlice.ToArray()));
+                        continue;
                     }
 
                     // Handle FormLink types
@@ -729,7 +807,8 @@ namespace ForwardChanges.PropertyHandlers.General
         /// </summary>
         private bool CompareComplexObjects(TItem item1, TItem item2)
         {
-            var properties = typeof(TItem).GetProperties(BindingFlags.Public | BindingFlags.Instance);
+            var properties = typeof(TItem).GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                .Where(property => property.GetIndexParameters().Length == 0);
             foreach (var prop in properties)
             {
                 if (!prop.CanRead) continue;
@@ -768,24 +847,7 @@ namespace ForwardChanges.PropertyHandlers.General
         /// </summary>
         private string FormatComplexObject(TItem item)
         {
-            var properties = typeof(TItem).GetProperties(BindingFlags.Public | BindingFlags.Instance)
-                .Where(p => p.CanRead)
-                .Take(3) // Limit to first 3 properties for readability
-                .Select(p =>
-                {
-                    var value = p.GetValue(item);
-                    if (value == null) return $"{p.Name}: null";
-
-                    if (IsFormLinkType(value.GetType()))
-                    {
-                        var formKey = value.GetType().GetProperty("FormKey")?.GetValue(value);
-                        return $"{p.Name}: {formKey}";
-                    }
-
-                    return $"{p.Name}: {value}";
-                });
-
-            return string.Join(", ", properties);
+            return DiagnosticValueFormatter.Format(item);
         }
 
         /// <summary>

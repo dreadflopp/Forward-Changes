@@ -14,6 +14,7 @@ namespace ForwardChanges.PropertyHandlers.FormList
     public class FormIdsHandler : AbstractListPropertyHandler<IFormLinkGetter<ISkyrimMajorRecordGetter>>
     {
         public override string PropertyName => "Items";
+        public override ListSemantics Semantics => ListSemantics.AlignedOrdered;
 
         public override void SetValue(IMajorRecord record, List<IFormLinkGetter<ISkyrimMajorRecordGetter>>? value)
         {

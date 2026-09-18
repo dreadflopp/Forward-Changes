@@ -4,7 +4,7 @@ using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Plugins.Cache;
 using Mutagen.Bethesda.Plugins;
-using Noggog;
+using Mutagen.Bethesda.Strings;
 using ForwardChanges.PropertyHandlers.SoundDescriptor;
 using ForwardChanges.PropertyHandlers.General;
 using ForwardChanges.RecordHandlers.Abstracts;
@@ -13,6 +13,12 @@ using System;
 
 namespace ForwardChanges.RecordHandlers
 {
+    // Migration note:
+    // - Generalized: independent SNDR scalar, translated-string, and link fields retain shared handlers.
+    // - Kept specialized: SoundFiles uses exact indexed order and preserves serialized GivenPath values.
+    // - Intentionally non-migrated: none in the sound-path collection.
+    // - Rationale: xEdit defines Sounds as an alignable, non-sorted wbRArray; Mutagen's
+    //   DataRelativePath is lookup-normalized and must not be written back as the source ANAM text.
     public class SoundDescriptorRecordHandler : AbstractRecordHandler
     {
         public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()
@@ -25,13 +31,13 @@ namespace ForwardChanges.RecordHandlers
             { "AlternateSoundFor", new SimpleReflectionFormLinkPropertyHandler<ISoundDescriptorGetter, ISoundDescriptor, ISoundDescriptorGetter>("AlternateSoundFor") },
             { "SoundFiles", new SoundFilesHandler() },
             { "OutputModel", new SimpleReflectionFormLinkPropertyHandler<ISoundOutputModelGetter, ISoundDescriptor, ISoundDescriptorGetter>("OutputModel") },
-            { "String", new SimpleReflectionPropertyHandler<string?, ISoundDescriptor, ISoundDescriptorGetter>("String") },
+            { "String", new ComplexReflectionPropertyHandler<ITranslatedStringGetter, ISoundDescriptor, ISoundDescriptorGetter>("String") },
             { "Conditions", new ConditionsHandler() },
             { "LoopAndRumble", new ComplexReflectionPropertyHandler<ISoundLoopAndRumbleGetter, ISoundDescriptor, ISoundDescriptorGetter>("LoopAndRumble") },
-            { "PercentFrequencyShift", new SimpleReflectionPropertyHandler<Percent, ISoundDescriptor, ISoundDescriptorGetter>("PercentFrequencyShift") },
-            { "PercentFrequencyVariance", new SimpleReflectionPropertyHandler<Percent, ISoundDescriptor, ISoundDescriptorGetter>("PercentFrequencyVariance") },
-            { "Priority", new SimpleReflectionPropertyHandler<sbyte, ISoundDescriptor, ISoundDescriptorGetter>("Priority") },
-            { "Variance", new SimpleReflectionPropertyHandler<sbyte, ISoundDescriptor, ISoundDescriptorGetter>("Variance") },
+            { "PercentFrequencyShift", new SimpleReflectionPropertyHandler<sbyte, ISoundDescriptor, ISoundDescriptorGetter>("PercentFrequencyShift") },
+            { "PercentFrequencyVariance", new SimpleReflectionPropertyHandler<sbyte, ISoundDescriptor, ISoundDescriptorGetter>("PercentFrequencyVariance") },
+            { "Priority", new SimpleReflectionPropertyHandler<byte, ISoundDescriptor, ISoundDescriptorGetter>("Priority") },
+            { "Variance", new SimpleReflectionPropertyHandler<byte, ISoundDescriptor, ISoundDescriptorGetter>("Variance") },
             { "StaticAttenuation", new SimpleReflectionPropertyHandler<float, ISoundDescriptor, ISoundDescriptorGetter>("StaticAttenuation") }
         };
 

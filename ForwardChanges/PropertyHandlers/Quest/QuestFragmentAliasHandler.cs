@@ -7,7 +7,13 @@ namespace ForwardChanges.PropertyHandlers.Quest
 {
     public class QuestFragmentAliasHandler : AbstractListPropertyHandler<IQuestFragmentAliasGetter>
     {
-        public override string PropertyName => "QuestFragmentAliases";
+        public override string PropertyName => "VirtualMachineAdapter.Aliases";
+        public override ListSemantics Semantics => ListSemantics.SortedKeyed;
+
+        protected override bool IsItemIdentityEqual(IQuestFragmentAliasGetter? left, IQuestFragmentAliasGetter? right) =>
+            left?.Property.Alias == right?.Property.Alias;
+
+        protected override IReadOnlyList<object?> GetSortKey(IQuestFragmentAliasGetter item) => [item.Property.Alias];
 
         public override List<IQuestFragmentAliasGetter>? GetValue(IMajorRecordGetter record)
         {
@@ -20,17 +26,30 @@ namespace ForwardChanges.PropertyHandlers.Quest
 
         public override void SetValue(IMajorRecord record, List<IQuestFragmentAliasGetter>? value)
         {
-            if (record is IQuest questRecord && questRecord.VirtualMachineAdapter != null && value != null)
+            if (record is IQuest questRecord && value != null)
             {
+                questRecord.VirtualMachineAdapter ??= new QuestAdapter();
                 if (questRecord.VirtualMachineAdapter.Aliases != null)
                 {
+                    var destinationAliases = questRecord.VirtualMachineAdapter.Aliases.ToList();
                     questRecord.VirtualMachineAdapter.Aliases.Clear();
                     foreach (var alias in value)
                     {
                         if (alias != null)
                         {
-                            // Convert IQuestFragmentAliasGetter to QuestFragmentAlias
                             var newAlias = alias.DeepCopy();
+                            var destinationAlias = destinationAliases.FirstOrDefault(candidate =>
+                                candidate.Property.Alias == alias.Property.Alias);
+                            PapyrusUnusedDataPolicy.PreserveObjectUnusedValue(
+                                newAlias.Property,
+                                destinationAlias?.Property);
+
+                            foreach (var script in newAlias.Scripts)
+                            {
+                                var destinationScript = destinationAlias?.Scripts.FirstOrDefault(candidate =>
+                                    string.Equals(candidate.Name, script.Name, StringComparison.Ordinal));
+                                PapyrusUnusedDataPolicy.PreserveScriptUnusedValues(script, destinationScript);
+                            }
                             questRecord.VirtualMachineAdapter.Aliases.Add(newAlias);
                         }
                     }
@@ -112,7 +131,7 @@ namespace ForwardChanges.PropertyHandlers.Quest
                     return string1.Data == string2.Data;
 
                 case IScriptObjectPropertyGetter obj1 when prop2 is IScriptObjectPropertyGetter obj2:
-                    return obj1.Object.FormKey == obj2.Object.FormKey && obj1.Alias == obj2.Alias && obj1.Unused == obj2.Unused;
+                    return obj1.Object.FormKey == obj2.Object.FormKey && obj1.Alias == obj2.Alias;
 
                 case IScriptBoolListPropertyGetter boolList1 when prop2 is IScriptBoolListPropertyGetter boolList2:
                     return AreListsEqual(boolList1.Data, boolList2.Data);
@@ -159,8 +178,7 @@ namespace ForwardChanges.PropertyHandlers.Quest
                 var obj1 = list1[i];
                 var obj2 = list2[i];
                 if (obj1?.Object.FormKey != obj2?.Object.FormKey ||
-                    obj1?.Alias != obj2?.Alias ||
-                    obj1?.Unused != obj2?.Unused)
+                    obj1?.Alias != obj2?.Alias)
                     return false;
             }
             return true;
@@ -178,8 +196,7 @@ namespace ForwardChanges.PropertyHandlers.Quest
                 return scriptProp1.Name == scriptProp2.Name &&
                        scriptProp1.Flags == scriptProp2.Flags &&
                        scriptProp1.Object.FormKey == scriptProp2.Object.FormKey &&
-                       scriptProp1.Alias == scriptProp2.Alias &&
-                       scriptProp1.Unused == scriptProp2.Unused;
+                       scriptProp1.Alias == scriptProp2.Alias;
             }
 
             // Fallback to Equals() for other types

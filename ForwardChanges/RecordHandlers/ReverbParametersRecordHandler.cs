@@ -5,13 +5,18 @@ using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Synthesis;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Plugins.Cache;
-using Noggog;
 using ForwardChanges.PropertyHandlers.General;
 using ForwardChanges.PropertyHandlers.Interfaces;
+using ForwardChanges.PropertyHandlers.ReverbParameters;
 using ForwardChanges.RecordHandlers.Abstracts;
 
 namespace ForwardChanges.RecordHandlers;
 
+// Migration note:
+// - Generalized: EditorID and record flags retain their shared handlers.
+// - Kept specialized: the complete packed REVB DATA subrecord is one atomic property.
+// - Intentionally non-migrated: no DATA members; the opaque byte is preserved in the snapshot.
+// - Rationale: reverb parameters form one acoustically coupled preset and must share ownership.
 public class ReverbParametersRecordHandler : AbstractRecordHandler
 {
     public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()
@@ -19,18 +24,7 @@ public class ReverbParametersRecordHandler : AbstractRecordHandler
         { "EditorID", new EditorIDHandler() },
         { "MajorRecordFlagsRaw", new MajorRecordFlagsRawHandler() },
         { "SkyrimMajorRecordFlags", new SkyrimMajorRecordFlagsHandler() },
-        { "DecayMilliseconds", new SimpleReflectionPropertyHandler<ushort, IReverbParameters, IReverbParametersGetter>("DecayMilliseconds") },
-        { "HfReferenceHertz", new SimpleReflectionPropertyHandler<ushort, IReverbParameters, IReverbParametersGetter>("HfReferenceHertz") },
-        { "RoomFilter", new SimpleReflectionPropertyHandler<sbyte, IReverbParameters, IReverbParametersGetter>("RoomFilter") },
-        { "RoomHfFilter", new SimpleReflectionPropertyHandler<sbyte, IReverbParameters, IReverbParametersGetter>("RoomHfFilter") },
-        { "Reflections", new SimpleReflectionPropertyHandler<sbyte, IReverbParameters, IReverbParametersGetter>("Reflections") },
-        { "ReverbAmp", new SimpleReflectionPropertyHandler<sbyte, IReverbParameters, IReverbParametersGetter>("ReverbAmp") },
-        { "DecayHfRatio", new SimpleReflectionPropertyHandler<float, IReverbParameters, IReverbParametersGetter>("DecayHfRatio") },
-        { "ReflectDelayMS", new SimpleReflectionPropertyHandler<byte, IReverbParameters, IReverbParametersGetter>("ReflectDelayMS") },
-        { "ReverbDelayMS", new SimpleReflectionPropertyHandler<byte, IReverbParameters, IReverbParametersGetter>("ReverbDelayMS") },
-        { "DiffusionPercent", new SimpleReflectionPropertyHandler<Percent, IReverbParameters, IReverbParametersGetter>("DiffusionPercent") },
-        { "DensityPercent", new SimpleReflectionPropertyHandler<Percent, IReverbParameters, IReverbParametersGetter>("DensityPercent") },
-        { "Unknown", new SimpleReflectionPropertyHandler<byte, IReverbParameters, IReverbParametersGetter>("Unknown") }
+        { "ReverbData", new ReverbDataHandler() },
     };
 
     public override IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter>[] GetRecordContexts(

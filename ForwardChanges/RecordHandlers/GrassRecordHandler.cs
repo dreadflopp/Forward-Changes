@@ -12,8 +12,9 @@ using ForwardChanges.RecordHandlers.Abstracts;
 namespace ForwardChanges.RecordHandlers
 {
     // Migration note:
-    // - Generalized: all properties via shared handlers.
+    // - Generalized: semantic properties via shared handlers.
     // - Kept specialized: none.
+    // - Intentionally excluded: Unknown* fields are outside the semantic conflict surface.
     // - Rationale: surface is scalar/formlink/binary data suitable for reflection handlers.
     public class GrassRecordHandler : AbstractRecordHandler
     {
@@ -27,16 +28,13 @@ namespace ForwardChanges.RecordHandlers
             { "Density", new SimpleReflectionPropertyHandler<byte, IGrass, IGrassGetter>("Density") },
             { "MinSlope", new SimpleReflectionPropertyHandler<byte, IGrass, IGrassGetter>("MinSlope") },
             { "MaxSlope", new SimpleReflectionPropertyHandler<byte, IGrass, IGrassGetter>("MaxSlope") },
-            { "Unknown", new SimpleReflectionPropertyHandler<byte, IGrass, IGrassGetter>("Unknown") },
             { "UnitsFromWater", new SimpleReflectionPropertyHandler<ushort, IGrass, IGrassGetter>("UnitsFromWater") },
-            { "Unknown2", new SimpleReflectionPropertyHandler<ushort, IGrass, IGrassGetter>("Unknown2") },
             { "UnitsFromWaterType", new SimpleReflectionPropertyHandler<Mutagen.Bethesda.Skyrim.Grass.UnitsFromWaterTypeEnum, IGrass, IGrassGetter>("UnitsFromWaterType") },
             { "PositionRange", new SimpleReflectionPropertyHandler<float, IGrass, IGrassGetter>("PositionRange", 0.001f) },
             { "HeightRange", new SimpleReflectionPropertyHandler<float, IGrass, IGrassGetter>("HeightRange", 0.001f) },
             { "ColorRange", new SimpleReflectionPropertyHandler<float, IGrass, IGrassGetter>("ColorRange", 0.001f) },
             { "WavePeriod", new SimpleReflectionPropertyHandler<float, IGrass, IGrassGetter>("WavePeriod", 0.001f) },
             { "Flags", new SimpleReflectionFlagPropertyHandler<Mutagen.Bethesda.Skyrim.Grass.Flag, IGrass, IGrassGetter>("Flags") },
-            { "Unknown3", new SimpleReflectionBinaryDataPropertyHandler<IGrass, IGrassGetter>("Unknown3") }
         };
 
         public override IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter>[] GetRecordContexts(

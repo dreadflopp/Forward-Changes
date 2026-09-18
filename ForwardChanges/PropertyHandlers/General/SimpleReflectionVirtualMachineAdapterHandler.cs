@@ -24,12 +24,10 @@ namespace ForwardChanges.PropertyHandlers.General
         public SimpleReflectionVirtualMachineAdapterHandler()
         {
             // Find the VirtualMachineAdapter property on the getter interface
-            _getterProperty = typeof(TRecordGetter).GetProperty("VirtualMachineAdapter",
-                BindingFlags.Public | BindingFlags.Instance | BindingFlags.FlattenHierarchy);
+            _getterProperty = ReflectionPropertyResolver.Find(typeof(TRecordGetter), "VirtualMachineAdapter");
 
             // Find the VirtualMachineAdapter property on the setter interface
-            _setterProperty = typeof(TRecord).GetProperty("VirtualMachineAdapter",
-                BindingFlags.Public | BindingFlags.Instance | BindingFlags.FlattenHierarchy);
+            _setterProperty = ReflectionPropertyResolver.Find(typeof(TRecord), "VirtualMachineAdapter");
 
             if (_getterProperty == null)
             {

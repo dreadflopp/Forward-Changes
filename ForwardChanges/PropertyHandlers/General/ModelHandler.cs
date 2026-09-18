@@ -31,7 +31,7 @@ namespace ForwardChanges.PropertyHandlers.General
                     var newModel = new Model();
                     newModel.File = value.File.IsNull
                         ? new AssetLink<SkyrimModelAssetType>()
-                        : new AssetLink<SkyrimModelAssetType>(value.File.DataRelativePath.ToString());
+                        : AssetPathHelper.Copy(value.File)!;
                     newModel.Data = value.Data?.ToArray();
 
                     if (value.AlternateTextures != null)
@@ -76,8 +76,12 @@ namespace ForwardChanges.PropertyHandlers.General
             if (value1 == null && value2 == null) return true;
             if (value1 == null || value2 == null) return false;
 
-            // Compare File - use DataRelativePath for value-based comparison (avoids reference equality from different overlays)
-            if (value1.File.DataRelativePath != value2.File.DataRelativePath) return false;
+            if (!AssetPathHelper.AreEqual(value1.File, value2.File))
+            {
+                return false;
+            }
+
+            if (!AreDataEqual(value1, value2)) return false;
 
             // Compare AlternateTextures - treat null and empty as equivalent
             var alt1Count = value1.AlternateTextures?.Count ?? 0;
@@ -90,7 +94,9 @@ namespace ForwardChanges.PropertyHandlers.General
                 {
                     var alt1 = value1.AlternateTextures[i];
                     var alt2 = value2.AlternateTextures[i];
-                    if (alt1?.Name != alt2?.Name || alt1?.NewTexture?.FormKey != alt2?.NewTexture?.FormKey)
+                    if (alt1?.Name != alt2?.Name
+                        || alt1?.NewTexture?.FormKey != alt2?.NewTexture?.FormKey
+                        || alt1?.Index != alt2?.Index)
                     {
                         return false;
                     }
@@ -100,12 +106,22 @@ namespace ForwardChanges.PropertyHandlers.General
             return true;
         }
 
+        private static bool AreDataEqual(IModelGetter value1, IModelGetter value2)
+        {
+            if (value1.Data == null || value2.Data == null)
+            {
+                return value1.Data == null && value2.Data == null;
+            }
+
+            return value1.Data.Value.Span.SequenceEqual(value2.Data.Value.Span);
+        }
+
         public override string FormatValue(object? value)
         {
             if (value is IModelGetter model)
             {
                 var altTextureCount = model.AlternateTextures?.Count ?? 0;
-                return $"Model(File: {model.File}, AltTextures: {altTextureCount})";
+                return $"Model(File: {AssetPathHelper.Format(model.File)}, AltTextures: {altTextureCount})";
             }
             return value?.ToString() ?? "null";
         }

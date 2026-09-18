@@ -1,8 +1,7 @@
 using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Plugins.Records;
-using Mutagen.Bethesda.Plugins.Assets;
-using Mutagen.Bethesda.Skyrim.Assets;
 using ForwardChanges.PropertyHandlers.Abstracts;
+using ForwardChanges.PropertyHandlers.General;
 
 namespace ForwardChanges.PropertyHandlers.Static
 {
@@ -25,19 +24,19 @@ namespace ForwardChanges.PropertyHandlers.Static
                     var newLod = new Lod();
                     if (!value.Level0.IsNull)
                     {
-                        newLod.Level0 = new AssetLink<SkyrimModelAssetType>(value.Level0.DataRelativePath.ToString());
+                        newLod.Level0 = AssetPathHelper.Copy(value.Level0)!;
                     }
                     if (!value.Level1.IsNull)
                     {
-                        newLod.Level1 = new AssetLink<SkyrimModelAssetType>(value.Level1.DataRelativePath.ToString());
+                        newLod.Level1 = AssetPathHelper.Copy(value.Level1)!;
                     }
                     if (!value.Level2.IsNull)
                     {
-                        newLod.Level2 = new AssetLink<SkyrimModelAssetType>(value.Level2.DataRelativePath.ToString());
+                        newLod.Level2 = AssetPathHelper.Copy(value.Level2)!;
                     }
                     if (!value.Level3.IsNull)
                     {
-                        newLod.Level3 = new AssetLink<SkyrimModelAssetType>(value.Level3.DataRelativePath.ToString());
+                        newLod.Level3 = AssetPathHelper.Copy(value.Level3)!;
                     }
                     staticRecord.Lod = newLod;
                 }
@@ -59,11 +58,10 @@ namespace ForwardChanges.PropertyHandlers.Static
             if (value1 == null && value2 == null) return true;
             if (value1 == null || value2 == null) return false;
 
-            // Use DataRelativePath for value-based comparison (avoids reference equality from different overlays)
-            return value1.Level0.DataRelativePath == value2.Level0.DataRelativePath &&
-                   value1.Level1.DataRelativePath == value2.Level1.DataRelativePath &&
-                   value1.Level2.DataRelativePath == value2.Level2.DataRelativePath &&
-                   value1.Level3.DataRelativePath == value2.Level3.DataRelativePath;
+            return AssetPathHelper.AreEqual(value1.Level0, value2.Level0) &&
+                   AssetPathHelper.AreEqual(value1.Level1, value2.Level1) &&
+                   AssetPathHelper.AreEqual(value1.Level2, value2.Level2) &&
+                   AssetPathHelper.AreEqual(value1.Level3, value2.Level3);
         }
     }
 }
