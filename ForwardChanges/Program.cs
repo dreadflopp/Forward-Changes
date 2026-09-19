@@ -245,18 +245,35 @@ namespace ForwardChanges
         }
 
 
-        public static async Task<int> Main(string[] args)
-        {
-            return await SynthesisPipeline.Instance
-                .AddPatch<ISkyrimMod, ISkyrimModGetter>(RunPatch)
-                .SetTypicalOpen(GameRelease.SkyrimSE, "Synthesis.esp")
-                .Run(args);
-        }
-
         public static void RunPatch(IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
         {
             Console.WriteLine("Starting Forward Changes patcher...");
-            Console.WriteLine($"Processing {SupportedRecordTypes.Length} record types");
+            var vanillaBaseline = Utility.InitializeVanillaMods(
+                state.LoadOrder.ListedOrder.Select(x => x.ModKey),
+                PatcherSettings.CreationClubPlugins,
+                PatcherSettings.TreatCreationClubAsVanilla);
+            Console.WriteLine(
+                $"Official baseline: {vanillaBaseline.PresentCount} plugins present, " +
+                $"{vanillaBaseline.MissingCount} absent; Creation Club is " +
+                $"{(vanillaBaseline.IncludesCreationClub ? "included" : "treated as mods")}");
+            Console.WriteLine(
+                $"Compatibility rules: {PatcherSettings.CompatibilityRuleCount} rules for " +
+                $"{PatcherSettings.CompatibilityTargetCount} target plugins");
+            var enabledRecordTypes = SupportedRecordTypes
+                .Where(PatcherSettings.IsRecordTypeEnabled)
+                .ToArray();
+            Console.WriteLine($"Processing {enabledRecordTypes.Length} of {SupportedRecordTypes.Length} record types");
+
+            if (LoggingSettings.EnableStartupDiagnostics)
+            {
+                Console.WriteLine("Enabled record types:");
+                foreach (var enabledRecordType in enabledRecordTypes)
+                {
+                    Console.WriteLine(
+                        $"  {RecordTypeCatalog.GetSignature(enabledRecordType)} - " +
+                        RecordTypeCatalog.GetDisplayName(enabledRecordType));
+                }
+            }
 
             string outputModName = state.PatchMod.ModKey.ToString();
             Console.WriteLine($"Output mod name: {outputModName}");
@@ -978,12 +995,15 @@ namespace ForwardChanges
 
             Console.WriteLine();
 
-            foreach (var recordType in SupportedRecordTypes)
+            foreach (var recordType in enabledRecordTypes)
             {
                 try
                 {
+                    var recordLabel =
+                        $"{RecordTypeCatalog.GetSignature(recordType)} - " +
+                        RecordTypeCatalog.GetDisplayName(recordType);
                     Console.WriteLine("\n" + new string('-', 80));
-                    Console.WriteLine($"Processing {recordType.Name} records");
+                    Console.WriteLine($"Processing {recordLabel} records");
                     Console.WriteLine(new string('-', 80));
 
                     switch (recordType)
@@ -1461,16 +1481,18 @@ namespace ForwardChanges
                             talkingActivatorHandler.Process(state, filteredTalkingActivatorContexts);
                             break;
                         default:
-                            Console.WriteLine($"Warning: No handler implemented for {recordType.Name}");
+                            Console.WriteLine($"Warning: No handler implemented for {recordLabel}");
                             break;
 
                     }
 
-                    Console.WriteLine($"Completed processing {recordType.Name} records");
+                    Console.WriteLine($"Completed processing {recordLabel} records");
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Error processing {recordType.Name} records:");
+                    Console.WriteLine(
+                        $"Error processing {RecordTypeCatalog.GetSignature(recordType)} - " +
+                        $"{RecordTypeCatalog.GetDisplayName(recordType)} records:");
                     Console.WriteLine($"Exception: {ex.Message}");
                     Console.WriteLine($"Stack trace: {ex.StackTrace}");
                 }

@@ -128,7 +128,10 @@ namespace ForwardChanges.PropertyHandlers.Abstracts
                      !AreValuesEqual(recordValue, forwardValue))
             {
                 var currentMod = state.LoadOrder[context.ModKey].Mod;
-                var canModify = currentMod?.MasterReferences.Any(m => string.Equals(m.Master.ToString(), simplePropertyContext.ForwardValueContext.OwnerMod, StringComparison.OrdinalIgnoreCase)) == true;
+                var canModify = currentMod is not null
+                    && PatcherSettings.HasMasterOrVirtualMaster(
+                        currentMod,
+                        simplePropertyContext.ForwardValueContext.OwnerMod);
 
                 if (canModify)
                 {

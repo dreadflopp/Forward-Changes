@@ -19,41 +19,48 @@ namespace ForwardChanges
 
     public static class LoggingSettings
     {
-        // Global verbosity for regular runs.
-        // ContextChanges is intended for normal troubleshooting: it shows the
-        // complete override chain only for properties which vary or are forwarded.
-        public const PatcherLogVerbosity Verbosity = PatcherLogVerbosity.ContextChanges;
+        private static DiagnosticsSettings _settings = new();
 
-        // Enables startup type dumps and other one-off diagnostics.
-        public static readonly bool EnableStartupDiagnostics = false;
+        public static bool DebugMode => _settings.DebugMode;
 
-        // When Detailed is enabled, include unchanged property decision blocks as well.
-        public const bool IncludeNoChangeDecisionsInDetailed = true;
+        // Debug mode is the gate for verbose diagnostics. Warnings remain visible
+        // through LogCollector even when this evaluates to Summary.
+        public static PatcherLogVerbosity Verbosity =>
+            _settings.DebugMode ? _settings.Verbosity : PatcherLogVerbosity.Summary;
 
-        // Truncate long values in non-deep runs to keep logs readable and smaller.
-        public const int MaxValuePreviewLength = 240;
+        public static bool EnableStartupDiagnostics =>
+            _settings.DebugMode && _settings.EnableStartupDiagnostics;
+
+        public static bool IncludeNoChangeDecisionsInDetailed =>
+            _settings.DebugMode && _settings.IncludeNoChangeDecisionsInDetailed;
+
+        public static int MaxValuePreviewLength => _settings.MaxValuePreviewLength;
 
         // Deep-dive selectors. Keep empty for normal runs.
-        // Add interface names like "IQuestGetter" to dive into that record family.
-        public static readonly HashSet<string> DeepDiveRecordTypes = new(StringComparer.OrdinalIgnoreCase)
-        {
-        };
+        // Add xEdit record signatures like "QUST" to dive into that record family.
+        public static IReadOnlySet<string> DeepDiveRecordSignatures => _settings.DeepDiveRecordSignatures;
 
         // Add exact FormKey strings like "050CED:Skyrim.esm".
-        public static readonly HashSet<string> DeepDiveFormKeys = new(StringComparer.OrdinalIgnoreCase)
-        {
-            "00285D:Update.esm"
-        };
+        public static IReadOnlySet<string> DeepDiveFormKeys => _settings.DeepDiveFormKeys;
 
         // Add property names like "Responses" or "Conditions".
         // Empty means all properties for matched deep-dive records.
-        public static readonly HashSet<string> DeepDiveProperties = new(StringComparer.OrdinalIgnoreCase)
+        public static IReadOnlySet<string> DeepDiveProperties => _settings.DeepDiveProperties;
+
+        public static void Apply(DiagnosticsSettings settings)
         {
-        };
+            ArgumentNullException.ThrowIfNull(settings);
+            _settings = settings.Copy();
+        }
 
         public static bool IsDeepDiveRecord(
             IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> winningContext)
         {
+            if (!DebugMode)
+            {
+                return false;
+            }
+
             var recordFormKey = winningContext.Record.FormKey;
 
             if (DeepDiveFormKeys.Any(configured => IsMatchingDeepDiveFormKey(configured, recordFormKey)))
@@ -63,9 +70,11 @@ namespace ForwardChanges
 
             var getterInterfaces = winningContext.Record.GetType()
                 .GetInterfaces()
-                .Where(i => i.Name.EndsWith("Getter", StringComparison.Ordinal));
+                .Where(i => i.Name.EndsWith("Getter", StringComparison.Ordinal)
+                    && Program.SupportedRecordTypes.Contains(i));
 
-            return getterInterfaces.Any(i => DeepDiveRecordTypes.Contains(i.Name));
+            return getterInterfaces.Any(i =>
+                DeepDiveRecordSignatures.Contains(RecordTypeCatalog.GetSignature(i)));
         }
 
         private static bool IsMatchingDeepDiveFormKey(string configuredValue, FormKey recordFormKey)
@@ -100,7 +109,23 @@ namespace ForwardChanges
                 return true;
             }
 
-            return DeepDiveProperties.Count == 0 || DeepDiveProperties.Contains(propertyName);
+            return DeepDiveProperties.Count == 0
+                || DeepDiveProperties.Contains(propertyName)
+                || DeepDiveProperties.Any(selector => MatchesXEditFieldSelector(selector, propertyName));
+        }
+
+        private static bool MatchesXEditFieldSelector(string selector, string propertyName)
+        {
+            return selector.ToUpperInvariant() switch
+            {
+                "EDID" => propertyName.Equals("EditorID", StringComparison.OrdinalIgnoreCase),
+                "FULL" => propertyName.Equals("Name", StringComparison.OrdinalIgnoreCase),
+                "DESC" => propertyName.Equals("Description", StringComparison.OrdinalIgnoreCase),
+                "KWDA" => propertyName.Equals("Keywords", StringComparison.OrdinalIgnoreCase),
+                "VMAD" => propertyName.Equals("VirtualMachineAdapter", StringComparison.OrdinalIgnoreCase),
+                "CTDA" => propertyName.Contains("Condition", StringComparison.OrdinalIgnoreCase),
+                _ => false
+            };
         }
 
         public static string ForLog(string? value, bool deepDiveRecord)

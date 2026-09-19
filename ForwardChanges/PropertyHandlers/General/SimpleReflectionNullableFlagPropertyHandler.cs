@@ -193,11 +193,7 @@ public sealed class SimpleReflectionNullableFlagPropertyHandler<TFlag, TRecord, 
     }
 
     private static bool CanModify(ISkyrimModGetter mod, string ownerMod) =>
-        mod.MasterReferences.Any(master =>
-            string.Equals(
-                master.Master.ToString(),
-                ownerMod,
-                StringComparison.OrdinalIgnoreCase));
+        PatcherSettings.HasMasterOrVirtualMaster(mod, ownerMod);
 
     private static void UpdatePresence(
         NullableFlagPropertyContext<TFlag> context,

@@ -396,7 +396,8 @@ internal sealed class ImpactDataMergeContext : IPropertyContext
         IReadOnlySet<ModKey> masters,
         ModKey ownerMod)
     {
-        return currentMod.Equals(ownerMod) || masters.Contains(ownerMod);
+        return currentMod.Equals(ownerMod)
+               || PatcherSettings.HasMasterOrVirtualMaster(currentMod, masters, ownerMod);
     }
 
     private sealed class ImpactDataEntryContext(

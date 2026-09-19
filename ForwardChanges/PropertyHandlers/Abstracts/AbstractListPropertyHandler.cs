@@ -777,11 +777,7 @@ public abstract class AbstractListPropertyHandler<T> : IPropertyHandler<List<T>>
     protected bool HasPermissionsToModify(ISkyrimModGetter mod, string? ownerMod)
     {
         if (ownerMod == null) return false;
-        return mod.MasterReferences.Any(master =>
-                   string.Equals(
-                       master.Master.ToString(),
-                       ownerMod,
-                       StringComparison.OrdinalIgnoreCase))
+        return PatcherSettings.HasMasterOrVirtualMaster(mod, ownerMod)
                || string.Equals(
                    mod.ModKey.ToString(),
                    ownerMod,

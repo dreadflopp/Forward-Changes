@@ -233,11 +233,7 @@ namespace ForwardChanges.PropertyHandlers.Npc
                        mod.ModKey.ToString(),
                        ownerMod,
                        StringComparison.OrdinalIgnoreCase)
-                   || mod.MasterReferences.Any(master =>
-                       string.Equals(
-                           master.Master.ToString(),
-                           ownerMod,
-                           StringComparison.OrdinalIgnoreCase));
+                   || PatcherSettings.HasMasterOrVirtualMaster(mod, ownerMod);
         }
     }
 }

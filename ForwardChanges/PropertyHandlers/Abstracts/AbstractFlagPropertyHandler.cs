@@ -149,7 +149,9 @@ namespace ForwardChanges.PropertyHandlers.Abstracts
                         else
                         {
                             // Reversion: Same as original, different from current - check permission
-                            var canRevert = recordMod.MasterReferences.Any(m => m.Master.ToString() == existingFlagContext.OwnerMod);
+                            var canRevert = PatcherSettings.HasMasterOrVirtualMaster(
+                                recordMod,
+                                existingFlagContext.OwnerMod);
                             if (canRevert)
                             {
                                 var oldState = existingFlagContext.IsSet;

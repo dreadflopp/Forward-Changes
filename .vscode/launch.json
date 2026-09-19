@@ -5,14 +5,14 @@
             // Use IntelliSense to find out which attributes exist for C# debugging
             // Use hover for the description of the existing attributes
             // For further information visit https://github.com/dotnet/vscode-csharp/blob/main/debugger-launchjson.md
-            "name": ".NET Core Launch (console)",
+            "name": "Launch Forward Changes UI",
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
             // If you have changed target frameworks, make sure to update the program path.
-            "program": "${workspaceFolder}/ForwardChanges/bin/Debug/net8.0/ForwardChanges.dll",
+            "program": "${workspaceFolder}/ForwardChanges.App/bin/Debug/net10.0-windows/win-x64/ForwardChanges.exe",
             "args": [],
-            "cwd": "${workspaceFolder}/ForwardChanges",
+            "cwd": "${workspaceFolder}/ForwardChanges.App/bin/Debug/net10.0-windows/win-x64",
             // For more information about the 'console' field, see https://aka.ms/VSCode-CS-LaunchJson-Console
             "console": "internalConsole",
             "stopAtEntry": false
