@@ -5,12 +5,12 @@ using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Synthesis;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Plugins.Cache;
-using ForwardChanges.PropertyHandlers.General;
-using ForwardChanges.PropertyHandlers.Interfaces;
-using ForwardChanges.PropertyHandlers.ReverbParameters;
-using ForwardChanges.RecordHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.General;
+using DreadsMashedPatch.PropertyHandlers.Interfaces;
+using DreadsMashedPatch.PropertyHandlers.ReverbParameters;
+using DreadsMashedPatch.RecordHandlers.Abstracts;
 
-namespace ForwardChanges.RecordHandlers;
+namespace DreadsMashedPatch.RecordHandlers;
 
 // Migration note:
 // - Generalized: EditorID and record flags retain their shared handlers.

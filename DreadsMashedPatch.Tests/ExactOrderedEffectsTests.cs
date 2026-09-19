@@ -1,16 +1,16 @@
-using ForwardChanges.Contexts;
-using ForwardChanges.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.Contexts;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
 using Mutagen.Bethesda.Plugins;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Skyrim;
 using Xunit;
-using IngestibleEffectsHandler = ForwardChanges.PropertyHandlers.Ingestible.EffectHandler;
-using IngredientEffectsHandler = ForwardChanges.PropertyHandlers.Ingredient.EffectHandler;
-using ObjectEffectEffectsHandler = ForwardChanges.PropertyHandlers.ObjectEffect.EffectsHandler;
-using ScrollEffectsHandler = ForwardChanges.PropertyHandlers.Scroll.EffectsHandler;
-using SpellEffectsHandler = ForwardChanges.PropertyHandlers.Spell.EffectsHandler;
+using IngestibleEffectsHandler = DreadsMashedPatch.PropertyHandlers.Ingestible.EffectHandler;
+using IngredientEffectsHandler = DreadsMashedPatch.PropertyHandlers.Ingredient.EffectHandler;
+using ObjectEffectEffectsHandler = DreadsMashedPatch.PropertyHandlers.ObjectEffect.EffectsHandler;
+using ScrollEffectsHandler = DreadsMashedPatch.PropertyHandlers.Scroll.EffectsHandler;
+using SpellEffectsHandler = DreadsMashedPatch.PropertyHandlers.Spell.EffectsHandler;
 
-namespace ForwardChanges.Tests;
+namespace DreadsMashedPatch.Tests;
 
 public sealed class ExactOrderedEffectsTests
 {

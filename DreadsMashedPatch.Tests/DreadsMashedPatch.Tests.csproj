@@ -17,6 +17,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\ForwardChanges\ForwardChanges.csproj" />
+    <ProjectReference Include="..\DreadsMashedPatch\DreadsMashedPatch.csproj" />
   </ItemGroup>
 </Project>

@@ -1,12 +1,12 @@
-using ForwardChanges.Contexts.Interfaces;
-using ForwardChanges.PropertyHandlers.Interfaces;
+using DreadsMashedPatch.Contexts.Interfaces;
+using DreadsMashedPatch.PropertyHandlers.Interfaces;
 using Mutagen.Bethesda.Plugins;
 using Mutagen.Bethesda.Plugins.Cache;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Synthesis;
 
-namespace ForwardChanges.PropertyHandlers.ImpactDataSet;
+namespace DreadsMashedPatch.PropertyHandlers.ImpactDataSet;
 
 public sealed class ImpactsHandler : IPropertyHandler<List<IImpactDataGetter>>
 {

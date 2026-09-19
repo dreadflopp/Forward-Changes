@@ -3,10 +3,10 @@ using System.Linq;
 using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Plugins;
-using ForwardChanges.PropertyHandlers.Abstracts;
-using ForwardChanges.PropertyHandlers.Interfaces;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.Interfaces;
 
-namespace ForwardChanges.PropertyHandlers.Book
+namespace DreadsMashedPatch.PropertyHandlers.Book
 {
     public class TeachesHandler : AbstractPropertyHandler<IBookTeachTargetGetter?>
     {

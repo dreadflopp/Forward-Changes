@@ -2,9 +2,9 @@ using System.Collections.Generic;
 using Mutagen.Bethesda.Plugins;
 using Mutagen.Bethesda.Skyrim;
 using Noggog;
-using ForwardChanges.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
 
-namespace ForwardChanges.PropertyHandlers.EquipType
+namespace DreadsMashedPatch.PropertyHandlers.EquipType
 {
     public class SlotParentsHandler : AbstractListPropertyHandler<IFormLinkGetter<IEquipTypeGetter>>
     {

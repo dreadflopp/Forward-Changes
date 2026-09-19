@@ -1,4 +1,4 @@
-namespace ForwardChanges.Enums
+namespace DreadsMashedPatch.Enums
 {
     public enum ProtectionForwardingPolicy
     {

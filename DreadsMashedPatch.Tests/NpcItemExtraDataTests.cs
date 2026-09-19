@@ -1,11 +1,11 @@
-using ForwardChanges.Contexts;
-using ForwardChanges.PropertyHandlers.General;
+using DreadsMashedPatch.Contexts;
+using DreadsMashedPatch.PropertyHandlers.General;
 using Mutagen.Bethesda.Plugins;
 using Mutagen.Bethesda.Skyrim;
 using Xunit;
-using NpcItemHandler = ForwardChanges.PropertyHandlers.Npc.ItemHandler;
+using NpcItemHandler = DreadsMashedPatch.PropertyHandlers.Npc.ItemHandler;
 
-namespace ForwardChanges.Tests;
+namespace DreadsMashedPatch.Tests;
 
 public sealed class NpcItemExtraDataTests
 {

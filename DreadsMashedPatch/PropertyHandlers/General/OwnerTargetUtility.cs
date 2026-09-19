@@ -1,6 +1,6 @@
 using Mutagen.Bethesda.Skyrim;
 
-namespace ForwardChanges.PropertyHandlers.General
+namespace DreadsMashedPatch.PropertyHandlers.General
 {
     internal static class OwnerTargetUtility
     {

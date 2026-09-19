@@ -5,12 +5,12 @@ using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Synthesis;
 using Mutagen.Bethesda.Plugins.Cache;
-using ForwardChanges.PropertyHandlers.General;
-using ForwardChanges.PropertyHandlers.Light;
-using ForwardChanges.RecordHandlers.Abstracts;
-using ForwardChanges.PropertyHandlers.Interfaces;
+using DreadsMashedPatch.PropertyHandlers.General;
+using DreadsMashedPatch.PropertyHandlers.Light;
+using DreadsMashedPatch.RecordHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.Interfaces;
 
-namespace ForwardChanges.RecordHandlers
+namespace DreadsMashedPatch.RecordHandlers
 {
     // Migration note:
     // - Generalized: Model now uses the shared full-model handler for IModeled records.

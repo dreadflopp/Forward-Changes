@@ -4,13 +4,13 @@ using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Plugins;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Plugins.Cache;
-using ForwardChanges.RecordHandlers.Abstracts;
-using ForwardChanges.PropertyHandlers.Interfaces;
-using ForwardChanges.PropertyHandlers.ArmorAddon;
-using ForwardChanges.PropertyHandlers.General;
+using DreadsMashedPatch.RecordHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.Interfaces;
+using DreadsMashedPatch.PropertyHandlers.ArmorAddon;
+using DreadsMashedPatch.PropertyHandlers.General;
 using System;
 
-namespace ForwardChanges.RecordHandlers
+namespace DreadsMashedPatch.RecordHandlers
 {
     // Migration note:
     // - Generalized: the three semantic BodyTemplate leaves use the same exact dotted-property pattern as Armor.

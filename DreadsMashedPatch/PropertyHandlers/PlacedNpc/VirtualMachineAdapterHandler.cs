@@ -1,8 +1,8 @@
 using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Plugins.Records;
-using ForwardChanges.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
 
-namespace ForwardChanges.PropertyHandlers.PlacedNpc
+namespace DreadsMashedPatch.PropertyHandlers.PlacedNpc
 {
     public class VirtualMachineAdapterHandler : AbstractVirtualMachineAdapterHandler<IPlacedNpcGetter, IPlacedNpc, IVirtualMachineAdapterGetter, VirtualMachineAdapter>
     {

@@ -5,12 +5,12 @@ using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Strings;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Plugins.Cache;
-using ForwardChanges.PropertyHandlers.General;
-using ForwardChanges.PropertyHandlers.Interfaces;
-using ForwardChanges.PropertyHandlers.Class;
-using ForwardChanges.RecordHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.General;
+using DreadsMashedPatch.PropertyHandlers.Interfaces;
+using DreadsMashedPatch.PropertyHandlers.Class;
+using DreadsMashedPatch.RecordHandlers.Abstracts;
 
-namespace ForwardChanges.RecordHandlers
+namespace DreadsMashedPatch.RecordHandlers
 {
     // Migration note:
     // - Generalized: Class scalar fields via reflection handlers.

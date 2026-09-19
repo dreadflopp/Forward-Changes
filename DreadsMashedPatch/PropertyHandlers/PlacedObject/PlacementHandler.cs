@@ -1,9 +1,9 @@
 using System.Globalization;
-using ForwardChanges.PropertyHandlers.General;
+using DreadsMashedPatch.PropertyHandlers.General;
 using Mutagen.Bethesda.Skyrim;
 using Noggog;
 
-namespace ForwardChanges.PropertyHandlers.PlacedObject
+namespace DreadsMashedPatch.PropertyHandlers.PlacedObject
 {
     /// <summary>
     /// Forwards a placed object's complete placement while providing readable log output.

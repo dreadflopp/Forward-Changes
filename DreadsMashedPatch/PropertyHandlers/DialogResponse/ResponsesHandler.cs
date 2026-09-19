@@ -3,12 +3,12 @@ using Mutagen.Bethesda.Synthesis;
 using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Plugins.Cache;
-using ForwardChanges;
-using ForwardChanges.PropertyHandlers.Abstracts;
-using ForwardChanges.Contexts;
-using ForwardChanges.Contexts.Interfaces;
+using DreadsMashedPatch;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.Contexts;
+using DreadsMashedPatch.Contexts.Interfaces;
 
-namespace ForwardChanges.PropertyHandlers.DialogResponse
+namespace DreadsMashedPatch.PropertyHandlers.DialogResponse
 {
     public class ResponsesHandler : AbstractListPropertyHandler<IDialogResponseGetter>
     {

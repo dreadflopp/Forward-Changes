@@ -1,14 +1,14 @@
 using System.Security.Cryptography;
 using System.Text;
-using ForwardChanges.PropertyHandlers.Abstracts;
-using ForwardChanges.PropertyHandlers.Formatting;
-using ForwardChanges.PropertyHandlers.Interfaces;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.Formatting;
+using DreadsMashedPatch.PropertyHandlers.Interfaces;
 using Mutagen.Bethesda.Plugins;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Skyrim;
 using Noggog;
 
-namespace ForwardChanges.PropertyHandlers.Package;
+namespace DreadsMashedPatch.PropertyHandlers.Package;
 
 /// <summary>
 /// The PACK template reference, template data and procedure tree are one

@@ -4,14 +4,14 @@ using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Plugins.Cache;
 using Mutagen.Bethesda.Plugins;
 using Mutagen.Bethesda.Synthesis;
-using ForwardChanges.Contexts;
-using ForwardChanges.PropertyHandlers.Abstracts;
-using ForwardChanges.PropertyHandlers.Interfaces;
+using DreadsMashedPatch.Contexts;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.Interfaces;
 using System.Collections.Generic;
 using System.Linq;
 using Noggog;
 
-namespace ForwardChanges.PropertyHandlers.Container
+namespace DreadsMashedPatch.PropertyHandlers.Container
 {
     public class ItemHandler : AbstractListPropertyHandler<ContainerEntry>
     {

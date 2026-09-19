@@ -1,10 +1,10 @@
-using ForwardChanges.PropertyHandlers.PlacedObject;
-using ForwardChanges.RecordHandlers;
+using DreadsMashedPatch.PropertyHandlers.PlacedObject;
+using DreadsMashedPatch.RecordHandlers;
 using Mutagen.Bethesda.Skyrim;
 using Noggog;
 using Xunit;
 
-namespace ForwardChanges.Tests;
+namespace DreadsMashedPatch.Tests;
 
 public sealed class PlacedObjectPlacementHandlerTests
 {

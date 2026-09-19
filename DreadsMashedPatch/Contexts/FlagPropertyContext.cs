@@ -1,8 +1,8 @@
 using System;
 using System.Linq;
-using ForwardChanges.Contexts.Interfaces;
+using DreadsMashedPatch.Contexts.Interfaces;
 
-namespace ForwardChanges.Contexts
+namespace DreadsMashedPatch.Contexts
 {
     /// <summary>
     /// Represents the context for a flag property, managing collections of individual flag contexts.

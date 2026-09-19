@@ -1,4 +1,4 @@
-namespace ForwardChanges.Contexts.Interfaces
+namespace DreadsMashedPatch.Contexts.Interfaces
 {
     /// <summary>
     /// Represents a context for a property.

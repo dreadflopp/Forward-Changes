@@ -1,9 +1,9 @@
-using ForwardChanges.RecordHandlers;
-using ForwardChanges.RecordHandlers.Abstracts;
+using DreadsMashedPatch.RecordHandlers;
+using DreadsMashedPatch.RecordHandlers.Abstracts;
 using System.Text.RegularExpressions;
 using Xunit;
 
-namespace ForwardChanges.Tests;
+namespace DreadsMashedPatch.Tests;
 
 public sealed class SerializationStateExclusionTests
 {

@@ -5,14 +5,14 @@ using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Plugins.Cache;
 using Mutagen.Bethesda.Plugins;
 using Mutagen.Bethesda.Strings;
-using ForwardChanges.PropertyHandlers.Npc;
-using ForwardChanges.PropertyHandlers.General;
-using ForwardChanges.PropertyHandlers.Abstracts;
-using ForwardChanges.RecordHandlers.Abstracts;
-using ForwardChanges.PropertyHandlers.Interfaces;
+using DreadsMashedPatch.PropertyHandlers.Npc;
+using DreadsMashedPatch.PropertyHandlers.General;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.RecordHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.Interfaces;
 using System;
 
-namespace ForwardChanges.RecordHandlers
+namespace DreadsMashedPatch.RecordHandlers
 {
     // Migration note:
     // - Generalized: semantic AIData, Configuration, and scalar PlayerSkills leaves use exact dotted shared handlers.

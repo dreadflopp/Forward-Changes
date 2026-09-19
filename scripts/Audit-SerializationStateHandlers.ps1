@@ -7,7 +7,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
-$handlersRoot = Join-Path $repoRoot "ForwardChanges/RecordHandlers"
+$handlersRoot = Join-Path $repoRoot "DreadsMashedPatch/RecordHandlers"
 $decompiledRoot = Join-Path $repoRoot "DecompiledMutagen/Mutagen.Bethesda.Skyrim/Mutagen/Bethesda/Skyrim"
 $registrationPattern = '\{\s*"(?<property>[^"]+)"\s*,\s*new\s+(?<handler>[A-Za-z0-9_.]+)'
 $candidates = [System.Collections.Generic.List[object]]::new()

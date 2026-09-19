@@ -1,10 +1,10 @@
-using ForwardChanges.PropertyHandlers.ImpactDataSet;
-using ForwardChanges.RecordHandlers;
+using DreadsMashedPatch.PropertyHandlers.ImpactDataSet;
+using DreadsMashedPatch.RecordHandlers;
 using Mutagen.Bethesda.Plugins;
 using Mutagen.Bethesda.Skyrim;
 using Xunit;
 
-namespace ForwardChanges.Tests;
+namespace DreadsMashedPatch.Tests;
 
 public sealed class ImpactDataSetRecordHandlerTests
 {

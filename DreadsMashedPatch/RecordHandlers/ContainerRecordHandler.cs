@@ -3,15 +3,15 @@ using Mutagen.Bethesda.Synthesis;
 using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Plugins.Cache;
-using ForwardChanges.RecordHandlers.Abstracts;
-using ForwardChanges.PropertyHandlers.Interfaces;
-using ForwardChanges.PropertyHandlers.Container;
-using ForwardChanges.PropertyHandlers.General;
+using DreadsMashedPatch.RecordHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.Interfaces;
+using DreadsMashedPatch.PropertyHandlers.Container;
+using DreadsMashedPatch.PropertyHandlers.General;
 using System.Collections.Generic;
 using System.Linq;
 using System;
 
-namespace ForwardChanges.RecordHandlers
+namespace DreadsMashedPatch.RecordHandlers
 {
     // Migration note:
     // - Generalized: independent CONT scalar, link, model, VMAD, and header fields use shared handlers.

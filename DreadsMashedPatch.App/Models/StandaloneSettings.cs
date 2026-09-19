@@ -2,7 +2,7 @@ using Mutagen.Bethesda;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 
-namespace ForwardChanges.App.Models;
+namespace DreadsMashedPatch.App.Models;
 
 public sealed class StandaloneSettings : INotifyPropertyChanged
 {

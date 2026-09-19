@@ -1,8 +1,8 @@
-using ForwardChanges.Enums;
+using DreadsMashedPatch.Enums;
 using Mutagen.Bethesda.Plugins;
 using Mutagen.Bethesda.Skyrim;
 
-namespace ForwardChanges
+namespace DreadsMashedPatch
 {
     /// <summary>
     /// Runtime view of the settings selected by the standalone application.

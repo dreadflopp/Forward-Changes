@@ -1,5 +1,5 @@
-using ForwardChanges.Contexts;
-using ForwardChanges.PropertyHandlers.Interfaces;
+using DreadsMashedPatch.Contexts;
+using DreadsMashedPatch.PropertyHandlers.Interfaces;
 using Mutagen.Bethesda.Plugins;
 using Mutagen.Bethesda.Plugins.Cache;
 using Mutagen.Bethesda.Plugins.Records;
@@ -7,9 +7,9 @@ using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Synthesis;
 using Noggog;
 using Xunit;
-using ContainerItemHandler = ForwardChanges.PropertyHandlers.Container.ItemHandler;
+using ContainerItemHandler = DreadsMashedPatch.PropertyHandlers.Container.ItemHandler;
 
-namespace ForwardChanges.Tests;
+namespace DreadsMashedPatch.Tests;
 
 public sealed class ListSnapshotTests
 {

@@ -1,9 +1,9 @@
 using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Plugins;
-using ForwardChanges.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
 
-namespace ForwardChanges.PropertyHandlers.Quest
+namespace DreadsMashedPatch.PropertyHandlers.Quest
 {
     public class QuestFragmentAliasHandler : AbstractListPropertyHandler<IQuestFragmentAliasGetter>
     {

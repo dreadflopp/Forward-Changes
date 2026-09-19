@@ -1,9 +1,9 @@
-using ForwardChanges.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Skyrim;
-using ForwardChanges.PropertyHandlers.General;
+using DreadsMashedPatch.PropertyHandlers.General;
 
-namespace ForwardChanges.PropertyHandlers.Armor
+namespace DreadsMashedPatch.PropertyHandlers.Armor
 {
     /// <summary>
     /// Handles ARMO's gendered ArmorModel aggregate, including each model and its icons.

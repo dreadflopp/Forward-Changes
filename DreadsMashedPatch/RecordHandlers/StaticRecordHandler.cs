@@ -4,13 +4,13 @@ using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Plugins.Cache;
 using Mutagen.Bethesda.Plugins;
-using ForwardChanges.PropertyHandlers.Static;
-using ForwardChanges.PropertyHandlers.General;
-using ForwardChanges.RecordHandlers.Abstracts;
-using ForwardChanges.PropertyHandlers.Interfaces;
+using DreadsMashedPatch.PropertyHandlers.Static;
+using DreadsMashedPatch.PropertyHandlers.General;
+using DreadsMashedPatch.RecordHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.Interfaces;
 using System;
 
-namespace ForwardChanges.RecordHandlers
+namespace DreadsMashedPatch.RecordHandlers
 {
     // Migration note:
     // - Generalized: semantic scalar and link fields use shared reflection handlers.
@@ -27,7 +27,7 @@ namespace ForwardChanges.RecordHandlers
             { "EditorID", new EditorIDHandler() },
             { "MajorRecordFlagsRaw", new MajorRecordFlagsRawHandler(typeof(SkyrimMajorRecord.SkyrimMajorRecordFlag), typeof(Mutagen.Bethesda.Skyrim.Static.MajorFlag)) },
             { "ObjectBounds", new ObjectBoundsHandler() },
-            { "Model", new ForwardChanges.PropertyHandlers.Static.ModelHandler() },
+            { "Model", new DreadsMashedPatch.PropertyHandlers.Static.ModelHandler() },
             { "MaxAngle", new SimpleReflectionPropertyHandler<float, IStatic, IStaticGetter>("MaxAngle", 0.0001f) },
             { "Material", new SimpleReflectionFormLinkPropertyHandler<IMaterialObjectGetter, IStatic, IStaticGetter>("Material") },
             { "Flags", new FlagsHandler() },

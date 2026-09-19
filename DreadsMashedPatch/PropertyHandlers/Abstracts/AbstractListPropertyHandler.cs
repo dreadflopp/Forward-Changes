@@ -1,13 +1,13 @@
-using ForwardChanges.Contexts;
-using ForwardChanges.Contexts.Interfaces;
-using ForwardChanges.PropertyHandlers.Formatting;
-using ForwardChanges.PropertyHandlers.Interfaces;
+using DreadsMashedPatch.Contexts;
+using DreadsMashedPatch.Contexts.Interfaces;
+using DreadsMashedPatch.PropertyHandlers.Formatting;
+using DreadsMashedPatch.PropertyHandlers.Interfaces;
 using Mutagen.Bethesda.Plugins.Cache;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Synthesis;
 
-namespace ForwardChanges.PropertyHandlers.Abstracts;
+namespace DreadsMashedPatch.PropertyHandlers.Abstracts;
 
 public enum ListSemantics
 {

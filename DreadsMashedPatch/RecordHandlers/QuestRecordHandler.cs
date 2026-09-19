@@ -5,17 +5,17 @@ using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Plugins.Cache;
 using Mutagen.Bethesda.Plugins;
 using Mutagen.Bethesda.Strings;
-using ForwardChanges.RecordHandlers.Abstracts;
-using ForwardChanges.Enums;
-using ForwardChanges.PropertyHandlers.Interfaces;
-using ForwardChanges.PropertyHandlers.Quest;
-using ForwardChanges.PropertyHandlers.General;
-using ForwardChanges.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.RecordHandlers.Abstracts;
+using DreadsMashedPatch.Enums;
+using DreadsMashedPatch.PropertyHandlers.Interfaces;
+using DreadsMashedPatch.PropertyHandlers.Quest;
+using DreadsMashedPatch.PropertyHandlers.General;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
 using System.Collections.Generic;
 using System;
 using System.Linq;
 
-namespace ForwardChanges.RecordHandlers;
+namespace DreadsMashedPatch.RecordHandlers;
 
 // Migration note:
 // - Generalized: translated text and DNAM flags use semantic handlers; unnamed DNAM bits are preserved.

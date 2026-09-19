@@ -1,4 +1,4 @@
-namespace ForwardChanges.Enums;
+namespace DreadsMashedPatch.Enums;
 
 /// <summary>
 /// Controls whether Story Manager behavior graphs are combined field by field.

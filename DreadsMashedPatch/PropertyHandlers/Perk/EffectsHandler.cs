@@ -1,9 +1,9 @@
-using ForwardChanges.PropertyHandlers.Abstracts;
-using ForwardChanges.PropertyHandlers.General;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.General;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Skyrim;
 
-namespace ForwardChanges.PropertyHandlers.Perk;
+namespace DreadsMashedPatch.PropertyHandlers.Perk;
 
 public sealed class EffectsHandler : AbstractListPropertyHandler<IAPerkEffectGetter>
 {

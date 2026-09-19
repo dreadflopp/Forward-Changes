@@ -1,6 +1,6 @@
 using Mutagen.Bethesda;
 
-namespace ForwardChanges.App.Models;
+namespace DreadsMashedPatch.App.Models;
 
 public sealed record GameReleaseChoice(GameRelease Value, string DisplayName)
 {

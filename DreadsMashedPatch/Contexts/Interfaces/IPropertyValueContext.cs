@@ -6,7 +6,7 @@
 /// - Value may be null to represent unset properties in Skyrim
 /// - OwnerMod will always be set to the mod that last modified the property
 /// </remarks>
-namespace ForwardChanges.Contexts.Interfaces
+namespace DreadsMashedPatch.Contexts.Interfaces
 {
     public interface IPropertyValueContext<T>
     {

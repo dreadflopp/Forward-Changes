@@ -1,9 +1,9 @@
-using ForwardChanges.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Skyrim;
 using Noggog;
 
-namespace ForwardChanges.PropertyHandlers.Worldspace;
+namespace DreadsMashedPatch.PropertyHandlers.Worldspace;
 
 public sealed record WorldspaceMapOffsetValue(float Scale, P3Float CellOffset);
 

@@ -1,14 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using ForwardChanges.PropertyHandlers.Abstracts;
-using ForwardChanges.PropertyHandlers.General;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.General;
 using Mutagen.Bethesda.Plugins.Assets;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Skyrim.Assets;
 
-namespace ForwardChanges.PropertyHandlers.Weather
+namespace DreadsMashedPatch.PropertyHandlers.Weather
 {
     public class CloudTexturesHandler : AbstractPropertyHandler<IReadOnlyList<IAssetLinkGetter<SkyrimTextureAssetType>?>>
     {

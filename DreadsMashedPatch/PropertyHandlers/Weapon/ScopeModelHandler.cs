@@ -3,11 +3,11 @@ using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Plugins;
 using Mutagen.Bethesda.Plugins.Assets;
 using Mutagen.Bethesda.Skyrim.Assets;
-using ForwardChanges.PropertyHandlers.Abstracts;
-using ForwardChanges.PropertyHandlers.General;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.General;
 using Noggog;
 
-namespace ForwardChanges.PropertyHandlers.Weapon
+namespace DreadsMashedPatch.PropertyHandlers.Weapon
 {
     public class ScopeModelHandler : AbstractPropertyHandler<IModelGetter?>
     {

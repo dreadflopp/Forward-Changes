@@ -1,9 +1,9 @@
 using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Plugins.Records;
-using ForwardChanges.PropertyHandlers.Abstracts;
-using ForwardChanges.PropertyHandlers.General;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.General;
 
-namespace ForwardChanges.PropertyHandlers.Static
+namespace DreadsMashedPatch.PropertyHandlers.Static
 {
     public class LodHandler : AbstractPropertyHandler<ILodGetter?>
     {

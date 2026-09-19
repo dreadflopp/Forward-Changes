@@ -5,13 +5,13 @@ using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Plugins;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Plugins.Cache;
-using ForwardChanges.PropertyHandlers.Abstracts;
-using ForwardChanges.PropertyHandlers.General;
-using ForwardChanges.PropertyHandlers.Interfaces;
-using ForwardChanges.RecordHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.General;
+using DreadsMashedPatch.PropertyHandlers.Interfaces;
+using DreadsMashedPatch.RecordHandlers.Abstracts;
 using Noggog;
 
-namespace ForwardChanges.RecordHandlers
+namespace DreadsMashedPatch.RecordHandlers
 {
     // Migration note:
     // - Generalized: links, scalar fields, flags, and grass list via reflection handlers.

@@ -1,4 +1,4 @@
-namespace ForwardChanges.App.ViewModels;
+namespace DreadsMashedPatch.App.ViewModels;
 
 public sealed class VirtualMasterRuleViewModel : BindableBase
 {

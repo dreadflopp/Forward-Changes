@@ -5,13 +5,13 @@ using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Plugins.Cache;
 using Mutagen.Bethesda.Plugins;
 using Noggog;
-using ForwardChanges.PropertyHandlers.Abstracts;
-using ForwardChanges.PropertyHandlers.General;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.General;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace ForwardChanges.PropertyHandlers.LeveledItem
+namespace DreadsMashedPatch.PropertyHandlers.LeveledItem
 {
     public class EntriesHandler : AbstractListPropertyHandler<ILeveledItemEntryGetter>
     {

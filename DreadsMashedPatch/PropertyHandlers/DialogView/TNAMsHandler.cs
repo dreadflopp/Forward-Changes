@@ -2,9 +2,9 @@ using System.Collections.Generic;
 using System.Linq;
 using Mutagen.Bethesda.Skyrim;
 using Noggog;
-using ForwardChanges.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
 
-namespace ForwardChanges.PropertyHandlers.DialogView
+namespace DreadsMashedPatch.PropertyHandlers.DialogView
 {
     public class TNAMsHandler : AbstractPropertyHandler<List<ReadOnlyMemorySlice<byte>>?>
     {

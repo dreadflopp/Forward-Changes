@@ -7,12 +7,12 @@ using Mutagen.Bethesda.Synthesis;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Plugins.Cache;
 using Mutagen.Bethesda.Strings;
-using ForwardChanges.PropertyHandlers.General;
-using ForwardChanges.PropertyHandlers.Interfaces;
-using ForwardChanges.PropertyHandlers.Scroll;
-using ForwardChanges.RecordHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.General;
+using DreadsMashedPatch.PropertyHandlers.Interfaces;
+using DreadsMashedPatch.PropertyHandlers.Scroll;
+using DreadsMashedPatch.RecordHandlers.Abstracts;
 
-namespace ForwardChanges.RecordHandlers;
+namespace DreadsMashedPatch.RecordHandlers;
 
 // Effects migration note: generalized reconciliation to the shared exact-position
 // atomic handler; scroll collection access stays specialized because xEdit gives

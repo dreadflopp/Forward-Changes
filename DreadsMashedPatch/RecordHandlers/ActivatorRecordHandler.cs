@@ -5,12 +5,12 @@ using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Strings;
 using Mutagen.Bethesda.Synthesis;
 using Mutagen.Bethesda.Plugins.Cache;
-using ForwardChanges.RecordHandlers.Abstracts;
-using ForwardChanges.PropertyHandlers.General;
-using ForwardChanges.PropertyHandlers.Activator;
-using ForwardChanges.PropertyHandlers.Interfaces;
+using DreadsMashedPatch.RecordHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.General;
+using DreadsMashedPatch.PropertyHandlers.Activator;
+using DreadsMashedPatch.PropertyHandlers.Interfaces;
 
-namespace ForwardChanges.RecordHandlers
+namespace DreadsMashedPatch.RecordHandlers
 {
     // Migration note:
     // - Generalized: scalar, translated-text, form-link, model, and VMAD fields use shared semantic handlers.

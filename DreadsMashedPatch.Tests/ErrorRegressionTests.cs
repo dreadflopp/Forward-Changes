@@ -1,9 +1,9 @@
-using ForwardChanges.PropertyHandlers.Class;
-using ForwardChanges.PropertyHandlers.General;
-using ForwardChanges.PropertyHandlers.Landscape;
-using ForwardChanges.PropertyHandlers.Perk;
-using ForwardChanges.RecordHandlers;
-using ForwardChanges.RecordHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.Class;
+using DreadsMashedPatch.PropertyHandlers.General;
+using DreadsMashedPatch.PropertyHandlers.Landscape;
+using DreadsMashedPatch.PropertyHandlers.Perk;
+using DreadsMashedPatch.RecordHandlers;
+using DreadsMashedPatch.RecordHandlers.Abstracts;
 using Mutagen.Bethesda.Plugins;
 using Mutagen.Bethesda.Plugins.Cache;
 using Mutagen.Bethesda.Plugins.Records;
@@ -12,7 +12,7 @@ using Noggog;
 using Xunit;
 using SkyrimClass = Mutagen.Bethesda.Skyrim.Class;
 
-namespace ForwardChanges.Tests;
+namespace DreadsMashedPatch.Tests;
 
 public sealed class ErrorRegressionTests
 {

@@ -4,13 +4,13 @@ using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Plugins.Cache;
 using Mutagen.Bethesda.Plugins;
 using Mutagen.Bethesda.Synthesis;
-using ForwardChanges.Contexts;
-using ForwardChanges.PropertyHandlers.Abstracts;
-using ForwardChanges.PropertyHandlers.Interfaces;
+using DreadsMashedPatch.Contexts;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.Interfaces;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace ForwardChanges.PropertyHandlers.Npc
+namespace DreadsMashedPatch.PropertyHandlers.Npc
 {
     public class FactionHandler : AbstractListPropertyHandler<IRankPlacementGetter>
     {

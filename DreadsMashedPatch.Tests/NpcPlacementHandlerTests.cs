@@ -1,9 +1,9 @@
-using ForwardChanges.PropertyHandlers.Npc;
+using DreadsMashedPatch.PropertyHandlers.Npc;
 using Mutagen.Bethesda.Plugins;
 using Mutagen.Bethesda.Skyrim;
 using Xunit;
 
-namespace ForwardChanges.Tests;
+namespace DreadsMashedPatch.Tests;
 
 public sealed class NpcPlacementHandlerTests
 {

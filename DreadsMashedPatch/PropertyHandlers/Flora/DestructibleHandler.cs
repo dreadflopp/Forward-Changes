@@ -1,7 +1,7 @@
 using Mutagen.Bethesda.Skyrim;
-using ForwardChanges.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
 
-namespace ForwardChanges.PropertyHandlers.Flora
+namespace DreadsMashedPatch.PropertyHandlers.Flora
 {
     public class DestructibleHandler : AbstractDestructibleHandler<IFloraGetter, IFlora>
     {

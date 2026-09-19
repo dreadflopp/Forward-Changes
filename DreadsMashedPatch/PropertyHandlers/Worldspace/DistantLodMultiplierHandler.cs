@@ -1,8 +1,8 @@
-using ForwardChanges.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Skyrim;
 
-namespace ForwardChanges.PropertyHandlers.Worldspace;
+namespace DreadsMashedPatch.PropertyHandlers.Worldspace;
 
 /// <summary>
 /// Treats absent WRLD NAMA as xEdit's semantic default of 1.0 and always writes

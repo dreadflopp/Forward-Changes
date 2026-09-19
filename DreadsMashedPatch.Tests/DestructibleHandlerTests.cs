@@ -1,9 +1,9 @@
-using ForwardChanges.PropertyHandlers.Activator;
+using DreadsMashedPatch.PropertyHandlers.Activator;
 using Mutagen.Bethesda.Plugins;
 using Mutagen.Bethesda.Skyrim;
 using Xunit;
 
-namespace ForwardChanges.Tests;
+namespace DreadsMashedPatch.Tests;
 
 public sealed class DestructibleHandlerTests
 {

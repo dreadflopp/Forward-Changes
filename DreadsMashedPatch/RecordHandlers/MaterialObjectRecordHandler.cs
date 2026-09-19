@@ -7,12 +7,12 @@ using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Plugins.Cache;
 using Mutagen.Bethesda.Plugins.Binary.Streams;
 using Noggog;
-using ForwardChanges.RecordHandlers.Abstracts;
-using ForwardChanges.PropertyHandlers.General;
-using ForwardChanges.PropertyHandlers.MaterialObject;
-using ForwardChanges.PropertyHandlers.Interfaces;
+using DreadsMashedPatch.RecordHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.General;
+using DreadsMashedPatch.PropertyHandlers.MaterialObject;
+using DreadsMashedPatch.PropertyHandlers.Interfaces;
 
-namespace ForwardChanges.RecordHandlers;
+namespace DreadsMashedPatch.RecordHandlers;
 
 // Migration note:
 // - Generalized: MATO scalar, vector, color, model, and list fields use existing handlers.

@@ -1,11 +1,11 @@
 using System.Text;
 
-namespace ForwardChanges.App.Services;
+namespace DreadsMashedPatch.App.Services;
 
 public static class LogManager
 {
-    private const string CurrentLogName = "ForwardChanges-current.log";
-    private const string HistoryPattern = "ForwardChanges-*.log";
+    private const string CurrentLogName = "DreadsMashedPatch-current.log";
+    private const string HistoryPattern = "DreadsMashedPatch-*.log";
 
     public static string LogsDirectory { get; } = Path.Combine(AppContext.BaseDirectory, "Logs");
 
@@ -34,7 +34,7 @@ public static class LogManager
         }
 
         var timestamp = File.GetLastWriteTime(currentPath).ToString("yyyy-MM-dd_HH-mm-ss-fff");
-        var historyPath = Path.Combine(LogsDirectory, $"ForwardChanges-{timestamp}.log");
+        var historyPath = Path.Combine(LogsDirectory, $"DreadsMashedPatch-{timestamp}.log");
         File.Move(currentPath, GetAvailableHistoryPath(historyPath));
     }
 

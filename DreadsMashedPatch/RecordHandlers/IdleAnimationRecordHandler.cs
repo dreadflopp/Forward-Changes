@@ -6,13 +6,13 @@ using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Skyrim.Assets;
 using Mutagen.Bethesda.Synthesis;
-using ForwardChanges.PropertyHandlers.Abstracts;
-using ForwardChanges.PropertyHandlers.General;
-using ForwardChanges.PropertyHandlers.IdleAnimation;
-using ForwardChanges.PropertyHandlers.Interfaces;
-using ForwardChanges.RecordHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.General;
+using DreadsMashedPatch.PropertyHandlers.IdleAnimation;
+using DreadsMashedPatch.PropertyHandlers.Interfaces;
+using DreadsMashedPatch.RecordHandlers.Abstracts;
 
-namespace ForwardChanges.RecordHandlers
+namespace DreadsMashedPatch.RecordHandlers
 {
     // Migration note:
     // - Generalized: most scalar/asset/list properties via shared handlers.

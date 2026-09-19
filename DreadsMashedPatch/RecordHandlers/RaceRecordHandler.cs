@@ -8,13 +8,13 @@ using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Synthesis;
 using Mutagen.Bethesda.Strings;
-using ForwardChanges.PropertyHandlers.Abstracts;
-using ForwardChanges.PropertyHandlers.General;
-using ForwardChanges.PropertyHandlers.Interfaces;
-using ForwardChanges.PropertyHandlers.Race;
-using ForwardChanges.RecordHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.General;
+using DreadsMashedPatch.PropertyHandlers.Interfaces;
+using DreadsMashedPatch.PropertyHandlers.Race;
+using DreadsMashedPatch.RecordHandlers.Abstracts;
 
-namespace ForwardChanges.RecordHandlers;
+namespace DreadsMashedPatch.RecordHandlers;
 
 // Migration note:
 // - Generalized: RACE scalar, list, form-link, nested complex fields, and dictionary fields.

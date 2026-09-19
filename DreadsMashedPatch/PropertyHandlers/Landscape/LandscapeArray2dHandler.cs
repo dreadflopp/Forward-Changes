@@ -1,9 +1,9 @@
-using ForwardChanges.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Skyrim;
 using Noggog;
 
-namespace ForwardChanges.PropertyHandlers.Landscape;
+namespace DreadsMashedPatch.PropertyHandlers.Landscape;
 
 public sealed class LandscapeArray2dHandler : AbstractPropertyHandler<IReadOnlyArray2d<P3UInt8>>
 {

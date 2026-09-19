@@ -1,15 +1,15 @@
-using ForwardChanges.PropertyHandlers.General;
+using DreadsMashedPatch.PropertyHandlers.General;
 using Mutagen.Bethesda.Plugins;
 using Mutagen.Bethesda.Plugins.Assets;
 using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Skyrim.Assets;
 using Noggog;
 using Xunit;
-using CloudModelHandler = ForwardChanges.PropertyHandlers.Worldspace.CloudModelHandler;
-using ScopeModelHandler = ForwardChanges.PropertyHandlers.Weapon.ScopeModelHandler;
-using StaticModelHandler = ForwardChanges.PropertyHandlers.Static.ModelHandler;
+using CloudModelHandler = DreadsMashedPatch.PropertyHandlers.Worldspace.CloudModelHandler;
+using ScopeModelHandler = DreadsMashedPatch.PropertyHandlers.Weapon.ScopeModelHandler;
+using StaticModelHandler = DreadsMashedPatch.PropertyHandlers.Static.ModelHandler;
 
-namespace ForwardChanges.Tests;
+namespace DreadsMashedPatch.Tests;
 
 public sealed class ModelHandlerRegressionTests
 {

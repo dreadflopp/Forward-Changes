@@ -1,7 +1,7 @@
 using System.Windows;
 using System.Windows.Threading;
 
-namespace ForwardChanges.App;
+namespace DreadsMashedPatch.App;
 
 public partial class App : Application
 {
@@ -17,7 +17,7 @@ public partial class App : Application
     {
         MessageBox.Show(
             e.Exception.ToString(),
-            "Forward Changes encountered an unexpected error",
+            "Dread's Mashed Patch encountered an unexpected error",
             MessageBoxButton.OK,
             MessageBoxImage.Error);
         e.Handled = true;

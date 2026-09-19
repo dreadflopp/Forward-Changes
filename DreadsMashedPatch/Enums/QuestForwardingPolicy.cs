@@ -1,4 +1,4 @@
-namespace ForwardChanges.Enums;
+namespace DreadsMashedPatch.Enums;
 
 /// <summary>
 /// Controls whether the interdependent gameplay graph in QUEST records is merged field by field.

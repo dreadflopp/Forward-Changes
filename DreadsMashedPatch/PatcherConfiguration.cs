@@ -1,6 +1,6 @@
-using ForwardChanges.Enums;
+using DreadsMashedPatch.Enums;
 
-namespace ForwardChanges;
+namespace DreadsMashedPatch;
 
 public sealed class PatcherConfiguration
 {

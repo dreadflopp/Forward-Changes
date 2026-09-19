@@ -1,10 +1,10 @@
 using System.Collections;
 using System.Reflection;
-using ForwardChanges.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
 using Mutagen.Bethesda.Plugins;
 using Mutagen.Bethesda.Plugins.Records;
 
-namespace ForwardChanges.PropertyHandlers.General;
+namespace DreadsMashedPatch.PropertyHandlers.General;
 
 /// <summary>
 /// Treats a form-link list as one ordered value instead of merging individual entries.

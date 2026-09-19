@@ -3,7 +3,7 @@ using System.Globalization;
 using System.Reflection;
 using Mutagen.Bethesda.Plugins;
 
-namespace ForwardChanges.PropertyHandlers.Formatting;
+namespace DreadsMashedPatch.PropertyHandlers.Formatting;
 
 /// <summary>
 /// Produces deterministic, bounded, diagnostic-only representations of handler values.

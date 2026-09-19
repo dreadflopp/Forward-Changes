@@ -1,9 +1,9 @@
-using ForwardChanges.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Skyrim;
 using Noggog;
 
-namespace ForwardChanges.PropertyHandlers.ReverbParameters;
+namespace DreadsMashedPatch.PropertyHandlers.ReverbParameters;
 
 /// <summary>
 /// Immutable snapshot of the complete packed REVB DATA subrecord.

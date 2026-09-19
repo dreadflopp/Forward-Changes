@@ -1,12 +1,12 @@
-using ForwardChanges.PropertyHandlers.ImageSpaceAdapter;
-using ForwardChanges.RecordHandlers;
+using DreadsMashedPatch.PropertyHandlers.ImageSpaceAdapter;
+using DreadsMashedPatch.RecordHandlers;
 using Mutagen.Bethesda;
 using Mutagen.Bethesda.Plugins;
 using Mutagen.Bethesda.Skyrim;
 using Noggog;
 using Xunit;
 
-namespace ForwardChanges.Tests;
+namespace DreadsMashedPatch.Tests;
 
 public sealed class ImageSpaceAdapterRecordHandlerTests
 {

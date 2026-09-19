@@ -1,8 +1,8 @@
 using System.Collections.Generic;
 using Mutagen.Bethesda.Skyrim;
-using ForwardChanges.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
 
-namespace ForwardChanges.PropertyHandlers.Climate
+namespace DreadsMashedPatch.PropertyHandlers.Climate
 {
     public class WeatherTypesHandler : AbstractListPropertyHandler<IWeatherTypeGetter>
     {

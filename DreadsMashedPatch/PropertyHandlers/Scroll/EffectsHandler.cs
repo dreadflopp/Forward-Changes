@@ -1,7 +1,7 @@
-using ForwardChanges.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
 using Mutagen.Bethesda.Skyrim;
 
-namespace ForwardChanges.PropertyHandlers.Scroll;
+namespace DreadsMashedPatch.PropertyHandlers.Scroll;
 
 public class EffectsHandler : AbstractEffectsHandler<IScrollGetter, IScroll>
 {

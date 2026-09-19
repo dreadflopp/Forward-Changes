@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
-using ForwardChanges.Contexts.Interfaces;
+using DreadsMashedPatch.Contexts.Interfaces;
 
-namespace ForwardChanges.Contexts
+namespace DreadsMashedPatch.Contexts
 {
     /// <summary>
     /// Represents a context for a list property value.

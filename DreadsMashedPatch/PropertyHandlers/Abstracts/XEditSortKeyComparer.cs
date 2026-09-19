@@ -1,6 +1,6 @@
 using Mutagen.Bethesda.Plugins;
 
-namespace ForwardChanges.PropertyHandlers.Abstracts;
+namespace DreadsMashedPatch.PropertyHandlers.Abstracts;
 
 /// <summary>
 /// Compares typed StructSK components the same way xEdit compares their rendered

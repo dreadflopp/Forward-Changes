@@ -1,9 +1,9 @@
-using ForwardChanges.PropertyHandlers.Abstracts;
-using ForwardChanges.PropertyHandlers.General;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.General;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Skyrim;
 
-namespace ForwardChanges.PropertyHandlers.Debris;
+namespace DreadsMashedPatch.PropertyHandlers.Debris;
 
 /// <summary>
 /// DEBR model entries are one atomic ordered value. Generated DeepCopy preserves

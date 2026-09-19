@@ -4,11 +4,11 @@ using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Plugins.Cache;
 using Noggog;
-using ForwardChanges.Contexts;
-using ForwardChanges.PropertyHandlers.Interfaces;
-using ForwardChanges.Contexts.Interfaces;
+using DreadsMashedPatch.Contexts;
+using DreadsMashedPatch.PropertyHandlers.Interfaces;
+using DreadsMashedPatch.Contexts.Interfaces;
 
-namespace ForwardChanges.PropertyHandlers.Abstracts
+namespace DreadsMashedPatch.PropertyHandlers.Abstracts
 {
     public abstract class AbstractFlagPropertyHandler<TFlag> : IPropertyHandler<TFlag> where TFlag : struct, Enum
     {

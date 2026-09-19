@@ -1,7 +1,7 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 
-namespace ForwardChanges.App.ViewModels;
+namespace DreadsMashedPatch.App.ViewModels;
 
 public abstract class BindableBase : INotifyPropertyChanged
 {

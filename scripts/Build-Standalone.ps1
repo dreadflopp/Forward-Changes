@@ -4,10 +4,10 @@ param()
 $ErrorActionPreference = 'Stop'
 
 $repositoryRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
-$solutionPath = Join-Path $repositoryRoot 'Forward Changes.sln'
-$appProjectPath = Join-Path $repositoryRoot 'ForwardChanges.App\ForwardChanges.App.csproj'
-$testProjectPath = Join-Path $repositoryRoot 'ForwardChanges.Tests\ForwardChanges.Tests.csproj'
-$publishDirectory = Join-Path $repositoryRoot 'artifacts\ForwardChanges-win-x64'
+$solutionPath = Join-Path $repositoryRoot 'DreadsMashedPatch.sln'
+$appProjectPath = Join-Path $repositoryRoot 'DreadsMashedPatch.App\DreadsMashedPatch.App.csproj'
+$testProjectPath = Join-Path $repositoryRoot 'DreadsMashedPatch.Tests\DreadsMashedPatch.Tests.csproj'
+$publishDirectory = Join-Path $repositoryRoot 'artifacts\DreadsMashedPatch-win-x64'
 
 function Resolve-SafeGeneratedPath {
     param([Parameter(Mandatory)][string]$Path)
@@ -36,12 +36,12 @@ if (-not (Test-Path -LiteralPath $solutionPath -PathType Leaf)) {
 }
 
 $generatedDirectories = @(
-    (Join-Path $repositoryRoot 'ForwardChanges\bin'),
-    (Join-Path $repositoryRoot 'ForwardChanges\obj'),
-    (Join-Path $repositoryRoot 'ForwardChanges.App\bin'),
-    (Join-Path $repositoryRoot 'ForwardChanges.App\obj'),
-    (Join-Path $repositoryRoot 'ForwardChanges.Tests\bin'),
-    (Join-Path $repositoryRoot 'ForwardChanges.Tests\obj'),
+    (Join-Path $repositoryRoot 'DreadsMashedPatch\bin'),
+    (Join-Path $repositoryRoot 'DreadsMashedPatch\obj'),
+    (Join-Path $repositoryRoot 'DreadsMashedPatch.App\bin'),
+    (Join-Path $repositoryRoot 'DreadsMashedPatch.App\obj'),
+    (Join-Path $repositoryRoot 'DreadsMashedPatch.Tests\bin'),
+    (Join-Path $repositoryRoot 'DreadsMashedPatch.Tests\obj'),
     $publishDirectory
 )
 
@@ -66,7 +66,7 @@ Invoke-DotNet -Arguments @(
     '-o', $publishDirectory
 )
 
-$executablePath = Join-Path $publishDirectory 'ForwardChanges.exe'
+$executablePath = Join-Path $publishDirectory 'DreadsMashedPatch.exe'
 if (-not (Test-Path -LiteralPath $executablePath -PathType Leaf)) {
     throw "Publish completed without producing the expected executable: $executablePath"
 }

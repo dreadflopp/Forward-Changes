@@ -6,11 +6,11 @@ using Mutagen.Bethesda.Synthesis;
 using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Plugins.Cache;
-using ForwardChanges.Contexts;
-using ForwardChanges.PropertyHandlers.Interfaces;
-using ForwardChanges.Contexts.Interfaces;
+using DreadsMashedPatch.Contexts;
+using DreadsMashedPatch.PropertyHandlers.Interfaces;
+using DreadsMashedPatch.Contexts.Interfaces;
 
-namespace ForwardChanges.PropertyHandlers.General
+namespace DreadsMashedPatch.PropertyHandlers.General
 {
     /// <summary>
     /// Handler for base TES5 MajorRecordFlagsRaw (integer flags like Persistent, Sky Marker, etc.)

@@ -1,9 +1,9 @@
 using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Plugins;
-using ForwardChanges.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
 
-namespace ForwardChanges.PropertyHandlers.Weapon
+namespace DreadsMashedPatch.PropertyHandlers.Weapon
 {
     public class CriticalEffectHandler : AbstractPropertyHandler<IFormLinkGetter<ISpellGetter>>
     {

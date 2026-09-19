@@ -1,7 +1,7 @@
 using Mutagen.Bethesda.Plugins;
 using Xunit;
 
-namespace ForwardChanges.Tests;
+namespace DreadsMashedPatch.Tests;
 
 public sealed class VanillaBaselineTests
 {

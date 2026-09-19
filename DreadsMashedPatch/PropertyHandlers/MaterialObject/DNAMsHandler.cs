@@ -2,9 +2,9 @@ using System.Collections.Generic;
 using System.Linq;
 using Mutagen.Bethesda.Skyrim;
 using Noggog;
-using ForwardChanges.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
 
-namespace ForwardChanges.PropertyHandlers.MaterialObject
+namespace DreadsMashedPatch.PropertyHandlers.MaterialObject
 {
     public class DNAMsHandler : AbstractPropertyHandler<List<ReadOnlyMemorySlice<byte>>?>
     {

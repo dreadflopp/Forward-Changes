@@ -6,10 +6,10 @@ using Mutagen.Bethesda.Plugins;
 using Mutagen.Bethesda.Plugins.Assets;
 using Mutagen.Bethesda.Skyrim.Assets;
 using Noggog;
-using ForwardChanges.PropertyHandlers.Abstracts;
-using ForwardChanges.PropertyHandlers.General;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.General;
 
-namespace ForwardChanges.PropertyHandlers.Static
+namespace DreadsMashedPatch.PropertyHandlers.Static
 {
     public class ModelHandler : AbstractPropertyHandler<IModelGetter?>
     {

@@ -1,11 +1,11 @@
-using ForwardChanges.PropertyHandlers.Quest;
-using ForwardChanges.RecordHandlers;
+using DreadsMashedPatch.PropertyHandlers.Quest;
+using DreadsMashedPatch.RecordHandlers;
 using Mutagen.Bethesda.Plugins;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Skyrim;
 using Xunit;
 
-namespace ForwardChanges.Tests;
+namespace DreadsMashedPatch.Tests;
 
 public sealed class QuestVirtualMachineAdapterPresenceTests
 {

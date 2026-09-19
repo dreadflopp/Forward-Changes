@@ -1,11 +1,11 @@
-using ForwardChanges.Contexts;
-using ForwardChanges.Contexts.Interfaces;
+using DreadsMashedPatch.Contexts;
+using DreadsMashedPatch.Contexts.Interfaces;
 using Mutagen.Bethesda.Plugins.Cache;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Synthesis;
 
-namespace ForwardChanges.PropertyHandlers.Abstracts;
+namespace DreadsMashedPatch.PropertyHandlers.Abstracts;
 
 /// <summary>
 /// Shared atomic forwarding behavior for Papyrus script entries.

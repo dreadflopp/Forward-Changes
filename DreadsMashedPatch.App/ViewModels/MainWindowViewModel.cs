@@ -1,10 +1,10 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Windows.Data;
-using ForwardChanges.App.Models;
-using ForwardChanges.Enums;
+using DreadsMashedPatch.App.Models;
+using DreadsMashedPatch.Enums;
 
-namespace ForwardChanges.App.ViewModels;
+namespace DreadsMashedPatch.App.ViewModels;
 
 public sealed class MainWindowViewModel : BindableBase
 {

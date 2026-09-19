@@ -2,10 +2,10 @@ using System;
 using System.Reflection;
 using Mutagen.Bethesda.Plugins;
 using Mutagen.Bethesda.Plugins.Records;
-using ForwardChanges.PropertyHandlers.Abstracts;
-using ForwardChanges.PropertyHandlers.Interfaces;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.Interfaces;
 
-namespace ForwardChanges.PropertyHandlers.General
+namespace DreadsMashedPatch.PropertyHandlers.General
 {
     /// <summary>
     /// A generic property handler that uses reflection to access FormLink properties.

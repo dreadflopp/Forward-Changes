@@ -4,16 +4,16 @@ using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Plugins.Cache;
 using Mutagen.Bethesda.Plugins;
-using ForwardChanges;
-using ForwardChanges.PropertyHandlers.General;
-using ForwardChanges.PropertyHandlers.PlacedObject;
-using ForwardChanges.PropertyHandlers.Abstracts;
-using ForwardChanges.RecordHandlers.Abstracts;
-using ForwardChanges.PropertyHandlers.Interfaces;
+using DreadsMashedPatch;
+using DreadsMashedPatch.PropertyHandlers.General;
+using DreadsMashedPatch.PropertyHandlers.PlacedObject;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.RecordHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.Interfaces;
 using System;
 using Noggog;
 
-namespace ForwardChanges.RecordHandlers
+namespace DreadsMashedPatch.RecordHandlers
 {
     // Migration note:
     // - Generalized: placed-object location links continue to use the shared reflection form-link handler.

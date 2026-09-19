@@ -1,7 +1,7 @@
-using ForwardChanges.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
 using Mutagen.Bethesda.Skyrim;
 
-namespace ForwardChanges.PropertyHandlers.Ingestible;
+namespace DreadsMashedPatch.PropertyHandlers.Ingestible;
 
 public class EffectHandler : AbstractEffectsHandler<IIngestibleGetter, IIngestible>
 {

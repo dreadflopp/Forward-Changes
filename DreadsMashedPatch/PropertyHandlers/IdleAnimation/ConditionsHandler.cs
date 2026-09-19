@@ -1,8 +1,8 @@
 using System.Collections.Generic;
 using Mutagen.Bethesda.Skyrim;
-using ForwardChanges.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
 
-namespace ForwardChanges.PropertyHandlers.IdleAnimation
+namespace DreadsMashedPatch.PropertyHandlers.IdleAnimation
 {
     public class ConditionsHandler : AbstractConditionsHandler<IIdleAnimationGetter, IIdleAnimation>
     {

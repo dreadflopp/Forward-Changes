@@ -1,11 +1,11 @@
-using ForwardChanges.PropertyHandlers.General;
-using ForwardChanges.RecordHandlers;
+using DreadsMashedPatch.PropertyHandlers.General;
+using DreadsMashedPatch.RecordHandlers;
 using Mutagen.Bethesda.Plugins;
 using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Strings;
 using Xunit;
 
-namespace ForwardChanges.Tests;
+namespace DreadsMashedPatch.Tests;
 
 public sealed class SoundDescriptorRecordHandlerTests
 {

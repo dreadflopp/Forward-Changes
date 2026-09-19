@@ -1,6 +1,6 @@
-using ForwardChanges.Contexts.Interfaces;
+using DreadsMashedPatch.Contexts.Interfaces;
 
-namespace ForwardChanges.Contexts;
+namespace DreadsMashedPatch.Contexts;
 
 /// <summary>
 /// Tracks nullable flag-field presence and each named flag bit independently.

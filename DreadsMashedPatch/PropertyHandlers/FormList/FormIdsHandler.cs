@@ -4,12 +4,12 @@ using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Plugins;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Plugins.Cache;
-using ForwardChanges.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
 using System;
 using System.Linq;
 using System.Collections.Generic;
 
-namespace ForwardChanges.PropertyHandlers.FormList
+namespace DreadsMashedPatch.PropertyHandlers.FormList
 {
     public class FormIdsHandler : AbstractListPropertyHandler<IFormLinkGetter<ISkyrimMajorRecordGetter>>
     {

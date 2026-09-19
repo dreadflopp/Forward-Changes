@@ -1,11 +1,11 @@
 using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Plugins.Records;
-using ForwardChanges;
-using ForwardChanges.PropertyHandlers.Abstracts;
-using ForwardChanges.PropertyHandlers.Interfaces;
+using DreadsMashedPatch;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.Interfaces;
 using Noggog;
 
-namespace ForwardChanges.PropertyHandlers.PlacedObject
+namespace DreadsMashedPatch.PropertyHandlers.PlacedObject
 {
     /// <summary>
     /// Handles LightData on IPlacedObject as one object: any change in any value counts as a change.

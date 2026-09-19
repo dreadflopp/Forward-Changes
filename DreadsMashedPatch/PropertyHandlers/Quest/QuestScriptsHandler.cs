@@ -1,8 +1,8 @@
-using ForwardChanges.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Skyrim;
 
-namespace ForwardChanges.PropertyHandlers.Quest;
+namespace DreadsMashedPatch.PropertyHandlers.Quest;
 
 /// <summary>
 /// Handles the script list on a quest VMAD. Name-only identity, complete-value

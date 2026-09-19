@@ -1,11 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using ForwardChanges.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Skyrim;
 
-namespace ForwardChanges.PropertyHandlers.Race
+namespace DreadsMashedPatch.PropertyHandlers.Race
 {
     public class RaceStartingHandler : AbstractPropertyHandler<IReadOnlyDictionary<BasicStat, float>>
     {

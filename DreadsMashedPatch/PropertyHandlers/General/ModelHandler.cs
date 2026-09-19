@@ -3,11 +3,11 @@ using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Plugins;
 using Mutagen.Bethesda.Plugins.Assets;
 using Mutagen.Bethesda.Skyrim.Assets;
-using ForwardChanges.PropertyHandlers.Abstracts;
-using ForwardChanges.PropertyHandlers.Interfaces;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.Interfaces;
 using Noggog;
 
-namespace ForwardChanges.PropertyHandlers.General
+namespace DreadsMashedPatch.PropertyHandlers.General
 {
     /// <summary>
     /// Handler for full Model structures (File, Data, and AlternateTextures).

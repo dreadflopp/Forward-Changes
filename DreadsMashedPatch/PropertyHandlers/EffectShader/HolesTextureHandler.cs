@@ -2,11 +2,11 @@ using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Plugins.Assets;
 using Mutagen.Bethesda.Skyrim.Assets;
-using ForwardChanges.PropertyHandlers.Abstracts;
-using ForwardChanges.PropertyHandlers.Interfaces;
-using ForwardChanges.PropertyHandlers.General;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.Interfaces;
+using DreadsMashedPatch.PropertyHandlers.General;
 
-namespace ForwardChanges.PropertyHandlers.EffectShader
+namespace DreadsMashedPatch.PropertyHandlers.EffectShader
 {
     public class HolesTextureHandler : AbstractPropertyHandler<AssetLinkGetter<SkyrimTextureAssetType>>
     {

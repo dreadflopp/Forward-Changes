@@ -1,8 +1,8 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using ForwardChanges.App.Models;
+using DreadsMashedPatch.App.Models;
 
-namespace ForwardChanges.App.Services;
+namespace DreadsMashedPatch.App.Services;
 
 public sealed class SettingsStore
 {

@@ -3,7 +3,7 @@ using Mutagen.Bethesda.Environments.DI;
 using Mutagen.Bethesda.Installs.DI;
 using Mutagen.Bethesda.Plugins.Order;
 
-namespace ForwardChanges.App.Services;
+namespace DreadsMashedPatch.App.Services;
 
 public static class PathDiscovery
 {

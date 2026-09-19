@@ -3,14 +3,14 @@ using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Plugins.Cache;
 using Noggog;
-using ForwardChanges.Contexts;
-using ForwardChanges.PropertyHandlers.Interfaces;
-using ForwardChanges.PropertyHandlers.Formatting;
-using ForwardChanges.Contexts.Interfaces;
-using ForwardChanges;
+using DreadsMashedPatch.Contexts;
+using DreadsMashedPatch.PropertyHandlers.Interfaces;
+using DreadsMashedPatch.PropertyHandlers.Formatting;
+using DreadsMashedPatch.Contexts.Interfaces;
+using DreadsMashedPatch;
 using System.Runtime.InteropServices;
 
-namespace ForwardChanges.PropertyHandlers.Abstracts
+namespace DreadsMashedPatch.PropertyHandlers.Abstracts
 {
     public abstract class AbstractPropertyHandler<T> : IPropertyHandler<T>
     {

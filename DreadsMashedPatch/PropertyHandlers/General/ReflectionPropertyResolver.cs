@@ -1,6 +1,6 @@
 using System.Reflection;
 
-namespace ForwardChanges.PropertyHandlers.General;
+namespace DreadsMashedPatch.PropertyHandlers.General;
 
 internal static class ReflectionPropertyResolver
 {

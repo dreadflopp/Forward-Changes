@@ -1,8 +1,8 @@
 using System.Collections.Generic;
 using Mutagen.Bethesda.Skyrim;
-using ForwardChanges.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
 
-namespace ForwardChanges.PropertyHandlers.ConstructibleObject
+namespace DreadsMashedPatch.PropertyHandlers.ConstructibleObject
 {
     public class ConditionsHandler : AbstractConditionsHandler<IConstructibleObjectGetter, IConstructibleObject>
     {

@@ -17,8 +17,8 @@ var repositoryRoot = Path.GetFullPath(args[0]);
 var markdownOutput = Path.GetFullPath(args[1]);
 var jsonOutput = args.Length >= 3 ? Path.GetFullPath(args[2]) : null;
 var overridesPath = args.Length >= 4 ? Path.GetFullPath(args[3]) : null;
-var handlersDirectory = Path.Combine(repositoryRoot, "ForwardChanges", "RecordHandlers");
-var propertyHandlersDirectory = Path.Combine(repositoryRoot, "ForwardChanges", "PropertyHandlers");
+var handlersDirectory = Path.Combine(repositoryRoot, "DreadsMashedPatch", "RecordHandlers");
+var propertyHandlersDirectory = Path.Combine(repositoryRoot, "DreadsMashedPatch", "PropertyHandlers");
 
 if (!Directory.Exists(handlersDirectory))
 {

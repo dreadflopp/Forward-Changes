@@ -1,13 +1,13 @@
-using ForwardChanges.Contexts;
-using ForwardChanges.Contexts.Interfaces;
-using ForwardChanges.PropertyHandlers.Interfaces;
+using DreadsMashedPatch.Contexts;
+using DreadsMashedPatch.Contexts.Interfaces;
+using DreadsMashedPatch.PropertyHandlers.Interfaces;
 using Mutagen.Bethesda.Plugins.Cache;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Synthesis;
 using TextureSetFlag = Mutagen.Bethesda.Skyrim.TextureSet.Flag;
 
-namespace ForwardChanges.PropertyHandlers.TextureSet;
+namespace DreadsMashedPatch.PropertyHandlers.TextureSet;
 
 /// <summary>
 /// Resolves TXST's optional DNAM presence and each named flag bit independently.

@@ -1,8 +1,8 @@
 using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Plugins.Records;
-using ForwardChanges.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
 
-namespace ForwardChanges.PropertyHandlers.Cell
+namespace DreadsMashedPatch.PropertyHandlers.Cell
 {
     public class LightingHandler : AbstractPropertyHandler<ICellLightingGetter>
     {

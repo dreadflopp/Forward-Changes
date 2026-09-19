@@ -3,7 +3,7 @@ using System.Linq;
 using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Plugins.Records;
 
-namespace ForwardChanges.PropertyHandlers.Abstracts
+namespace DreadsMashedPatch.PropertyHandlers.Abstracts
 {
     public abstract class AbstractVirtualMachineAdapterHandler<TRecordGetter, TRecord, TAdapterGetter, TAdapter> : AbstractScriptListPropertyHandler
         where TRecordGetter : class, IMajorRecordGetter

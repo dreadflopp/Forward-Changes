@@ -1,10 +1,10 @@
 using Mutagen.Bethesda.Plugins.Assets;
 using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Skyrim.Assets;
-using ForwardChanges.PropertyHandlers.Abstracts;
-using ForwardChanges.PropertyHandlers.General;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.General;
 
-namespace ForwardChanges.PropertyHandlers.Eyes
+namespace DreadsMashedPatch.PropertyHandlers.Eyes
 {
     public class IconHandler : AbstractPropertyHandler<AssetLinkGetter<SkyrimTextureAssetType>>
     {

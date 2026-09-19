@@ -4,9 +4,9 @@ using System.Linq;
 using System.Reflection;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Skyrim;
-using ForwardChanges.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
 
-namespace ForwardChanges.PropertyHandlers.General
+namespace DreadsMashedPatch.PropertyHandlers.General
 {
     /// <summary>
     /// A generic property handler that uses reflection to access VirtualMachineAdapter properties.

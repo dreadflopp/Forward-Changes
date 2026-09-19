@@ -1,4 +1,4 @@
-namespace ForwardChanges.Enums;
+namespace DreadsMashedPatch.Enums;
 
 /// <summary>
 /// Controls whether coupled PERK gameplay fields are merged independently or

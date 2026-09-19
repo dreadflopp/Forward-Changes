@@ -1,7 +1,7 @@
-using ForwardChanges.Enums;
-using ForwardChanges.PropertyHandlers.General;
-using ForwardChanges.PropertyHandlers.Quest;
-using ForwardChanges.RecordHandlers;
+using DreadsMashedPatch.Enums;
+using DreadsMashedPatch.PropertyHandlers.General;
+using DreadsMashedPatch.PropertyHandlers.Quest;
+using DreadsMashedPatch.RecordHandlers;
 using Mutagen.Bethesda.Plugins;
 using Mutagen.Bethesda.Plugins.Cache;
 using Mutagen.Bethesda.Plugins.Records;
@@ -10,7 +10,7 @@ using Mutagen.Bethesda.Synthesis;
 using Mutagen.Bethesda.Strings;
 using Xunit;
 
-namespace ForwardChanges.Tests;
+namespace DreadsMashedPatch.Tests;
 
 public sealed class QuestRecordHandlerSafetyTests
 {

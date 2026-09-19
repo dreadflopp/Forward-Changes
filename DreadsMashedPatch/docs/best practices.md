@@ -27,8 +27,8 @@ using Mutagen.Bethesda.Plugins.Binary.Translations; // For ReadOnlyMemorySlice
 using Mutagen.Bethesda.Plugins.Assets; // For AssetLink types
 using Mutagen.Bethesda.Skyrim.Assets; // For Skyrim-specific asset types
 using Mutagen.Bethesda.Strings; // For TranslatedString
-using ForwardChanges.PropertyHandlers.Abstracts;
-using ForwardChanges.PropertyHandlers.Interfaces;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.Interfaces;
 using Noggog; // For GenderedItem
 ```
 
@@ -1001,4 +1001,4 @@ public override bool AreValuesEqual(ComplexType? value1, ComplexType? value2)
 }
 ```
 
-This approach ensures consistent, type-safe property handlers that integrate properly with the Forward Changes system while avoiding problematic implementations.
+This approach ensures consistent, type-safe property handlers that integrate properly with the Dread's Mashed Patch system while avoiding problematic implementations.

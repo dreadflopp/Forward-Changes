@@ -1,5 +1,5 @@
-using ForwardChanges.PropertyHandlers.General;
-using ForwardChanges.RecordHandlers;
+using DreadsMashedPatch.PropertyHandlers.General;
+using DreadsMashedPatch.RecordHandlers;
 using Mutagen.Bethesda.Plugins;
 using Mutagen.Bethesda.Plugins.Assets;
 using Mutagen.Bethesda.Plugins.Records;
@@ -8,7 +8,7 @@ using Mutagen.Bethesda.Skyrim.Assets;
 using Noggog;
 using Xunit;
 
-namespace ForwardChanges.Tests;
+namespace DreadsMashedPatch.Tests;
 
 public sealed class ArmorAddonRecordHandlerTests
 {

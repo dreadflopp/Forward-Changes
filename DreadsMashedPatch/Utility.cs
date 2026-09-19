@@ -3,7 +3,7 @@ using Mutagen.Bethesda.Plugins.Cache;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Skyrim;
 
-namespace ForwardChanges;
+namespace DreadsMashedPatch;
 
 public static class Utility
 {

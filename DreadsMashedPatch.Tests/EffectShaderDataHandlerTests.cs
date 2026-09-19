@@ -1,4 +1,4 @@
-using ForwardChanges.PropertyHandlers.EffectShader;
+using DreadsMashedPatch.PropertyHandlers.EffectShader;
 using Mutagen.Bethesda.Plugins;
 using Mutagen.Bethesda.Plugins.Assets;
 using Mutagen.Bethesda.Skyrim;
@@ -6,7 +6,7 @@ using Mutagen.Bethesda.Skyrim.Assets;
 using Xunit;
 using EffectShaderRecord = Mutagen.Bethesda.Skyrim.EffectShader;
 
-namespace ForwardChanges.Tests;
+namespace DreadsMashedPatch.Tests;
 
 public sealed class EffectShaderDataHandlerTests
 {

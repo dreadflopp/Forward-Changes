@@ -1,8 +1,8 @@
-using ForwardChanges.Enums;
-using ForwardChanges.PropertyHandlers.Npc;
+using DreadsMashedPatch.Enums;
+using DreadsMashedPatch.PropertyHandlers.Npc;
 using Xunit;
 
-namespace ForwardChanges.Tests;
+namespace DreadsMashedPatch.Tests;
 
 public class ProtectionFlagsHandlerTests
 {

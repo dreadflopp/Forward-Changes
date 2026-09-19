@@ -9,14 +9,14 @@ using System.Linq;
 using System.Collections.Generic;
 using Noggog;
 using Mutagen.Bethesda.Plugins.Cache;
-using ForwardChanges.RecordHandlers;
-using ForwardChanges.PropertyHandlers.General;
-using ForwardChanges.PropertyHandlers.Interfaces;
-using ForwardChanges.PropertyHandlers.FormList;
-using ForwardChanges.Contexts;
+using DreadsMashedPatch.RecordHandlers;
+using DreadsMashedPatch.PropertyHandlers.General;
+using DreadsMashedPatch.PropertyHandlers.Interfaces;
+using DreadsMashedPatch.PropertyHandlers.FormList;
+using DreadsMashedPatch.Contexts;
 using Mutagen.Bethesda.Plugins.Aspects;
 
-namespace ForwardChanges
+namespace DreadsMashedPatch
 {
     public class Program
     {
@@ -247,7 +247,7 @@ namespace ForwardChanges
 
         public static void RunPatch(IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
         {
-            Console.WriteLine("Starting Forward Changes patcher...");
+            Console.WriteLine("Starting Dread's Mashed Patch patcher...");
             var vanillaBaseline = Utility.InitializeVanillaMods(
                 state.LoadOrder.ListedOrder.Select(x => x.ModKey),
                 PatcherSettings.CreationClubPlugins,
@@ -1498,7 +1498,7 @@ namespace ForwardChanges
                 }
             }
 
-            Console.WriteLine("\nForward Changes patcher completed.");
+            Console.WriteLine("\nDread's Mashed Patch patcher completed.");
         }
     }
 }

@@ -3,12 +3,12 @@ using System.Globalization;
 using System.Reflection;
 using System.Linq;
 using Mutagen.Bethesda.Plugins.Records;
-using ForwardChanges;
-using ForwardChanges.PropertyHandlers.Abstracts;
-using ForwardChanges.PropertyHandlers.Interfaces;
+using DreadsMashedPatch;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.Interfaces;
 using Noggog;
 
-namespace ForwardChanges.PropertyHandlers.General
+namespace DreadsMashedPatch.PropertyHandlers.General
 {
     /// <summary>
     /// A generic property handler that uses reflection to access simple properties.

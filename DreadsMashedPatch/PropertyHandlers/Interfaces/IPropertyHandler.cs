@@ -1,12 +1,12 @@
 using System;
 using Mutagen.Bethesda.Plugins.Records;
-using ForwardChanges.PropertyHandlers.Formatting;
+using DreadsMashedPatch.PropertyHandlers.Formatting;
 using Mutagen.Bethesda.Plugins.Cache;
 using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Synthesis;
-using ForwardChanges.Contexts.Interfaces;
+using DreadsMashedPatch.Contexts.Interfaces;
 
-namespace ForwardChanges.PropertyHandlers.Interfaces
+namespace DreadsMashedPatch.PropertyHandlers.Interfaces
 {
     public interface IPropertyHandler
     {

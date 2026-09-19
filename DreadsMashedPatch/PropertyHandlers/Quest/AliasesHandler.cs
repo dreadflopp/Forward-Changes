@@ -3,11 +3,11 @@ using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Plugins;
 using Mutagen.Bethesda.Plugins.Cache;
 using Mutagen.Bethesda.Synthesis;
-using ForwardChanges.PropertyHandlers.Abstracts;
-using ForwardChanges.Contexts;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.Contexts;
 using System.Linq;
 
-namespace ForwardChanges.PropertyHandlers.Quest
+namespace DreadsMashedPatch.PropertyHandlers.Quest
 {
     public class AliasesHandler : AbstractListPropertyHandler<IQuestAliasGetter>
     {

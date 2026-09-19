@@ -1,8 +1,8 @@
 using System.Text;
-using ForwardChanges.App.Models;
+using DreadsMashedPatch.App.Models;
 using Mutagen.Bethesda.Plugins;
 
-namespace ForwardChanges.App.Services;
+namespace DreadsMashedPatch.App.Services;
 
 public sealed record PreparedLoadOrder(
     string Path,
@@ -14,7 +14,7 @@ public sealed record PreparedLoadOrder(
 
 public static class LoadOrderPreparer
 {
-    private const string OutputPluginName = "ForwardChanges.esp";
+    private const string OutputPluginName = "Dread's Mashed Patch.esp";
 
     public static async Task<PreparedLoadOrder> CreateAsync(StandaloneSettings settings)
     {

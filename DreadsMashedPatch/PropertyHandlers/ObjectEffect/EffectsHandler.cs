@@ -1,7 +1,7 @@
-using ForwardChanges.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
 using Mutagen.Bethesda.Skyrim;
 
-namespace ForwardChanges.PropertyHandlers.ObjectEffect;
+namespace DreadsMashedPatch.PropertyHandlers.ObjectEffect;
 
 public class EffectsHandler : AbstractEffectsHandler<IObjectEffectGetter, IObjectEffect>
 {

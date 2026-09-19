@@ -1,9 +1,9 @@
 using System.Collections.Generic;
 using Mutagen.Bethesda.Plugins;
 using Mutagen.Bethesda.Skyrim;
-using ForwardChanges.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
 
-namespace ForwardChanges.PropertyHandlers.CollisionLayer
+namespace DreadsMashedPatch.PropertyHandlers.CollisionLayer
 {
     public class CollidesWithHandler : AbstractListPropertyHandler<IFormLinkGetter<ICollisionLayerGetter>>
     {

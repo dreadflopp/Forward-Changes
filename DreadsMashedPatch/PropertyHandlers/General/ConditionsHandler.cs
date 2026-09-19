@@ -1,8 +1,8 @@
-using ForwardChanges.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Skyrim;
 
-namespace ForwardChanges.PropertyHandlers.General;
+namespace DreadsMashedPatch.PropertyHandlers.General;
 
 /// <summary>
 /// Handles polymorphic Condition lists without asking the generic reflection list

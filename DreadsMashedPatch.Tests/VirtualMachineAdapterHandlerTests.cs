@@ -1,11 +1,11 @@
-using ForwardChanges.PropertyHandlers.General;
-using ForwardChanges.PropertyHandlers.Quest;
+using DreadsMashedPatch.PropertyHandlers.General;
+using DreadsMashedPatch.PropertyHandlers.Quest;
 using Mutagen.Bethesda.Plugins;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Skyrim;
 using Xunit;
 
-namespace ForwardChanges.Tests;
+namespace DreadsMashedPatch.Tests;
 
 public sealed class VirtualMachineAdapterHandlerTests
 {
@@ -353,7 +353,7 @@ public sealed class VirtualMachineAdapterHandlerTests
             string newOwner,
             Func<string?, bool> hasPermission)
         {
-            var forwardContext = new ForwardChanges.Contexts.ListPropertyValueContext<IScriptEntryGetter>(
+            var forwardContext = new DreadsMashedPatch.Contexts.ListPropertyValueContext<IScriptEntryGetter>(
                 forwardScript,
                 forwardOwner);
             ApplyAtomicScriptChange(

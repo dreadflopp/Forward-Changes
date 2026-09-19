@@ -3,10 +3,10 @@ using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Plugins.Cache;
 using Mutagen.Bethesda.Plugins.Assets;
 using Mutagen.Bethesda.Skyrim.Assets;
-using ForwardChanges.PropertyHandlers.Abstracts;
-using ForwardChanges.PropertyHandlers.Interfaces;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.Interfaces;
 
-namespace ForwardChanges.PropertyHandlers.Worldspace
+namespace DreadsMashedPatch.PropertyHandlers.Worldspace
 {
     public class WaterNoiseTextureHandler : AbstractPropertyHandler<AssetLinkGetter<SkyrimTextureAssetType>?>
     {
@@ -19,7 +19,7 @@ namespace ForwardChanges.PropertyHandlers.Worldspace
             {
                 if (value != null)
                 {
-                    worldspaceRecord.WaterNoiseTexture = new AssetLink<SkyrimTextureAssetType>(ForwardChanges.PropertyHandlers.General.TexturePathHelper.Normalize(value));
+                    worldspaceRecord.WaterNoiseTexture = new AssetLink<SkyrimTextureAssetType>(DreadsMashedPatch.PropertyHandlers.General.TexturePathHelper.Normalize(value));
                 }
                 else
                 {
@@ -42,7 +42,7 @@ namespace ForwardChanges.PropertyHandlers.Worldspace
         {
             if (value1 == null && value2 == null) return true;
             if (value1 == null || value2 == null) return false;
-            return ForwardChanges.PropertyHandlers.General.TexturePathHelper.AreEqual(value1, value2);
+            return DreadsMashedPatch.PropertyHandlers.General.TexturePathHelper.AreEqual(value1, value2);
         }
 
         public override string FormatValue(object? value)
@@ -52,7 +52,7 @@ namespace ForwardChanges.PropertyHandlers.Worldspace
                 return value?.ToString() ?? "null";
             }
 
-            return ForwardChanges.PropertyHandlers.General.TexturePathHelper.Normalize(assetLink);
+            return DreadsMashedPatch.PropertyHandlers.General.TexturePathHelper.Normalize(assetLink);
         }
     }
 }

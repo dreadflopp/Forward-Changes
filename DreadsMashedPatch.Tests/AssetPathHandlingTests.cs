@@ -1,17 +1,17 @@
-using ForwardChanges.PropertyHandlers.Abstracts;
-using ForwardChanges.PropertyHandlers.Debris;
-using ForwardChanges.PropertyHandlers.General;
-using ForwardChanges.PropertyHandlers.MusicTrack;
-using ForwardChanges.PropertyHandlers.Static;
-using ForwardChanges.PropertyHandlers.Weather;
-using ForwardChanges.RecordHandlers;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.Debris;
+using DreadsMashedPatch.PropertyHandlers.General;
+using DreadsMashedPatch.PropertyHandlers.MusicTrack;
+using DreadsMashedPatch.PropertyHandlers.Static;
+using DreadsMashedPatch.PropertyHandlers.Weather;
+using DreadsMashedPatch.RecordHandlers;
 using Mutagen.Bethesda.Plugins;
 using Mutagen.Bethesda.Plugins.Assets;
 using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Skyrim.Assets;
 using Xunit;
 
-namespace ForwardChanges.Tests;
+namespace DreadsMashedPatch.Tests;
 
 public sealed class AssetPathHandlingTests
 {
@@ -26,7 +26,7 @@ public sealed class AssetPathHandlingTests
             File = new AssetLink<SkyrimModelAssetType>("Data\\Meshes\\Actors\\ExactCase.NIF")
         };
         var target = new Light(new FormKey(PatchModKey, 0x800), SkyrimRelease.SkyrimSE);
-        var handler = new ForwardChanges.PropertyHandlers.General.ModelHandler();
+        var handler = new DreadsMashedPatch.PropertyHandlers.General.ModelHandler();
 
         handler.SetValue(target, source);
 

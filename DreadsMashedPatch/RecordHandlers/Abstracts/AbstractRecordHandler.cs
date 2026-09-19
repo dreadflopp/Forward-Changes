@@ -7,11 +7,11 @@ using Mutagen.Bethesda.Synthesis;
 using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Plugins.Cache;
-using ForwardChanges.RecordHandlers.Interfaces;
-using ForwardChanges.PropertyHandlers.Interfaces;
-using ForwardChanges.Contexts.Interfaces;
+using DreadsMashedPatch.RecordHandlers.Interfaces;
+using DreadsMashedPatch.PropertyHandlers.Interfaces;
+using DreadsMashedPatch.Contexts.Interfaces;
 
-namespace ForwardChanges.RecordHandlers.Abstracts
+namespace DreadsMashedPatch.RecordHandlers.Abstracts
 {
     public abstract class AbstractRecordHandler : IRecordHandler
     {

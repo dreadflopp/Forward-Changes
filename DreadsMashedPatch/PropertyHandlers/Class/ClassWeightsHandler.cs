@@ -1,8 +1,8 @@
-using ForwardChanges.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Skyrim;
 
-namespace ForwardChanges.PropertyHandlers.Class;
+namespace DreadsMashedPatch.PropertyHandlers.Class;
 
 public sealed class ClassWeightsHandler<TKey> : AbstractPropertyHandler<IReadOnlyDictionary<TKey, byte>>
     where TKey : notnull

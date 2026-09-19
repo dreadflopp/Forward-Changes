@@ -1,9 +1,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using Mutagen.Bethesda.Skyrim;
-using ForwardChanges.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
 
-namespace ForwardChanges.PropertyHandlers.Message
+namespace DreadsMashedPatch.PropertyHandlers.Message
 {
     public class MenuButtonsHandler : AbstractListPropertyHandler<IMessageButtonGetter>
     {

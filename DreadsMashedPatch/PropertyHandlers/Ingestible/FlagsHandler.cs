@@ -1,10 +1,10 @@
 using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Plugins.Cache;
-using ForwardChanges.PropertyHandlers.Abstracts;
-using ForwardChanges.PropertyHandlers.Interfaces;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.Interfaces;
 
-namespace ForwardChanges.PropertyHandlers.Ingestible
+namespace DreadsMashedPatch.PropertyHandlers.Ingestible
 {
     public class FlagsHandler : AbstractFlagPropertyHandler<Mutagen.Bethesda.Skyrim.Ingestible.Flag>
     {

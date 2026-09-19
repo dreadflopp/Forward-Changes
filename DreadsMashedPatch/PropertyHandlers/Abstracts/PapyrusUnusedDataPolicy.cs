@@ -1,6 +1,6 @@
 using Mutagen.Bethesda.Skyrim;
 
-namespace ForwardChanges.PropertyHandlers.Abstracts;
+namespace DreadsMashedPatch.PropertyHandlers.Abstracts;
 
 /// <summary>
 /// Keeps generated Papyrus object-property padding outside the semantic conflict

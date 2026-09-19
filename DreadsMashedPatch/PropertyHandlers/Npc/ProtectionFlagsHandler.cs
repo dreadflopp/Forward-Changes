@@ -2,13 +2,13 @@ using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Plugins.Cache;
 using Mutagen.Bethesda.Synthesis;
-using ForwardChanges.Contexts;
-using ForwardChanges.Contexts.Interfaces;
-using ForwardChanges.PropertyHandlers.Abstracts;
-using ForwardChanges.Enums;
-using ForwardChanges.PropertyHandlers.Interfaces;
+using DreadsMashedPatch.Contexts;
+using DreadsMashedPatch.Contexts.Interfaces;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.Enums;
+using DreadsMashedPatch.PropertyHandlers.Interfaces;
 
-namespace ForwardChanges.PropertyHandlers.Npc
+namespace DreadsMashedPatch.PropertyHandlers.Npc
 {
     internal enum ProtectionMergeAction
     {

@@ -1,9 +1,9 @@
-using ForwardChanges.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Skyrim;
 using Noggog;
 
-namespace ForwardChanges.PropertyHandlers.Region;
+namespace DreadsMashedPatch.PropertyHandlers.Region;
 
 /// <summary>
 /// Treats the complete REGN Region Areas array atomically while comparing and

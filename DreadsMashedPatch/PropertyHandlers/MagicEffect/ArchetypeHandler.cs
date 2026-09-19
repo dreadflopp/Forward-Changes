@@ -1,10 +1,10 @@
 using System;
 using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Plugins.Records;
-using ForwardChanges.PropertyHandlers.Abstracts;
-using ForwardChanges.PropertyHandlers.Interfaces;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.Interfaces;
 
-namespace ForwardChanges.PropertyHandlers.MagicEffect
+namespace DreadsMashedPatch.PropertyHandlers.MagicEffect
 {
     public class ArchetypeHandler : AbstractPropertyHandler<IAMagicEffectArchetypeGetter>
     {

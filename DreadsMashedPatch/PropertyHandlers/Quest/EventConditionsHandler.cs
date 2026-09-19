@@ -1,8 +1,8 @@
 using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Plugins.Records;
-using ForwardChanges.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
 
-namespace ForwardChanges.PropertyHandlers.Quest
+namespace DreadsMashedPatch.PropertyHandlers.Quest
 {
     public class EventConditionsHandler : AbstractConditionsHandler<IQuestGetter, IQuest>
     {

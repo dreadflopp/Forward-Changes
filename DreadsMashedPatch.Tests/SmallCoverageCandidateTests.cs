@@ -1,11 +1,11 @@
-using ForwardChanges.PropertyHandlers.General;
-using ForwardChanges.RecordHandlers;
-using ForwardChanges.RecordHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.General;
+using DreadsMashedPatch.RecordHandlers;
+using DreadsMashedPatch.RecordHandlers.Abstracts;
 using Mutagen.Bethesda.Plugins;
 using Mutagen.Bethesda.Skyrim;
 using Xunit;
 
-namespace ForwardChanges.Tests;
+namespace DreadsMashedPatch.Tests;
 
 public sealed class SmallCoverageCandidateTests
 {

@@ -2,7 +2,7 @@ using System;
 using Mutagen.Bethesda.Plugins.Assets;
 using Mutagen.Bethesda.Skyrim.Assets;
 
-namespace ForwardChanges.PropertyHandlers.EffectShader
+namespace DreadsMashedPatch.PropertyHandlers.EffectShader
 {
     internal static class EffectShaderTexturePathHelper
     {
@@ -10,7 +10,7 @@ namespace ForwardChanges.PropertyHandlers.EffectShader
 
         public static string Normalize(AssetLinkGetter<SkyrimTextureAssetType> assetLink)
         {
-            return ForwardChanges.PropertyHandlers.General.TexturePathHelper.Normalize(assetLink);
+            return DreadsMashedPatch.PropertyHandlers.General.TexturePathHelper.Normalize(assetLink);
         }
 
         public static string Normalize(string path)

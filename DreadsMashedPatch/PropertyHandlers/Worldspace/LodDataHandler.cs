@@ -1,9 +1,9 @@
-using ForwardChanges.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
 using Mutagen.Bethesda.Plugins;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Skyrim;
 
-namespace ForwardChanges.PropertyHandlers.Worldspace;
+namespace DreadsMashedPatch.PropertyHandlers.Worldspace;
 
 public sealed record WorldspaceLodDataValue(FormKey Water, float? Height);
 

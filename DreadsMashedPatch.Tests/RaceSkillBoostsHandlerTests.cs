@@ -1,9 +1,9 @@
-using ForwardChanges.PropertyHandlers.Race;
+using DreadsMashedPatch.PropertyHandlers.Race;
 using Mutagen.Bethesda.Plugins;
 using Mutagen.Bethesda.Skyrim;
 using Xunit;
 
-namespace ForwardChanges.Tests;
+namespace DreadsMashedPatch.Tests;
 
 public sealed class RaceSkillBoostsHandlerTests
 {
@@ -113,7 +113,7 @@ public sealed class RaceSkillBoostsHandlerTests
     [Fact]
     public void RaceRegistersOnlyTheGroupedSkillBoostHandler()
     {
-        var handlers = new ForwardChanges.RecordHandlers.RaceRecordHandler().PropertyHandlers;
+        var handlers = new DreadsMashedPatch.RecordHandlers.RaceRecordHandler().PropertyHandlers;
 
         Assert.IsType<RaceSkillBoostsHandler>(handlers["SkillBoosts"]);
         Assert.DoesNotContain(Enumerable.Range(0, 7), index => handlers.ContainsKey($"SkillBoost{index}"));

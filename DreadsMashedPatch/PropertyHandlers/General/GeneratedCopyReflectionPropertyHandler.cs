@@ -1,7 +1,7 @@
-using ForwardChanges.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
 using Mutagen.Bethesda.Plugins.Records;
 
-namespace ForwardChanges.PropertyHandlers.General;
+namespace DreadsMashedPatch.PropertyHandlers.General;
 
 /// <summary>
 /// Reflection access for generated Mutagen aggregates. The supplied generated

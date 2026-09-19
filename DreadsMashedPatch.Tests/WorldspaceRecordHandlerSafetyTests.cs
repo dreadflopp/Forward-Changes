@@ -1,6 +1,6 @@
-using ForwardChanges.PropertyHandlers.General;
-using ForwardChanges.PropertyHandlers.Worldspace;
-using ForwardChanges.RecordHandlers;
+using DreadsMashedPatch.PropertyHandlers.General;
+using DreadsMashedPatch.PropertyHandlers.Worldspace;
+using DreadsMashedPatch.RecordHandlers;
 using Mutagen.Bethesda.Plugins;
 using Mutagen.Bethesda.Plugins.Cache;
 using Mutagen.Bethesda.Plugins.Records;
@@ -9,7 +9,7 @@ using Mutagen.Bethesda.Synthesis;
 using Noggog;
 using Xunit;
 
-namespace ForwardChanges.Tests;
+namespace DreadsMashedPatch.Tests;
 
 public sealed class WorldspaceRecordHandlerSafetyTests
 {

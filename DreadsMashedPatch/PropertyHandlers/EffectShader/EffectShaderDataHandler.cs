@@ -1,10 +1,10 @@
 using System;
-using ForwardChanges.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
 using Mutagen.Bethesda.Plugins;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Skyrim;
 
-namespace ForwardChanges.PropertyHandlers.EffectShader
+namespace DreadsMashedPatch.PropertyHandlers.EffectShader
 {
     public class EffectShaderDataHandler : AbstractPropertyHandler<IEffectShaderGetter>
     {

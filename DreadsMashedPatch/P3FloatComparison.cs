@@ -1,6 +1,6 @@
 using Noggog;
 
-namespace ForwardChanges
+namespace DreadsMashedPatch
 {
     /// <summary>
     /// Shared P3Float equality using Noggog's FloatExt.EqualsWithin so we get consistent

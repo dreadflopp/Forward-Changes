@@ -2,10 +2,10 @@ using System;
 using System.Linq;
 using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Plugins.Records;
-using ForwardChanges.PropertyHandlers.Abstracts;
-using ForwardChanges.PropertyHandlers.General;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.General;
 
-namespace ForwardChanges.PropertyHandlers.Abstracts
+namespace DreadsMashedPatch.PropertyHandlers.Abstracts
 {
     public abstract class AbstractDestructibleHandler<TRecordGetter, TRecord> : AbstractPropertyHandler<IDestructibleGetter?>
         where TRecordGetter : class, IMajorRecordGetter

@@ -3,7 +3,7 @@ using System.Text.RegularExpressions;
 using System.Collections.Concurrent;
 using Mutagen.Bethesda.Plugins;
 
-namespace ForwardChanges;
+namespace DreadsMashedPatch;
 
 /// <summary>
 /// Translates internal Mutagen getter interfaces into the four-character record

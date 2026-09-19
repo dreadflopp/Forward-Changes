@@ -7,11 +7,11 @@ using Mutagen.Bethesda.Plugins.Cache;
 using Mutagen.Bethesda.Plugins;
 using Mutagen.Bethesda.Synthesis;
 using Noggog;
-using ForwardChanges.Contexts;
-using ForwardChanges.PropertyHandlers.Abstracts;
-using ForwardChanges.PropertyHandlers.Interfaces;
+using DreadsMashedPatch.Contexts;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.Interfaces;
 
-namespace ForwardChanges.PropertyHandlers.Npc
+namespace DreadsMashedPatch.PropertyHandlers.Npc
 {
     public class PerksHandler : AbstractListPropertyHandler<IPerkPlacementGetter>
     {

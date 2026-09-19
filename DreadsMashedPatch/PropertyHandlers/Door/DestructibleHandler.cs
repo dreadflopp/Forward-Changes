@@ -1,7 +1,7 @@
 using Mutagen.Bethesda.Skyrim;
-using ForwardChanges.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
 
-namespace ForwardChanges.PropertyHandlers.Door
+namespace DreadsMashedPatch.PropertyHandlers.Door
 {
     public class DestructibleHandler : AbstractDestructibleHandler<IDoorGetter, IDoor>
     {

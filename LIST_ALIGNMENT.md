@@ -8,10 +8,10 @@ far as a longest-common-subsequence diff permits. Blank cells are gaps in a
 column, not values in the plugin.
 
 `ExactOrdered` arrays are the exception: when xEdit exposes no entry sort key,
-there is no sequence identity to align. Forward Changes compares those entries
+there is no sequence identity to align. Dread's Mashed Patch compares those entries
 by zero-based position and treats the complete value at each position atomically.
 
-Forward Changes uses those accumulated rows to locate and order the active
+Dread's Mashed Patch uses those accumulated rows to locate and order the active
 entries written to the patch. Ownership remains a separate decision: alignment
 does not grant permission to remove, restore, move, or revert a value owned by a
 plugin that is not one of the current plugin's masters. As with sorted keyed
@@ -92,7 +92,7 @@ algorithm's deterministic tie behavior.
 The xEdit release notes illustrate columns `A,B,C`, `B,C`, and `B,A` as rows
 `A,B,A,C`. Current xEdit source resolves that ambiguous final move as
 `A,B,C,A`: its `TDiff` emits the unmatched old `C` before the unmatched new `A`.
-Forward Changes follows the current source implementation, not the older
+Dread's Mashed Patch follows the current source implementation, not the older
 illustration. This distinction has no effect when an edited item keeps the same
 alignment key, as conditions do when only their operator or comparison value
 changes.

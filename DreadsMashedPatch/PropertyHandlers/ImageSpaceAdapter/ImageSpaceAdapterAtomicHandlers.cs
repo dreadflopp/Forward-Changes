@@ -1,10 +1,10 @@
 using System.Drawing;
-using ForwardChanges.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Skyrim;
 using Noggog;
 
-namespace ForwardChanges.PropertyHandlers.ImageSpaceAdapter;
+namespace DreadsMashedPatch.PropertyHandlers.ImageSpaceAdapter;
 
 public sealed record AnimationSettingsValue(bool Animatable, float Duration);
 

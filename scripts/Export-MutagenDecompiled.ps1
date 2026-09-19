@@ -1,5 +1,5 @@
 param(
-    [string]$AssetsFile = "ForwardChanges/obj/project.assets.json",
+    [string]$AssetsFile = "DreadsMashedPatch/obj/project.assets.json",
     [string]$OutputRoot = "DecompiledMutagen",
     [string]$Framework = "net8.0",
     [string]$DecompilerVersion = "9.1.0.7988"

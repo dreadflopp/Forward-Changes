@@ -1,8 +1,8 @@
 using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Plugins.Records;
-using ForwardChanges.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
 
-namespace ForwardChanges.PropertyHandlers.DialogBranch
+namespace DreadsMashedPatch.PropertyHandlers.DialogBranch
 {
     public class FlagsHandler : AbstractFlagPropertyHandler<Mutagen.Bethesda.Skyrim.DialogBranch.Flag>
     {

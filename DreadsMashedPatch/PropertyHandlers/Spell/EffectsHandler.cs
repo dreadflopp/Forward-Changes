@@ -1,7 +1,7 @@
-using ForwardChanges.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
 using Mutagen.Bethesda.Skyrim;
 
-namespace ForwardChanges.PropertyHandlers.Spell;
+namespace DreadsMashedPatch.PropertyHandlers.Spell;
 
 public class EffectsHandler : AbstractEffectsHandler<ISpellGetter, ISpell>
 {

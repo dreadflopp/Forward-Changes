@@ -1,8 +1,8 @@
 using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Plugins.Records;
-using ForwardChanges.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
 
-namespace ForwardChanges.PropertyHandlers.DialogResponse
+namespace DreadsMashedPatch.PropertyHandlers.DialogResponse
 {
     public class ConditionsHandler : AbstractConditionsHandler<IDialogResponsesGetter, IDialogResponses>
     {

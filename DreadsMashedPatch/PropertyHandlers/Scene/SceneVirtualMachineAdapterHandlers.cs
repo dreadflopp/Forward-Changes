@@ -1,8 +1,8 @@
-using ForwardChanges.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Skyrim;
 
-namespace ForwardChanges.PropertyHandlers.Scene;
+namespace DreadsMashedPatch.PropertyHandlers.Scene;
 
 public sealed class SceneVirtualMachineAdapterPresenceHandler : AbstractPropertyHandler<bool>
 {

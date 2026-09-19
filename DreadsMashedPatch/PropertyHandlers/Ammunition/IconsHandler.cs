@@ -1,7 +1,7 @@
 using Mutagen.Bethesda.Skyrim;
-using ForwardChanges.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
 
-namespace ForwardChanges.PropertyHandlers.Ammunition
+namespace DreadsMashedPatch.PropertyHandlers.Ammunition
 {
     public class IconsHandler : AbstractIconsHandler<IAmmunitionGetter, IAmmunition>
     {

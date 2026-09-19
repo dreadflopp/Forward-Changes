@@ -1,7 +1,7 @@
 using Mutagen.Bethesda.Skyrim;
-using ForwardChanges.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
 
-namespace ForwardChanges.PropertyHandlers.Container
+namespace DreadsMashedPatch.PropertyHandlers.Container
 {
     public class DestructibleHandler : AbstractDestructibleHandler<IContainerGetter, IContainer>
     {

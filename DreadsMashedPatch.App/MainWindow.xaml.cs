@@ -4,13 +4,13 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Threading;
-using ForwardChanges.App.Models;
-using ForwardChanges.App.Services;
-using ForwardChanges.App.ViewModels;
+using DreadsMashedPatch.App.Models;
+using DreadsMashedPatch.App.Services;
+using DreadsMashedPatch.App.ViewModels;
 using Microsoft.Win32;
 using Mutagen.Bethesda.Plugins;
 
-namespace ForwardChanges.App;
+namespace DreadsMashedPatch.App;
 
 public partial class MainWindow : Window
 {
@@ -140,7 +140,7 @@ public partial class MainWindow : Window
             _runStopwatch = Stopwatch.StartNew();
             _elapsedTimer.Start();
             UpdateElapsedTime();
-            WriteRunLog($"Forward Changes started at {DateTime.Now:G}{Environment.NewLine}{Environment.NewLine}");
+            WriteRunLog($"Dread's Mashed Patch started at {DateTime.Now:G}{Environment.NewLine}{Environment.NewLine}");
 
             try
             {
@@ -151,7 +151,7 @@ public partial class MainWindow : Window
                 MessageBox.Show(
                     $"Patch created successfully:\n{PatcherRunner.GetOutputPath(_viewModel.Settings)}\n\n"
                     + "If running through MO2, refresh MO2 and check its configured output mod or Overwrite.",
-                    "Forward Changes completed",
+                    "Dread's Mashed Patch completed",
                     MessageBoxButton.OK,
                     MessageBoxImage.Information);
             }
@@ -369,7 +369,7 @@ public partial class MainWindow : Window
         }
 
         MessageBox.Show(
-            "The patcher is still running. Wait for it to finish before closing Forward Changes.",
+            "The patcher is still running. Wait for it to finish before closing Dread's Mashed Patch.",
             "Patcher is running",
             MessageBoxButton.OK,
             MessageBoxImage.Information);
@@ -463,7 +463,7 @@ public partial class MainWindow : Window
     {
         MessageBox.Show(
             $"{heading}.\n\n{exception.Message}",
-            "Forward Changes",
+            "Dread's Mashed Patch",
             MessageBoxButton.OK,
             MessageBoxImage.Error);
     }

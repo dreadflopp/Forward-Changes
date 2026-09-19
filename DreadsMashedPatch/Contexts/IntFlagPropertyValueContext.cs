@@ -1,4 +1,4 @@
-﻿namespace ForwardChanges.Contexts
+﻿namespace DreadsMashedPatch.Contexts
 {
     /// <summary>
     /// Represents the context for a single integer flag value, tracking its state and ownership.

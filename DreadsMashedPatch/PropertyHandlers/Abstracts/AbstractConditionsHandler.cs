@@ -1,10 +1,10 @@
 using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Plugins;
 using Mutagen.Bethesda.Plugins.Records;
-using ForwardChanges.PropertyHandlers.Formatting;
-using ForwardChanges.PropertyHandlers.General;
+using DreadsMashedPatch.PropertyHandlers.Formatting;
+using DreadsMashedPatch.PropertyHandlers.General;
 
-namespace ForwardChanges.PropertyHandlers.Abstracts
+namespace DreadsMashedPatch.PropertyHandlers.Abstracts
 {
     public abstract class AbstractConditionsHandler<TRecordGetter, TRecord> : AbstractListPropertyHandler<IConditionGetter>
         where TRecordGetter : class, IMajorRecordGetter

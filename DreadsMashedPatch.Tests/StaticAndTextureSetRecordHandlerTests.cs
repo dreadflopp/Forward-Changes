@@ -1,14 +1,14 @@
-using ForwardChanges.PropertyHandlers.General;
-using ForwardChanges.RecordHandlers;
+using DreadsMashedPatch.PropertyHandlers.General;
+using DreadsMashedPatch.RecordHandlers;
 using Mutagen.Bethesda.Plugins;
 using Mutagen.Bethesda.Skyrim;
 using Xunit;
-using StaticFlagsHandler = ForwardChanges.PropertyHandlers.Static.FlagsHandler;
-using StaticLodHandler = ForwardChanges.PropertyHandlers.Static.LodHandler;
-using StaticModelHandler = ForwardChanges.PropertyHandlers.Static.ModelHandler;
-using TextureSetFlagsHandler = ForwardChanges.PropertyHandlers.TextureSet.FlagsHandler;
+using StaticFlagsHandler = DreadsMashedPatch.PropertyHandlers.Static.FlagsHandler;
+using StaticLodHandler = DreadsMashedPatch.PropertyHandlers.Static.LodHandler;
+using StaticModelHandler = DreadsMashedPatch.PropertyHandlers.Static.ModelHandler;
+using TextureSetFlagsHandler = DreadsMashedPatch.PropertyHandlers.TextureSet.FlagsHandler;
 
-namespace ForwardChanges.Tests;
+namespace DreadsMashedPatch.Tests;
 
 public sealed class StaticAndTextureSetRecordHandlerTests
 {

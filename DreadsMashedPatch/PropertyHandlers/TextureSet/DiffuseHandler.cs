@@ -2,9 +2,9 @@ using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Plugins.Assets;
 using Mutagen.Bethesda.Skyrim.Assets;
-using ForwardChanges.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
 
-namespace ForwardChanges.PropertyHandlers.TextureSet
+namespace DreadsMashedPatch.PropertyHandlers.TextureSet
 {
     public class DiffuseHandler : AbstractPropertyHandler<AssetLinkGetter<SkyrimTextureAssetType>?>
     {
@@ -15,7 +15,7 @@ namespace ForwardChanges.PropertyHandlers.TextureSet
             var tx = TryCastRecord<ITextureSet>(record, PropertyName);
             if (tx != null)
             {
-                tx.Diffuse = value == null ? null : new AssetLink<SkyrimTextureAssetType>(ForwardChanges.PropertyHandlers.General.TexturePathHelper.Normalize(value));
+                tx.Diffuse = value == null ? null : new AssetLink<SkyrimTextureAssetType>(DreadsMashedPatch.PropertyHandlers.General.TexturePathHelper.Normalize(value));
             }
         }
 
@@ -29,11 +29,11 @@ namespace ForwardChanges.PropertyHandlers.TextureSet
         {
             if (value1 == null && value2 == null) return true;
             if (value1 == null || value2 == null) return false;
-            return ForwardChanges.PropertyHandlers.General.TexturePathHelper.AreEqual(value1, value2);
+            return DreadsMashedPatch.PropertyHandlers.General.TexturePathHelper.AreEqual(value1, value2);
         }
 
         public override string FormatValue(object? value) =>
-            value is AssetLinkGetter<SkyrimTextureAssetType> al ? ForwardChanges.PropertyHandlers.General.TexturePathHelper.Normalize(al) : value?.ToString() ?? "null";
+            value is AssetLinkGetter<SkyrimTextureAssetType> al ? DreadsMashedPatch.PropertyHandlers.General.TexturePathHelper.Normalize(al) : value?.ToString() ?? "null";
     }
 }
 

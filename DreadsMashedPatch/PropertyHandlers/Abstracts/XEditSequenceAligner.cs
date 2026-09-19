@@ -1,6 +1,6 @@
-using ForwardChanges.Contexts;
+using DreadsMashedPatch.Contexts;
 
-namespace ForwardChanges.PropertyHandlers.Abstracts;
+namespace DreadsMashedPatch.PropertyHandlers.Abstracts;
 
 /*
  * The Myers diff below follows TDiff 3.1 by Angus Johnson.

@@ -1,7 +1,7 @@
 using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Plugins.Records;
 
-namespace ForwardChanges.PropertyHandlers.Abstracts
+namespace DreadsMashedPatch.PropertyHandlers.Abstracts
 {
     public abstract class AbstractEffectsHandler<TRecordGetter, TRecord> : AbstractListPropertyHandler<IEffectGetter>
         where TRecordGetter : class, IMajorRecordGetter

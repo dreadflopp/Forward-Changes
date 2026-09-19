@@ -1,10 +1,10 @@
-using ForwardChanges.PropertyHandlers.Abstracts;
-using ForwardChanges.PropertyHandlers.General;
-using ForwardChanges.RecordHandlers;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.General;
+using DreadsMashedPatch.RecordHandlers;
 using Mutagen.Bethesda.Plugins;
 using Xunit;
 
-namespace ForwardChanges.Tests;
+namespace DreadsMashedPatch.Tests;
 
 public sealed class ListSemanticsTests
 {
@@ -39,7 +39,7 @@ public sealed class ListSemanticsTests
         string propertyName,
         ListSemantics expected)
     {
-        var recordHandler = Assert.IsAssignableFrom<ForwardChanges.RecordHandlers.Abstracts.AbstractRecordHandler>(
+        var recordHandler = Assert.IsAssignableFrom<DreadsMashedPatch.RecordHandlers.Abstracts.AbstractRecordHandler>(
             Activator.CreateInstance(recordHandlerType));
         var propertyHandler = recordHandler.PropertyHandlers[propertyName];
         var semantics = propertyHandler.GetType().GetProperty("Semantics")
@@ -55,7 +55,7 @@ public sealed class ListSemanticsTests
     [InlineData(typeof(MusicTrackRecordHandler), "Tracks")]
     public void StructuralListsUseAtomicPropertyContexts(Type recordHandlerType, string propertyName)
     {
-        var recordHandler = Assert.IsAssignableFrom<ForwardChanges.RecordHandlers.Abstracts.AbstractRecordHandler>(
+        var recordHandler = Assert.IsAssignableFrom<DreadsMashedPatch.RecordHandlers.Abstracts.AbstractRecordHandler>(
             Activator.CreateInstance(recordHandlerType));
         var propertyHandler = recordHandler.PropertyHandlers[propertyName];
 

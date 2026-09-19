@@ -1,9 +1,9 @@
 using System;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Skyrim;
-using ForwardChanges.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
 
-namespace ForwardChanges.PropertyHandlers.IdleMarker
+namespace DreadsMashedPatch.PropertyHandlers.IdleMarker
 {
     public class FlagsHandler : AbstractFlagPropertyHandler<Mutagen.Bethesda.Skyrim.IdleMarker.Flag>
     {

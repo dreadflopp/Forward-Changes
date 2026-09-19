@@ -1,9 +1,9 @@
-using ForwardChanges.RecordHandlers;
-using ForwardChanges.RecordHandlers.Abstracts;
+using DreadsMashedPatch.RecordHandlers;
+using DreadsMashedPatch.RecordHandlers.Abstracts;
 using Mutagen.Bethesda.Skyrim;
 using Xunit;
 
-namespace ForwardChanges.Tests;
+namespace DreadsMashedPatch.Tests;
 
 public class IntentionalExclusionTests
 {

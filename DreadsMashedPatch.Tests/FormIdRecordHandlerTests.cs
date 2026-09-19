@@ -1,9 +1,9 @@
-using ForwardChanges.PropertyHandlers.Abstracts;
-using ForwardChanges.PropertyHandlers.FormList;
-using ForwardChanges.RecordHandlers;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.FormList;
+using DreadsMashedPatch.RecordHandlers;
 using Xunit;
 
-namespace ForwardChanges.Tests;
+namespace DreadsMashedPatch.Tests;
 
 public sealed class FormIdRecordHandlerTests
 {

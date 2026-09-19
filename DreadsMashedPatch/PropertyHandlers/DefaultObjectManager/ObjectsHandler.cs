@@ -1,9 +1,9 @@
 using System.Collections.Generic;
 using Mutagen.Bethesda.Skyrim;
 using Noggog;
-using ForwardChanges.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
 
-namespace ForwardChanges.PropertyHandlers.DefaultObjectManager
+namespace DreadsMashedPatch.PropertyHandlers.DefaultObjectManager
 {
     public class ObjectsHandler : AbstractListPropertyHandler<IDefaultObjectGetter>
     {

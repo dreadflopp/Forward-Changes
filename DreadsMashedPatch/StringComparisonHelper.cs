@@ -1,4 +1,4 @@
-namespace ForwardChanges
+namespace DreadsMashedPatch
 {
     public static class StringComparisonHelper
     {

@@ -1,8 +1,8 @@
-using ForwardChanges.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Skyrim;
 
-namespace ForwardChanges.PropertyHandlers.Quest;
+namespace DreadsMashedPatch.PropertyHandlers.Quest;
 
 /// <summary>
 /// Tracks whether a quest VMAD exists independently from its mergeable contents.

@@ -1,8 +1,8 @@
 using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Plugins.Records;
-using ForwardChanges.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
 
-namespace ForwardChanges.PropertyHandlers.SoundDescriptor
+namespace DreadsMashedPatch.PropertyHandlers.SoundDescriptor
 {
     public class ConditionsHandler : AbstractConditionsHandler<ISoundDescriptorGetter, ISoundDescriptor>
     {

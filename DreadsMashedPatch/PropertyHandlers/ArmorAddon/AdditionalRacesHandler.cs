@@ -2,11 +2,11 @@ using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Plugins.Cache;
 using Mutagen.Bethesda.Plugins;
-using ForwardChanges.PropertyHandlers.Abstracts;
-using ForwardChanges.PropertyHandlers.Interfaces;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.Interfaces;
 using Noggog;
 
-namespace ForwardChanges.PropertyHandlers.ArmorAddon
+namespace DreadsMashedPatch.PropertyHandlers.ArmorAddon
 {
     public class AdditionalRacesHandler : AbstractListPropertyHandler<IFormLinkGetter<IRaceGetter>>
     {

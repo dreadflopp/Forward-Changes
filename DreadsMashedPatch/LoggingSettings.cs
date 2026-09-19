@@ -8,7 +8,7 @@ using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Synthesis;
 
-namespace ForwardChanges
+namespace DreadsMashedPatch
 {
     public enum PatcherLogVerbosity
     {

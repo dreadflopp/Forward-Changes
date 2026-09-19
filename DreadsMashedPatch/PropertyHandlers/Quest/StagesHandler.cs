@@ -5,12 +5,12 @@ using Mutagen.Bethesda.Plugins.Cache;
 using Mutagen.Bethesda.Strings;
 using Mutagen.Bethesda.Synthesis;
 using Noggog;
-using ForwardChanges;
-using ForwardChanges.PropertyHandlers.Abstracts;
-using ForwardChanges.Contexts;
+using DreadsMashedPatch;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.Contexts;
 using System.Linq;
 
-namespace ForwardChanges.PropertyHandlers.Quest
+namespace DreadsMashedPatch.PropertyHandlers.Quest
 {
     public class StagesHandler : AbstractListPropertyHandler<IQuestStageGetter>
     {

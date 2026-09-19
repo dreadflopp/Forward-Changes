@@ -1,9 +1,9 @@
 using System;
 using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Plugins.Records;
-using ForwardChanges.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
 
-namespace ForwardChanges.PropertyHandlers.Light
+namespace DreadsMashedPatch.PropertyHandlers.Light
 {
     public class ObjectBoundsHandler : AbstractPropertyHandler<IObjectBoundsGetter>
     {

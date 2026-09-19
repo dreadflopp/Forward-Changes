@@ -1,7 +1,7 @@
 using Mutagen.Bethesda.Skyrim;
-using ForwardChanges.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
 
-namespace ForwardChanges.PropertyHandlers.Furniture
+namespace DreadsMashedPatch.PropertyHandlers.Furniture
 {
     public class DestructibleHandler : AbstractDestructibleHandler<IFurnitureGetter, IFurniture>
     {

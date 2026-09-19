@@ -1,8 +1,8 @@
-using ForwardChanges.PropertyHandlers.Abstracts;
-using ForwardChanges.PropertyHandlers.Formatting;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.Formatting;
 using Mutagen.Bethesda.Plugins.Records;
 
-namespace ForwardChanges.PropertyHandlers.General;
+namespace DreadsMashedPatch.PropertyHandlers.General;
 
 /// <summary>
 /// Copies and compares a two-sided gendered aggregate without treating its

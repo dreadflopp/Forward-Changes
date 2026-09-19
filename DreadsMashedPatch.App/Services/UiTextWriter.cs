@@ -1,7 +1,7 @@
 using System.Text;
 using System.IO;
 
-namespace ForwardChanges.App.Services;
+namespace DreadsMashedPatch.App.Services;
 
 internal sealed class UiTextWriter : TextWriter
 {

@@ -1,10 +1,10 @@
-using ForwardChanges.Contexts.Interfaces;
+using DreadsMashedPatch.Contexts.Interfaces;
 
 /// <summary>
 /// Represents a context for a simple property.
 /// </summary>
 /// <typeparam name="T">The type of value this property context manages</typeparam>
-namespace ForwardChanges.Contexts
+namespace DreadsMashedPatch.Contexts
 {
     public class SimplePropertyContext<T> : IPropertyContext
     {

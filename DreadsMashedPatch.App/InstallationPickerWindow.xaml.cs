@@ -1,8 +1,8 @@
 using System.Windows;
 using System.Windows.Input;
-using ForwardChanges.App.Services;
+using DreadsMashedPatch.App.Services;
 
-namespace ForwardChanges.App;
+namespace DreadsMashedPatch.App;
 
 public partial class InstallationPickerWindow : Window
 {

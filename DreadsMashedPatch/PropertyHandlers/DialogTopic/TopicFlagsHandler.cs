@@ -2,9 +2,9 @@ using System;
 using System.Linq;
 using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Plugins.Records;
-using ForwardChanges.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
 
-namespace ForwardChanges.PropertyHandlers.DialogTopic
+namespace DreadsMashedPatch.PropertyHandlers.DialogTopic
 {
     public class TopicFlagsHandler : AbstractFlagPropertyHandler<Mutagen.Bethesda.Skyrim.DialogTopic.TopicFlag>
     {

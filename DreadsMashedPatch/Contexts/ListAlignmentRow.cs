@@ -1,4 +1,4 @@
-namespace ForwardChanges.Contexts;
+namespace DreadsMashedPatch.Contexts;
 
 /// <summary>
 /// A persistent row in the progressive alignment of an ordered list.

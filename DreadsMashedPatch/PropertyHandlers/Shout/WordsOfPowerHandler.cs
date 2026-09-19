@@ -2,9 +2,9 @@ using System.Collections.Generic;
 using System.Linq;
 using Mutagen.Bethesda.Plugins;
 using Mutagen.Bethesda.Skyrim;
-using ForwardChanges.PropertyHandlers.Abstracts;
+using DreadsMashedPatch.PropertyHandlers.Abstracts;
 
-namespace ForwardChanges.PropertyHandlers.Shout
+namespace DreadsMashedPatch.PropertyHandlers.Shout
 {
     public class WordsOfPowerHandler : AbstractPropertyHandler<List<IShoutWordGetter>>
     {

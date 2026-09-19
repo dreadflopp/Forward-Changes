@@ -1,14 +1,14 @@
-using ForwardChanges.App.Models;
+using DreadsMashedPatch.App.Models;
 using Mutagen.Bethesda.Plugins;
 using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Synthesis;
 using Mutagen.Bethesda.Synthesis.CLI;
 
-namespace ForwardChanges.App.Services;
+namespace DreadsMashedPatch.App.Services;
 
 public sealed class PatcherRunner
 {
-    private const string OutputPluginName = "ForwardChanges.esp";
+    private const string OutputPluginName = "Dread's Mashed Patch.esp";
 
     public static string GetOutputPath(StandaloneSettings settings) =>
         Path.Combine(settings.DataFolderPath, OutputPluginName);
@@ -53,7 +53,7 @@ public sealed class PatcherRunner
             LoadOrderFilePath = preparedLoadOrder.Path,
             ExtraDataFolder = SettingsStore.SettingsDirectory,
             PersistencePath = Path.Combine(SettingsStore.SettingsDirectory, "Persistence"),
-            PatcherName = "Forward Changes",
+            PatcherName = "Dread's Mashed Patch",
             ModKey = outputModKey.FileName.String,
             // The temporary load order already contains the Creation Club entries
             // from the explicitly selected game folder.

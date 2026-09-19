@@ -2,11 +2,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.10.35122.118
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ForwardChanges", "ForwardChanges\ForwardChanges.csproj", "{8BA2E1B7-DD65-42B6-A780-17E4037A3C1B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DreadsMashedPatch", "DreadsMashedPatch\DreadsMashedPatch.csproj", "{8BA2E1B7-DD65-42B6-A780-17E4037A3C1B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ForwardChanges.Tests", "ForwardChanges.Tests\ForwardChanges.Tests.csproj", "{9D993913-847E-40F5-A8EC-E4EAA57BA77D}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DreadsMashedPatch.Tests", "DreadsMashedPatch.Tests\DreadsMashedPatch.Tests.csproj", "{9D993913-847E-40F5-A8EC-E4EAA57BA77D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ForwardChanges.App", "ForwardChanges.App\ForwardChanges.App.csproj", "{5A78BFCB-A878-4BB0-B5D1-7BA43A7B61CD}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DreadsMashedPatch.App", "DreadsMashedPatch.App\DreadsMashedPatch.App.csproj", "{5A78BFCB-A878-4BB0-B5D1-7BA43A7B61CD}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
