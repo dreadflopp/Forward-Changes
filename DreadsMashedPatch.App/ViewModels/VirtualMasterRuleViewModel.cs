@@ -32,7 +32,7 @@ public sealed class VirtualMasterRuleViewModel : BindableBase
     }
 
     public string DisplayName => string.IsNullOrWhiteSpace(InjectedMaster)
-        ? "New compatibility rule"
+        ? "New master rule"
         : InjectedMaster.Trim();
 
     public VirtualMasterRule ToModel() => new()

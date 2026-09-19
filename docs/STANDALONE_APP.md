@@ -27,15 +27,15 @@ Every supported record family is enabled by default. The UI groups them by the f
 
 ## Diagnostics
 
-Progress and warnings are always shown. Debug mode enables configurable context-change or detailed logging and optional deep dives by xEdit record signature, FormKey, and field/property selector. Common xEdit field signatures such as `EDID`, `FULL`, `DESC`, `KWDA`, `VMAD`, and `CTDA` are accepted. Deep-dive selectors accept commas, semicolons, or one value per line.
+Progress and warnings are always shown. Debug mode enables context-change logging and optional deep dives by xEdit record signature, FormKey, and field/property selector. Broad Detailed logging remains available as a developer-only configuration because enabling it for every record can produce extremely large logs. Common xEdit field signatures such as `EDID`, `FULL`, `DESC`, `KWDA`, `VMAD`, and `CTDA` are accepted. Deep-dive selectors accept commas, semicolons, or one value per line.
 
 The game release is selected explicitly and passed to Mutagen/Synthesis. Anniversary Edition uses the corresponding Special Edition Steam or GOG selection. Mutagen requires this value for implicit masters, load-order parsing, and binary defaults. Creation Club listings are read explicitly from `Skyrim.ccc` in the selected game folder, merged with `plugins.txt`, and deduplicated by the Synthesis pipeline.
 
-The output name is fixed as `Dread's Mashed Patch.esp`. If it already appears in the selected load order, Synthesis reads only enabled plugins placed before it. If it is absent, Synthesis reads the complete enabled load order. Rerunning replaces the existing patch without an overwrite confirmation.
+The primary output name is fixed as `Dread's Mashed Patch.esp`. If the patch needs more than 254 masters, Synthesis automatically splits it into additional numbered plugins such as `Dread's Mashed Patch_2.esp`. If the primary output already appears in the selected load order, Synthesis reads only enabled plugins placed before it. If it is absent, Synthesis reads the complete enabled load order. Before a rerun, numbered outputs from the previous run are removed so obsolete split files cannot remain when the new patch uses fewer files.
 
 At the start of every run, the patcher builds its official baseline from the base game, DLC, `SkyrimVR.esm`, and optionally the installed entries from `Skyrim.ccc`. It then intersects that set with the final Synthesis load order, so missing plugins are ignored. The **Treat Creation Club content as official baseline** policy is enabled by default to preserve the original behaviour; disabling it makes Creation Club conflicts eligible for forwarding like ordinary mods.
 
-The **Compatibility Rules** tab supports intentional overwrite relationships that plugin headers do not declare. Each rule names one plugin to inject as a virtual master and one or more target mods that receive that authority. Rules are compiled once per run into a target-to-virtual-masters lookup; imported plugin headers are never modified. All reversion-permission checks use the same lookup alongside the real master list.
+The **Master Rules** tab supports intentional overwrite relationships that plugin headers do not declare. Each rule names one plugin to treat as a master and one or more target mods that receive that authority. Rules are compiled once per run into a target-to-virtual-masters lookup; imported plugin headers are never modified. If the relationship is already present in a target plugin's real masters list, the rule is harmless and does not add or duplicate header entries.
 
 ## Build and publish
 

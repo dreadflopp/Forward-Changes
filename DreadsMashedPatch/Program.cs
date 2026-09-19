@@ -257,7 +257,7 @@ namespace DreadsMashedPatch
                 $"{vanillaBaseline.MissingCount} absent; Creation Club is " +
                 $"{(vanillaBaseline.IncludesCreationClub ? "included" : "treated as mods")}");
             Console.WriteLine(
-                $"Compatibility rules: {PatcherSettings.CompatibilityRuleCount} rules for " +
+                $"Master rules: {PatcherSettings.CompatibilityRuleCount} rules for " +
                 $"{PatcherSettings.CompatibilityTargetCount} target plugins");
             var enabledRecordTypes = SupportedRecordTypes
                 .Where(PatcherSettings.IsRecordTypeEnabled)

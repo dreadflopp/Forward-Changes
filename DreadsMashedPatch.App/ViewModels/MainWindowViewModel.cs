@@ -1,6 +1,5 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Windows.Data;
 using DreadsMashedPatch.App.Models;
 using DreadsMashedPatch.Enums;
 
@@ -9,7 +8,6 @@ namespace DreadsMashedPatch.App.ViewModels;
 public sealed class MainWindowViewModel : BindableBase
 {
     private StandaloneSettings _settings = new();
-    private string _recordSearchText = string.Empty;
     private string _statusText = "Ready";
     private bool _isRunning;
     private string _deepDiveRecordSignaturesText = string.Empty;
@@ -17,12 +15,6 @@ public sealed class MainWindowViewModel : BindableBase
     private string _deepDivePropertiesText = string.Empty;
     private string _elapsedText = "00:00:00";
     private VirtualMasterRuleViewModel? _selectedCompatibilityRule;
-
-    public MainWindowViewModel()
-    {
-        RecordTypesView = CollectionViewSource.GetDefaultView(RecordTypes);
-        RecordTypesView.Filter = FilterRecordType;
-    }
 
     public StandaloneSettings Settings
     {
@@ -40,75 +32,59 @@ public sealed class MainWindowViewModel : BindableBase
         set => SetProperty(ref _selectedCompatibilityRule, value);
     }
 
-    public ICollectionView RecordTypesView { get; }
-
     public IReadOnlyList<EnumChoice<ProtectionForwardingPolicy>> ProtectionPolicies { get; } =
     [
         new(ProtectionForwardingPolicy.PreferHigherWithAuthorizedDowngrades,
-            "Prefer higher, allow explicit downgrades",
+            "Protect NPCs unless deliberately changed (Recommended)",
             "Prefer Essential over Protected over None, while honoring an intentional downgrade made by a later plugin."),
         new(ProtectionForwardingPolicy.HighestWins,
-            "Highest status always wins",
+            "Always keep the strongest protection",
             "Always preserve the highest protection status found anywhere in the override chain."),
         new(ProtectionForwardingPolicy.StandardForwarding,
-            "Standard forwarding",
+            "Forward each status change normally",
             "Treat the protection flags like ordinary fields and forward the last meaningful change.")
     ];
 
     public IReadOnlyList<EnumChoice<PerkForwardingPolicy>> PerkPolicies { get; } =
     [
         new(PerkForwardingPolicy.AtomicOnCoupledPropertyChange,
-            "Keep coupled PERK data together",
+            "Keep related perk data together (Recommended)",
             "When coupled gameplay data changes, take that data from one owning override rather than mixing related fields."),
         new(PerkForwardingPolicy.StandardForwarding,
-            "Standard forwarding",
+            "Forward perk fields separately",
             "Forward registered PERK properties independently.")
     ];
 
     public IReadOnlyList<EnumChoice<QuestForwardingPolicy>> QuestPolicies { get; } =
     [
         new(QuestForwardingPolicy.AtomicOnStructuralChange,
-            "Keep structural QUEST data together",
+            "Keep related quest data together (Recommended)",
             "A structural quest change establishes an ownership boundary for the interdependent quest graph."),
         new(QuestForwardingPolicy.StandardForwarding,
-            "Standard forwarding",
+            "Forward quest fields separately",
             "Forward registered QUEST properties independently.")
     ];
 
     public IReadOnlyList<EnumChoice<StoryManagerForwardingPolicy>> StoryManagerPolicies { get; } =
     [
         new(StoryManagerForwardingPolicy.AtomicOnConfigurationChange,
-            "Keep node configuration together",
+            "Keep each node's setup together (Recommended)",
             "Configuration changes establish ownership of the complete Story Manager node while compatible quest rows may still merge."),
         new(StoryManagerForwardingPolicy.StandardForwarding,
-            "Standard forwarding",
+            "Forward node fields separately",
             "Forward registered Story Manager properties independently.")
     ];
 
-    public Array LogVerbosityValues => Enum.GetValues<PatcherLogVerbosity>();
+    public IReadOnlyList<EnumChoice<PatcherLogVerbosity>> LogVerbosityChoices { get; } =
+    [
+        new(PatcherLogVerbosity.Summary, "Summary only", "Show progress and warnings."),
+        new(PatcherLogVerbosity.ContextChanges, "Changed records", "Also show decisions for records whose source changes.")
+    ];
 
     public IReadOnlyList<GameReleaseChoice> GameReleaseChoices => GameReleaseChoice.Supported;
 
-    public string RecordSearchText
-    {
-        get => _recordSearchText;
-        set
-        {
-            if (SetProperty(ref _recordSearchText, value))
-            {
-                RecordTypesView.Refresh();
-                OnPropertyChanged(nameof(ShownRecordTypeCountText));
-            }
-        }
-    }
-
     public string SelectedRecordTypeCountText =>
         $"{RecordTypes.Count(x => x.IsEnabled)} of {RecordTypes.Count} enabled";
-
-    public string ShownRecordTypeCountText =>
-        string.IsNullOrWhiteSpace(RecordSearchText)
-            ? SelectedRecordTypeCountText
-            : $"{RecordTypesView.Cast<object>().Count()} shown · {SelectedRecordTypeCountText}";
 
     public string StatusText
     {
@@ -149,6 +125,11 @@ public sealed class MainWindowViewModel : BindableBase
     public void Load(StandaloneSettings settings)
     {
         settings.Normalize();
+        if (settings.Patcher.Diagnostics.Verbosity == PatcherLogVerbosity.Detailed)
+        {
+            settings.Patcher.Diagnostics.Verbosity = PatcherLogVerbosity.ContextChanges;
+        }
+
         Settings = settings;
         RecordTypes.Clear();
         CompatibilityRules.Clear();
@@ -179,7 +160,6 @@ public sealed class MainWindowViewModel : BindableBase
             CompatibilityRules.Add(new VirtualMasterRuleViewModel(rule));
         }
         SelectedCompatibilityRule = CompatibilityRules.FirstOrDefault();
-        RecordTypesView.Refresh();
         NotifyRecordCounts();
     }
 
@@ -200,6 +180,36 @@ public sealed class MainWindowViewModel : BindableBase
     {
         var rule = new VirtualMasterRuleViewModel(new VirtualMasterRule());
         CompatibilityRules.Add(rule);
+        SelectedCompatibilityRule = rule;
+    }
+
+    public void AddSimonRimExampleRule()
+    {
+        const string unofficialPatch = "Unofficial Skyrim Special Edition Patch.esp";
+        string[] simonRimPlugins =
+        [
+            "Adamant.esp",
+            "MysticismMagic.esp",
+            "Aetherius.esp",
+            "Mundus.esp",
+            "BladeAndBlunt.esp",
+            "Apothecary.esp"
+        ];
+
+        var rule = CompatibilityRules.FirstOrDefault(candidate =>
+            string.Equals(candidate.InjectedMaster.Trim(), unofficialPatch, StringComparison.OrdinalIgnoreCase));
+        if (rule is null)
+        {
+            rule = new VirtualMasterRuleViewModel(new VirtualMasterRule
+            {
+                InjectedMaster = unofficialPatch
+            });
+            CompatibilityRules.Add(rule);
+        }
+
+        var targetMods = rule.ToModel().TargetMods;
+        targetMods.UnionWith(simonRimPlugins);
+        rule.TargetModsText = string.Join(Environment.NewLine, targetMods.Order(StringComparer.OrdinalIgnoreCase));
         SelectedCompatibilityRule = rule;
     }
 
@@ -233,18 +243,6 @@ public sealed class MainWindowViewModel : BindableBase
         }
     }
 
-    private bool FilterRecordType(object item)
-    {
-        if (item is not RecordTypeOptionViewModel option || string.IsNullOrWhiteSpace(RecordSearchText))
-        {
-            return true;
-        }
-
-        var search = RecordSearchText.Trim();
-        return option.DisplayName.Contains(search, StringComparison.OrdinalIgnoreCase)
-            || option.Signature.Contains(search, StringComparison.OrdinalIgnoreCase);
-    }
-
     private void OnRecordTypePropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName == nameof(RecordTypeOptionViewModel.IsEnabled))
@@ -256,7 +254,6 @@ public sealed class MainWindowViewModel : BindableBase
     private void NotifyRecordCounts()
     {
         OnPropertyChanged(nameof(SelectedRecordTypeCountText));
-        OnPropertyChanged(nameof(ShownRecordTypeCountText));
     }
 
     private static HashSet<string> ParseEntries(string text)

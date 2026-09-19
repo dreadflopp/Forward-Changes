@@ -4,11 +4,16 @@
              StartupUri="MainWindow.xaml"
              ShutdownMode="OnMainWindowClose">
     <Application.Resources>
-        <SolidColorBrush x:Key="AccentBrush" Color="#365F91" />
-        <SolidColorBrush x:Key="AccentHoverBrush" Color="#284A72" />
-        <SolidColorBrush x:Key="PanelBrush" Color="#F7F8FA" />
-        <SolidColorBrush x:Key="BorderBrush" Color="#D9DEE7" />
-        <SolidColorBrush x:Key="MutedTextBrush" Color="#5B6472" />
+        <SolidColorBrush x:Key="AccentBrush" Color="#2E8052" />
+        <SolidColorBrush x:Key="AccentHoverBrush" Color="#246640" />
+        <SolidColorBrush x:Key="WindowBackgroundBrush" Color="#FFFCFC" />
+        <SolidColorBrush x:Key="HeaderBrush" Color="#2B2027" />
+        <SolidColorBrush x:Key="HeaderMutedTextBrush" Color="#DCCFD5" />
+        <SolidColorBrush x:Key="PanelBrush" Color="#FFF6F7" />
+        <SolidColorBrush x:Key="BorderBrush" Color="#E5D3D7" />
+        <SolidColorBrush x:Key="MutedTextBrush" Color="#675860" />
+        <SolidColorBrush x:Key="InfoPanelBrush" Color="#F0FAF3" />
+        <SolidColorBrush x:Key="InfoBorderBrush" Color="#A9D5B8" />
 
         <Style TargetType="Button">
             <Setter Property="MinHeight" Value="34" />
@@ -24,16 +29,25 @@
         <Style TargetType="ComboBox">
             <Setter Property="MinHeight" Value="32" />
             <Setter Property="Padding" Value="6,3" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
         </Style>
         <Style TargetType="CheckBox">
             <Setter Property="Margin" Value="0,5" />
             <Setter Property="VerticalContentAlignment" Value="Center" />
         </Style>
-        <Style x:Key="PrimaryButton" TargetType="Button">
+        <Style x:Key="PrimaryButton"
+               TargetType="Button"
+               BasedOn="{StaticResource {x:Type Button}}">
             <Setter Property="Background" Value="{StaticResource AccentBrush}" />
             <Setter Property="Foreground" Value="White" />
             <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
             <Setter Property="FontWeight" Value="SemiBold" />
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="{StaticResource AccentHoverBrush}" />
+                    <Setter Property="BorderBrush" Value="{StaticResource AccentHoverBrush}" />
+                </Trigger>
+            </Style.Triggers>
         </Style>
         <Style x:Key="SectionTitle" TargetType="TextBlock">
             <Setter Property="FontSize" Value="17" />

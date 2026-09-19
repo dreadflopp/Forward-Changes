@@ -2,13 +2,14 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Choose Skyrim installation"
+        Icon="Assets/AppIcon.png"
         Width="680"
         Height="360"
         MinWidth="520"
         MinHeight="280"
         WindowStartupLocation="CenterOwner"
         ShowInTaskbar="False">
-    <Grid Margin="18">
+    <Grid Margin="18" Background="{StaticResource WindowBackgroundBrush}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />

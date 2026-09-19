@@ -149,8 +149,7 @@ public partial class MainWindow : Window
                 WriteRunLog($"{Environment.NewLine}Completed successfully in {_runStopwatch.Elapsed:g}.{Environment.NewLine}");
                 _viewModel.StatusText = "Completed";
                 MessageBox.Show(
-                    $"Patch created successfully:\n{PatcherRunner.GetOutputPath(_viewModel.Settings)}\n\n"
-                    + "If running through MO2, refresh MO2 and check its configured output mod or Overwrite.",
+                    "Patch created successfully.",
                     "Dread's Mashed Patch completed",
                     MessageBoxButton.OK,
                     MessageBoxImage.Information);
@@ -308,15 +307,23 @@ public partial class MainWindow : Window
     private void OnRemoveCompatibilityRule(object sender, RoutedEventArgs e) =>
         _viewModel.RemoveSelectedCompatibilityRule();
 
+    private void OnAddSimonRimExampleRule(object sender, RoutedEventArgs e) =>
+        _viewModel.AddSimonRimExampleRule();
+
     private void OnRecordTypeListPreviewKeyDown(object sender, KeyEventArgs e)
     {
-        if (e.Key == Key.Space
-            && e.OriginalSource is not CheckBox
-            && RecordTypeList.SelectedItem is RecordTypeOptionViewModel option)
+        if (e.Key != Key.Space || RecordTypeList.SelectedItem is not RecordTypeOptionViewModel focusedOption)
         {
-            option.IsEnabled = !option.IsEnabled;
-            e.Handled = true;
+            return;
         }
+
+        var enable = !focusedOption.IsEnabled;
+        foreach (var option in RecordTypeList.SelectedItems.Cast<RecordTypeOptionViewModel>())
+        {
+            option.IsEnabled = enable;
+        }
+
+        e.Handled = true;
     }
 
     private void OnWindowPreviewKeyDown(object sender, KeyEventArgs e)
@@ -329,13 +336,6 @@ public partial class MainWindow : Window
         else if (Keyboard.Modifiers == ModifierKeys.Control && e.Key == Key.R)
         {
             OnRun(sender, e);
-            e.Handled = true;
-        }
-        else if (Keyboard.Modifiers == ModifierKeys.Control && e.Key == Key.F)
-        {
-            MainTabs.SelectedIndex = 1;
-            RecordSearchBox.Focus();
-            RecordSearchBox.SelectAll();
             e.Handled = true;
         }
     }
@@ -437,20 +437,20 @@ public partial class MainWindow : Window
             var rule = settings.Patcher.CompatibilityRules[index];
             if (!ModKey.TryFromFileName(rule.InjectedMaster, out _))
             {
-                error = $"Compatibility rule {index + 1} has an invalid virtual-master plugin filename.";
+                error = $"Master rule {index + 1} has an invalid filename for the plugin to treat as a master.";
                 return false;
             }
 
             if (rule.TargetMods.Count == 0)
             {
-                error = $"Compatibility rule {index + 1} must contain at least one target mod.";
+                error = $"Master rule {index + 1} must contain at least one target mod.";
                 return false;
             }
 
             var invalidTarget = rule.TargetMods.FirstOrDefault(target => !ModKey.TryFromFileName(target, out _));
             if (invalidTarget is not null)
             {
-                error = $"Compatibility rule {index + 1} has an invalid target plugin filename: {invalidTarget}";
+                error = $"Master rule {index + 1} has an invalid target plugin filename: {invalidTarget}";
                 return false;
             }
         }

@@ -51,6 +51,9 @@ public static class LoadOrderPreparer
 
         mergedLines.AddRange(await File.ReadAllLinesAsync(settings.LoadOrderFilePath));
 
+        // This lookup is only for the UI/run-log summary. Preserve the complete
+        // list and let Synthesis apply its output-ModKey cutoff so split-output
+        // handling and normal Synthesis load-order behavior stay on one path.
         var outputIndex = mergedLines.FindIndex(line =>
             string.Equals(GetPluginName(line), OutputPluginName, StringComparison.OrdinalIgnoreCase));
         var listingsAfterOutput = outputIndex < 0

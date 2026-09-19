@@ -7,7 +7,7 @@
     <AssemblyName>DreadsMashedPatch</AssemblyName>
     <PackageId>DreadsMashedPatch.Standalone</PackageId>
     <RootNamespace>DreadsMashedPatch.App</RootNamespace>
-    <ApplicationIcon />
+    <ApplicationIcon>Assets\AppIcon.ico</ApplicationIcon>
     <PublishSingleFile>true</PublishSingleFile>
     <SelfContained>true</SelfContained>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
@@ -16,6 +16,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Resource Include="Assets\AppIcon.png" />
     <ProjectReference Include="..\DreadsMashedPatch\DreadsMashedPatch.csproj" />
     <PackageReference Include="Mutagen.Bethesda.Skyrim" Version="0.54.4" />
     <PackageReference Include="Mutagen.Bethesda.Synthesis" Version="0.36.6" />

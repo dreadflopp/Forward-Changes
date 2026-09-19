@@ -1,5 +1,6 @@
 using DreadsMashedPatch.App.Models;
 using Mutagen.Bethesda.Plugins;
+using Mutagen.Bethesda.Plugins.Analysis;
 using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Synthesis;
 using Mutagen.Bethesda.Synthesis.CLI;
@@ -24,6 +25,12 @@ public sealed class PatcherRunner
         var outputModKey = ModKey.FromNameAndExtension(OutputPluginName.AsSpan());
         var preparedLoadOrder = await LoadOrderPreparer.CreateAsync(settings);
         PatcherSettings.Apply(settings.Patcher, preparedLoadOrder.CreationClubPlugins);
+
+        var removedSplitOutputs = CleanupSplitOutputs(outputPath);
+        if (removedSplitOutputs > 0)
+        {
+            writeLog($"Removed {removedSplitOutputs} output file(s) from the previous split patch.{Environment.NewLine}");
+        }
 
         writeLog($"Game release: {settings.GameRelease}{Environment.NewLine}");
         writeLog($"Game folder: {settings.GameFolderPath}{Environment.NewLine}");
@@ -54,10 +61,14 @@ public sealed class PatcherRunner
             ExtraDataFolder = SettingsStore.SettingsDirectory,
             PersistencePath = Path.Combine(SettingsStore.SettingsDirectory, "Persistence"),
             PatcherName = "Dread's Mashed Patch",
+            // Synthesis uses this primary ModKey as the load-order cutoff, removing
+            // it and every later listing before importing any input plugins. Keep
+            // this as the unsuffixed key even when automatic output splitting is on.
             ModKey = outputModKey.FileName.String,
             // The temporary load order already contains the Creation Club entries
             // from the explicitly selected game folder.
-            LoadOrderIncludesCreationClub = true
+            LoadOrderIncludesCreationClub = true,
+            SplitIfMaxMastersExceeded = true
         };
 
         try
@@ -87,5 +98,36 @@ public sealed class PatcherRunner
         {
             File.Delete(preparedLoadOrder.Path);
         }
+    }
+
+    private static int CleanupSplitOutputs(string outputPath)
+    {
+        var outputDirectory = Path.GetDirectoryName(outputPath);
+        if (string.IsNullOrEmpty(outputDirectory) || !Directory.Exists(outputDirectory))
+        {
+            return 0;
+        }
+
+        var baseName = Path.GetFileNameWithoutExtension(outputPath);
+        var extension = Path.GetExtension(outputPath);
+        var removed = 0;
+
+        foreach (var candidate in Directory.EnumerateFiles(outputDirectory, $"{baseName}_*{extension}"))
+        {
+            var candidateName = Path.GetFileNameWithoutExtension(candidate);
+            // Match the exact convention used by Synthesis auto-splitting. The
+            // unsuffixed primary output is deliberately never touched: it remains
+            // the stable ModKey that marks the load-order cutoff on every rerun.
+            if (!MultiModFileAnalysis.IsSplitFileName(candidateName, baseName, out var splitIndex)
+                || splitIndex < 2)
+            {
+                continue;
+            }
+
+            File.Delete(candidate);
+            removed++;
+        }
+
+        return removed;
     }
 }
