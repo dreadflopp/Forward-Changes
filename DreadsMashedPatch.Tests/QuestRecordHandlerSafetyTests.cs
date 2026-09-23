@@ -1,4 +1,3 @@
-using DreadsMashedPatch.Enums;
 using DreadsMashedPatch.PropertyHandlers.General;
 using DreadsMashedPatch.PropertyHandlers.Quest;
 using DreadsMashedPatch.RecordHandlers;
@@ -21,8 +20,6 @@ public sealed class QuestRecordHandlerSafetyTests
     {
         var handler = new TestableQuestRecordHandler();
 
-        Assert.Equal(QuestForwardingPolicy.AtomicOnStructuralChange, PatcherSettings.QuestPolicy);
-        Assert.Equal(QuestForwardingPolicy.AtomicOnStructuralChange, handler.ForwardingPolicy);
         Assert.Equal(
             new HashSet<string>(StringComparer.Ordinal)
             {
@@ -45,18 +42,6 @@ public sealed class QuestRecordHandlerSafetyTests
                 "Aliases"
             },
             handler.AtomicTriggers);
-    }
-
-    [Fact]
-    public void StandardForwardingDisablesStructuralOwnershipBoundary()
-    {
-        var handler = new TestableQuestRecordHandler(QuestForwardingPolicy.StandardForwarding);
-        var previous = CreateQuest(0x800);
-        var current = CreateQuest(0x800);
-        current.Type = Quest.TypeEnum.SideQuest;
-
-        Assert.Empty(handler.AtomicTriggers);
-        Assert.Empty(handler.GetChangedTriggers(previous, current));
     }
 
     [Fact]
@@ -127,7 +112,7 @@ public sealed class QuestRecordHandlerSafetyTests
     [Fact]
     public void ObjectiveWithMissingAliasIsRejectedBeforeMutation()
     {
-        var handler = new QuestRecordHandler(QuestForwardingPolicy.StandardForwarding);
+        var handler = new QuestRecordHandler();
         var quest = CreateQuest(0x803);
         var objective = new QuestObjective { Index = 10 };
         objective.Targets.Add(new QuestObjectiveTarget { AliasID = 12 });
@@ -145,7 +130,7 @@ public sealed class QuestRecordHandlerSafetyTests
     [Fact]
     public void InvalidNextAliasIdIsRejectedBeforeMutation()
     {
-        var handler = new QuestRecordHandler(QuestForwardingPolicy.StandardForwarding);
+        var handler = new QuestRecordHandler();
         var quest = CreateQuest(0x804);
         quest.Aliases.Add(new QuestAlias { ID = 5 });
 
@@ -162,7 +147,7 @@ public sealed class QuestRecordHandlerSafetyTests
     [Fact]
     public void FragmentWithMissingStageIsRejectedBeforeMutation()
     {
-        var handler = new QuestRecordHandler(QuestForwardingPolicy.StandardForwarding);
+        var handler = new QuestRecordHandler();
         var quest = CreateQuest(0x805);
         var fragment = new QuestScriptFragment
         {
@@ -226,11 +211,6 @@ public sealed class QuestRecordHandlerSafetyTests
     private sealed class TestableQuestRecordHandler : QuestRecordHandler
     {
         public TestableQuestRecordHandler()
-        {
-        }
-
-        public TestableQuestRecordHandler(QuestForwardingPolicy forwardingPolicy)
-            : base(forwardingPolicy)
         {
         }
 

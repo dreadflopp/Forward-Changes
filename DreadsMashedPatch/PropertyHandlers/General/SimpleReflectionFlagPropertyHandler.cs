@@ -32,15 +32,18 @@ namespace DreadsMashedPatch.PropertyHandlers.General
         private readonly Type[]? _setterPathTypes;
         private readonly bool _preserveUnknownBits;
         private readonly bool _includeUnnamedBits;
+        private readonly TFlag[]? _includedFlags;
 
         public SimpleReflectionFlagPropertyHandler(
             string propertyName,
             bool preserveUnknownBits = false,
-            bool includeUnnamedBits = false)
+            bool includeUnnamedBits = false,
+            IEnumerable<TFlag>? includedFlags = null)
         {
             _propertyName = propertyName;
             _preserveUnknownBits = preserveUnknownBits;
             _includeUnnamedBits = includeUnnamedBits;
+            _includedFlags = includedFlags?.Distinct().ToArray();
             _propertyPath = propertyName.Split('.');
 
             // Find the property on the getter interface
@@ -182,7 +185,7 @@ namespace DreadsMashedPatch.PropertyHandlers.General
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error getting property '{PropertyName}' via reflection: {ex.Message}");
+                LogCollector.AddError(PropertyName, "Could not read the flag property via reflection", ex);
                 return default;
             }
         }
@@ -280,12 +283,17 @@ namespace DreadsMashedPatch.PropertyHandlers.General
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error setting property '{PropertyName}' via reflection: {ex.Message}");
+                LogCollector.AddError(PropertyName, "Could not apply the flag property via reflection", ex);
             }
         }
 
         protected override TFlag[] GetAllFlags()
         {
+            if (_includedFlags != null)
+            {
+                return _includedFlags;
+            }
+
             if (!_includeUnnamedBits)
             {
                 return Enum.GetValues<TFlag>();

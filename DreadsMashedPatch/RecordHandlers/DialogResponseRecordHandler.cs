@@ -15,10 +15,12 @@ using System;
 namespace DreadsMashedPatch.RecordHandlers
 {
     // Migration note:
-    // - Generalized: DATA uses the shared binary deep-copy handler.
-    // - Kept specialized: response, condition, script, and flag handlers retain merge and record-specific behavior.
-    // - Intentionally excluded: PreviousDialog is runtime/structural linkage; UnknownData is an opaque SCHR/QNAM/NEXT payload.
-    // - Rationale: excluded fields remain from the winning override instead of being synthesized across plugins.
+    // - Generalized: DATA uses the shared binary deep-copy handler; VMAD script comparison uses the shared Papyrus policy.
+    // - Kept specialized: response, condition, DIAL VMAD, and flag handlers retain merge and record-specific behavior.
+    // - Intentionally excluded: PreviousDialog is runtime/structural linkage; UnknownData is an opaque SCHR/QNAM/NEXT payload;
+    //   opaque Papyrus object-property Unused bytes do not create conflicts.
+    // - Rationale: excluded fields remain from the winning override; DIAL VMAD is copied atomically so its generated
+    //   adapter subtype, versioning, typed script values, and script fragments cannot be partially/default constructed.
     public class DialogResponseRecordHandler : AbstractRecordHandler
     {
         public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()

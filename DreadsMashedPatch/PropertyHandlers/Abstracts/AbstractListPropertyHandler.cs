@@ -915,8 +915,12 @@ public abstract class AbstractListPropertyHandler<T> : IPropertyHandler<List<T>>
                 : (List<T>?)value2;
             return AreValuesEqual(typedValue1, typedValue2);
         }
-        catch (InvalidCastException)
+        catch (InvalidCastException ex)
         {
+            LogCollector.AddDiagnostic(
+                PropertyName,
+                $"Could not compare list values as {typeof(T).Name}; treating them as different",
+                ex);
             return false;
         }
     }

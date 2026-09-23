@@ -7,7 +7,6 @@ using Noggog;
 using Xunit;
 using CloudModelHandler = DreadsMashedPatch.PropertyHandlers.Worldspace.CloudModelHandler;
 using ScopeModelHandler = DreadsMashedPatch.PropertyHandlers.Weapon.ScopeModelHandler;
-using StaticModelHandler = DreadsMashedPatch.PropertyHandlers.Static.ModelHandler;
 
 namespace DreadsMashedPatch.Tests;
 
@@ -24,19 +23,22 @@ public sealed class ModelHandlerRegressionTests
     }
 
     [Fact]
-    public void StaticModelCopiesAndComparesAllSerializedFields()
+    public void ModelBoundsCoordinatorCopiesAllSerializedModelFields()
     {
-        var handler = new StaticModelHandler();
+        var handler = new ModelBoundsHandler();
         var target = new Mutagen.Bethesda.Skyrim.Static(
             new FormKey(TestModKey, 0x200),
             SkyrimRelease.SkyrimSE);
         var source = Model([1, 2], 7);
+        var value = new DreadsMashedPatch.Contexts.ModelBoundsValue(source, new ObjectBounds());
 
-        handler.SetValue(target, source);
+        handler.SetValue(target, value);
 
         Assert.Equal(new byte[] { 1, 2 }, target.Model!.Data!.Value.ToArray());
         Assert.Equal(7, target.Model.AlternateTextures![0].Index);
-        Assert.False(handler.AreValuesEqual(source, Model([9, 9], 7)));
+        Assert.False(handler.AreValuesEqual(
+            value,
+            new DreadsMashedPatch.Contexts.ModelBoundsValue(Model([9, 9], 7), new ObjectBounds())));
     }
 
     [Fact]

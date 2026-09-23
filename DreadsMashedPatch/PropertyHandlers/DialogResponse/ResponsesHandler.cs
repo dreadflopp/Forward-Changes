@@ -51,7 +51,10 @@ namespace DreadsMashedPatch.PropertyHandlers.DialogResponse
                         }
                         catch (Exception ex)
                         {
-                            Console.WriteLine($"[{PropertyName}] Error copying response {FormatItem(response)}: {ex.Message}");
+                            LogCollector.AddError(
+                                PropertyName,
+                                $"Could not copy response {FormatItem(response)}; the response was skipped",
+                                ex);
                         }
                     }
                 }
@@ -178,10 +181,11 @@ namespace DreadsMashedPatch.PropertyHandlers.DialogResponse
                 // Show the response type, emotion, number, and text
                 return $"{responseType}({emotion}, #{responseNumber}, \"{displayText}\")";
             }
-            catch
+            catch (Exception ex)
             {
                 // Fallback to showing the response type and hash code for uniqueness
-                return $"{item.GetType().Name}({item.GetHashCode():X8})";
+                return $"{item.GetType().Name}({item.GetHashCode():X8}) - " +
+                    $"Warning: formatter failed ({ex.GetType().Name}: {ex.Message})";
             }
         }
     }

@@ -19,7 +19,8 @@ namespace DreadsMashedPatch.RecordHandlers;
 // Migration note:
 // - Generalized: RACE scalar, list, form-link, nested complex fields, and dictionary fields.
 // - Kept specialized: gendered aggregates use typed male/female copying and equality; Skill Boosts are
-//   grouped as xEdit's fixed sorted array keyed by Skill instead of Mutagen's seven physical slots.
+//   grouped as xEdit's fixed sorted array keyed by Skill instead of Mutagen's seven physical slots; Attacks
+//   use Mutagen's typed deep copy so binary-overlay AttackData is materialized as mutable AttackData.
 // - Intentionally excluded: DATADataTypeState and ExportingExtraNam2 are serialization state; Unknown is outside the semantic conflict surface.
 // - Rationale: semantic fields are forwarded while the winning record retains its binary DATA layout and empty NAM2 marker state.
 public class RaceRecordHandler : AbstractRecordHandler
@@ -67,7 +68,7 @@ public class RaceRecordHandler : AbstractRecordHandler
         { "FacegenMainClamp", new SimpleReflectionPropertyHandler<float, IRace, IRaceGetter>("FacegenMainClamp") },
         { "FacegenFaceClamp", new SimpleReflectionPropertyHandler<float, IRace, IRaceGetter>("FacegenFaceClamp") },
         { "AttackRace", new SimpleReflectionFormLinkPropertyHandler<IRaceGetter, IRace, IRaceGetter>("AttackRace") },
-        { "Attacks", new SimpleReflectionListPropertyHandler<IAttackGetter, IRace, IRaceGetter>("Attacks", ListSemantics.SortedKeyed, keySelector: attack => attack.AttackEvent) },
+        { "Attacks", new AttacksHandler() },
         { "BodyData", new GenderedItemHandler<IBodyDataGetter?, BodyData?, IRace, IRaceGetter>("BodyData", record => record.BodyData, (record, value) => { if (value != null) record.BodyData = value; }, value => value?.DeepCopy(), (left, right) => left == null ? right == null : right != null && left.Equals(right)) },
         { "Hairs", new SimpleReflectionListPropertyHandler<IFormLinkGetter<IHairGetter>, IRace, IRaceGetter>("Hairs", ListSemantics.SortedKeyed) },
         { "Eyes", new SimpleReflectionListPropertyHandler<IFormLinkGetter<IEyesGetter>, IRace, IRaceGetter>("Eyes", ListSemantics.SortedKeyed) },

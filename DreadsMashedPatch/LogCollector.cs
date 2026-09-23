@@ -7,25 +7,79 @@ namespace DreadsMashedPatch
 {
     public static class LogCollector
     {
+        private static readonly object _sync = new();
         private static readonly Dictionary<string, List<string>> _logsByIdentifier = [];
         private static readonly List<string> _identifierOrder = [];
         private static bool _currentDeepDiveRecord;
         private static bool _currentDetailedRecord;
 
         /// <summary>True when the current record is in deep-dive mode.</summary>
-        public static bool IsDeepDiveMode => _currentDeepDiveRecord;
+        public static bool IsDeepDiveMode
+        {
+            get
+            {
+                lock (_sync)
+                {
+                    return _currentDeepDiveRecord;
+                }
+            }
+        }
 
         /// <summary>True when the current record should emit detailed logs.</summary>
-        public static bool IsDetailedMode => _currentDetailedRecord;
+        public static bool IsDetailedMode
+        {
+            get
+            {
+                lock (_sync)
+                {
+                    return _currentDetailedRecord;
+                }
+            }
+        }
 
         public static void Add(string identifier, string line)
         {
-            if (!ShouldEmit(identifier, line))
+            lock (_sync)
             {
-                return;
-            }
+                if (!ShouldEmit(identifier, line))
+                {
+                    return;
+                }
 
-            AddCore(identifier, line);
+                AddCore(identifier, line);
+            }
+        }
+
+        /// <summary>Adds an actionable warning regardless of the configured verbosity.</summary>
+        public static void AddWarning(string identifier, string message, Exception? exception = null)
+        {
+            lock (_sync)
+            {
+                AddCore(identifier, FormatDiagnostic("Warning", message, exception));
+            }
+        }
+
+        /// <summary>Adds an error regardless of the configured verbosity.</summary>
+        public static void AddError(string identifier, string message, Exception? exception = null)
+        {
+            lock (_sync)
+            {
+                AddCore(identifier, FormatDiagnostic("Error", message, exception));
+            }
+        }
+
+        /// <summary>
+        /// Adds a non-actionable diagnostic regardless of verbosity. Use this when an
+        /// exception is recovered by a supported fallback and should be recorded in the
+        /// full log without increasing the warning or error counts.
+        /// </summary>
+        public static void AddDiagnostic(string identifier, string message, Exception exception)
+        {
+            ArgumentNullException.ThrowIfNull(exception);
+            lock (_sync)
+            {
+                AddCore(identifier, FormatDiagnostic("Diagnostic", message, exception));
+            }
         }
 
         /// <summary>
@@ -34,12 +88,15 @@ namespace DreadsMashedPatch
         /// </summary>
         public static void AddDecisionAudit(string identifier, string line)
         {
-            if (_currentDeepDiveRecord && !LoggingSettings.ShouldLogProperty(identifier, deepDiveRecord: true))
+            lock (_sync)
             {
-                return;
-            }
+                if (_currentDeepDiveRecord && !LoggingSettings.ShouldLogProperty(identifier, deepDiveRecord: true))
+                {
+                    return;
+                }
 
-            AddCore(identifier, line);
+                AddCore(identifier, line);
+            }
         }
 
         private static void AddCore(string identifier, string line)
@@ -52,17 +109,32 @@ namespace DreadsMashedPatch
             _logsByIdentifier[identifier].Add(line);
         }
 
+        private static string FormatDiagnostic(string severity, string message, Exception? exception)
+        {
+            if (exception == null)
+            {
+                return $"[{severity}] {message}";
+            }
+
+            var detail = exception.InnerException?.Message ?? exception.Message;
+            return $"[{severity}] {message} ({exception.GetType().Name}: {detail})";
+        }
+
         public static void SetRecordLoggingContext(bool deepDiveRecord, bool detailedRecord)
         {
-            _currentDeepDiveRecord = deepDiveRecord;
-            _currentDetailedRecord = detailedRecord;
+            lock (_sync)
+            {
+                _currentDeepDiveRecord = deepDiveRecord;
+                _currentDetailedRecord = detailedRecord;
+            }
         }
 
         private static bool ShouldEmit(string identifier, string line)
         {
-            // Warnings are actionable diagnostics and must bypass verbosity filtering.
-            if (line.Contains("[Warning]", StringComparison.OrdinalIgnoreCase)
-                || line.Contains("Warning:", StringComparison.OrdinalIgnoreCase))
+            // Actionable diagnostics must bypass verbosity filtering. Add remains
+            // backwards-compatible with existing handlers while new code should use
+            // AddWarning/AddError so severity does not depend on message wording.
+            if (IsDiagnostic(line, "Warning") || IsDiagnostic(line, "Error"))
             {
                 return true;
             }
@@ -82,9 +154,35 @@ namespace DreadsMashedPatch
             return true;
         }
 
+        private static bool IsDiagnostic(string line, string severity)
+        {
+            return line.Contains($"[{severity}]", StringComparison.OrdinalIgnoreCase)
+                || line.Contains($"{severity}:", StringComparison.OrdinalIgnoreCase)
+                || line.TrimStart().StartsWith(severity, StringComparison.OrdinalIgnoreCase)
+                || line.Contains($"] {severity} ", StringComparison.OrdinalIgnoreCase);
+        }
+
         public static void PrintAll(bool stripAllControlChars = true)
         {
-            foreach (var line in GetAll(stripAllControlChars))
+            var lines = GetAll(stripAllControlChars);
+            foreach (var line in lines)
+            {
+                Console.WriteLine(line);
+            }
+        }
+
+        /// <summary>Prints all pending entries and resets the collector.</summary>
+        public static void PrintAllAndClear(bool stripAllControlChars = true)
+        {
+            string[] lines;
+            lock (_sync)
+            {
+                lines = CreateSnapshot(stripAllControlChars);
+                _logsByIdentifier.Clear();
+                _identifierOrder.Clear();
+            }
+
+            foreach (var line in lines)
             {
                 Console.WriteLine(line);
             }
@@ -92,24 +190,36 @@ namespace DreadsMashedPatch
 
         public static IEnumerable<string> GetAll(bool stripAllControlChars = true)
         {
+            lock (_sync)
+            {
+                return CreateSnapshot(stripAllControlChars);
+            }
+        }
+
+        private static string[] CreateSnapshot(bool stripAllControlChars)
+        {
+            var snapshot = new List<string>();
             foreach (var identifier in _identifierOrder)
             {
-                //yield return $"[{identifier}]";
                 foreach (var line in _logsByIdentifier[identifier])
                 {
                     var processedLine = stripAllControlChars
                         ? StripAllControlCharacters(line)
                         : SanitizeString(line);
-                    yield return $"  {processedLine}";
+                    snapshot.Add($"  {processedLine}");
                 }
-                //yield return string.Empty;
             }
+
+            return snapshot.ToArray();
         }
 
         public static void Clear()
         {
-            _logsByIdentifier.Clear();
-            _identifierOrder.Clear();
+            lock (_sync)
+            {
+                _logsByIdentifier.Clear();
+                _identifierOrder.Clear();
+            }
         }
 
         /// <summary>
@@ -180,7 +290,10 @@ namespace DreadsMashedPatch
         /// <returns>The number of log entries, or 0 if identifier doesn't exist</returns>
         public static int GetCount(string identifier)
         {
-            return _logsByIdentifier.ContainsKey(identifier) ? _logsByIdentifier[identifier].Count : 0;
+            lock (_sync)
+            {
+                return _logsByIdentifier.TryGetValue(identifier, out var logs) ? logs.Count : 0;
+            }
         }
 
         /// <summary>
@@ -189,7 +302,10 @@ namespace DreadsMashedPatch
         /// <returns>The total number of log entries</returns>
         public static int GetTotalCount()
         {
-            return _logsByIdentifier.Values.Sum(logs => logs.Count);
+            lock (_sync)
+            {
+                return _logsByIdentifier.Values.Sum(logs => logs.Count);
+            }
         }
 
         /// <summary>
@@ -198,7 +314,10 @@ namespace DreadsMashedPatch
         /// <returns>True if there are logs, false otherwise</returns>
         public static bool HasLogs()
         {
-            return _logsByIdentifier.Count > 0;
+            lock (_sync)
+            {
+                return _logsByIdentifier.Count > 0;
+            }
         }
     }
 }

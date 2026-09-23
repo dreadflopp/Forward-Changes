@@ -7,7 +7,8 @@ namespace DreadsMashedPatch.PropertyHandlers.Race;
 /// <summary>
 /// Treats the seven physical RACE skill-boost slots as the sorted keyed array
 /// defined by xEdit. Skill is identity; Boost is the value. ActorValue.None
-/// entries are fixed-width binary padding rather than semantic list entries.
+/// and raw 0xFF skill entries are fixed-width binary padding rather than
+/// semantic list entries.
 /// </summary>
 public sealed class RaceSkillBoostsHandler : AbstractListPropertyHandler<ISkillBoostGetter>
 {
@@ -25,7 +26,7 @@ public sealed class RaceSkillBoostsHandler : AbstractListPropertyHandler<ISkillB
         }
 
         return GetPhysicalSlots(race)
-            .Where(boost => boost.Skill != ActorValue.None)
+            .Where(boost => !IsPadding(boost))
             .ToList();
     }
 
@@ -37,7 +38,7 @@ public sealed class RaceSkillBoostsHandler : AbstractListPropertyHandler<ISkillB
         }
 
         var activeBoosts = (value ?? [])
-            .Where(boost => boost.Skill != ActorValue.None)
+            .Where(boost => !IsPadding(boost))
             .ToList();
 
         if (activeBoosts.Count > SlotCount)
@@ -99,6 +100,9 @@ public sealed class RaceSkillBoostsHandler : AbstractListPropertyHandler<ISkillB
             Skill = boost.Skill,
             Boost = boost.Boost
         };
+
+    private static bool IsPadding(ISkillBoostGetter boost) =>
+        boost.Skill == ActorValue.None || (int)boost.Skill == byte.MaxValue;
 
     private static IEnumerable<ISkillBoostGetter> GetPhysicalSlots(IRaceGetter race)
     {

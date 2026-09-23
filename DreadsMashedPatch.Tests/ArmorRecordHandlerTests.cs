@@ -1,12 +1,13 @@
-using DreadsMashedPatch.PropertyHandlers.Abstracts;
 using DreadsMashedPatch.PropertyHandlers.Armor;
 using DreadsMashedPatch.PropertyHandlers.General;
 using DreadsMashedPatch.RecordHandlers;
 using Mutagen.Bethesda.Plugins;
 using Mutagen.Bethesda.Plugins.Assets;
+using Mutagen.Bethesda.Plugins.Cache;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Skyrim.Assets;
+using Mutagen.Bethesda.Synthesis;
 using Xunit;
 
 namespace DreadsMashedPatch.Tests;
@@ -24,7 +25,9 @@ public sealed class ArmorRecordHandlerTests
         Assert.Contains("BodyTemplate.ArmorType", handlers.Keys);
         Assert.DoesNotContain("BodyTemplate.ActsLike44", handlers.Keys);
         Assert.Contains("RagdollConstraintTemplate", handlers.Keys);
-        Assert.Contains("WorldModel", handlers.Keys);
+        Assert.IsType<ModelBoundsHandler>(handlers["WorldModelAndBounds"]);
+        Assert.DoesNotContain("WorldModel", handlers.Keys);
+        Assert.DoesNotContain("ObjectBounds", handlers.Keys);
     }
 
     [Fact]
@@ -99,17 +102,69 @@ public sealed class ArmorRecordHandlerTests
     {
         var source = CreateArmor(0x102);
         var target = CreateArmor(0x103);
-        var addonKey = new FormKey(TestModKey, 0x200);
-        source.Armature.Add(new FormLink<IArmorAddonGetter>(addonKey));
-        var handler = new SimpleReflectionListPropertyHandler<IFormLinkGetter<IArmorAddonGetter>, IArmor, IArmorGetter>(
-            "Armature",
-            ListSemantics.Unordered);
+        var firstAddonKey = new FormKey(TestModKey, 0x200);
+        var secondAddonKey = new FormKey(TestModKey, 0x201);
+        source.Armature.Add(new FormLink<IArmorAddonGetter>(firstAddonKey));
+        source.Armature.Add(new FormLink<IArmorAddonGetter>(secondAddonKey));
+        var handler = Assert.IsType<AtomicFormLinkListPropertyHandler<IArmorAddonGetter, IArmor, IArmorGetter>>(
+            new ArmorRecordHandler().PropertyHandlers["Armature"]);
 
         handler.SetValue(target, handler.GetValue(source));
 
-        var copied = Assert.Single(target.Armature);
-        Assert.Equal(addonKey, copied.FormKey);
-        Assert.NotSame(source.Armature[0], copied);
+        Assert.Equal([firstAddonKey, secondAddonKey], target.Armature.Select(link => link.FormKey));
+        Assert.NotSame(source.Armature[0], target.Armature[0]);
+        Assert.NotSame(source.Armature[1], target.Armature[1]);
+    }
+
+    [Fact]
+    public void CompetingSingletonArmaturesUseTheLastDeclaredAtomicList()
+    {
+        var originalAddon = new FormKey(TestModKey, 0x210);
+        var intermediateAddon = new FormKey(TestModKey, 0x211);
+        var winningAddon = new FormKey(TestModKey, 0x212);
+        var original = CreateArmorWithArmature(0x108, originalAddon);
+        var intermediate = CreateArmorWithArmature(0x108, intermediateAddon);
+        var winning = CreateArmorWithArmature(0x108, winningAddon);
+        var handler = new ArmorRecordHandler().PropertyHandlers["Armature"];
+        var propertyContext = handler.CreatePropertyContext();
+
+        handler.InitializeContext(
+            CreateContext(OriginalModKey, original),
+            CreateContext(WinningModKey, winning),
+            propertyContext);
+        handler.UpdatePropertyContext(
+            CreateContext(IntermediateModKey, intermediate),
+            null!,
+            propertyContext);
+        handler.UpdatePropertyContext(
+            CreateContext(WinningModKey, winning),
+            null!,
+            propertyContext);
+
+        Assert.Equal([winningAddon], Assert.IsType<List<FormKey>>(propertyContext.GetForwardValue()));
+    }
+
+    [Fact]
+    public void IntentionalMultiArmatureWinningListStaysIntact()
+    {
+        var originalAddon = new FormKey(TestModKey, 0x220);
+        var bodyAddon = new FormKey(TestModKey, 0x221);
+        var capeAddon = new FormKey(TestModKey, 0x222);
+        var original = CreateArmorWithArmature(0x109, originalAddon);
+        var winning = CreateArmorWithArmature(0x109, bodyAddon, capeAddon);
+        var handler = new ArmorRecordHandler().PropertyHandlers["Armature"];
+        var propertyContext = handler.CreatePropertyContext();
+
+        handler.InitializeContext(
+            CreateContext(OriginalModKey, original),
+            CreateContext(WinningModKey, winning),
+            propertyContext);
+        handler.UpdatePropertyContext(
+            CreateContext(WinningModKey, winning),
+            null!,
+            propertyContext);
+
+        Assert.Equal([bodyAddon, capeAddon], Assert.IsType<List<FormKey>>(propertyContext.GetForwardValue()));
     }
 
     [Fact]
@@ -161,11 +216,36 @@ public sealed class ArmorRecordHandlerTests
     }
 
     private static readonly ModKey TestModKey = new("ArmorCoverageTests", ModType.Plugin);
+    private static readonly ModKey OriginalModKey = new("Skyrim.esm", ModType.Master);
+    private static readonly ModKey IntermediateModKey = new("Intermediate.esp", ModType.Plugin);
+    private static readonly ModKey WinningModKey = new("Winning.esp", ModType.Plugin);
 
     private static Mutagen.Bethesda.Skyrim.Armor CreateArmor(uint id)
     {
         return new Mutagen.Bethesda.Skyrim.Armor(new FormKey(TestModKey, id), SkyrimRelease.SkyrimSE);
     }
+
+    private static Mutagen.Bethesda.Skyrim.Armor CreateArmorWithArmature(
+        uint id,
+        params FormKey[] addonKeys)
+    {
+        var armor = CreateArmor(id);
+        foreach (var addonKey in addonKeys)
+        {
+            armor.Armature.Add(new FormLink<IArmorAddonGetter>(addonKey));
+        }
+
+        return armor;
+    }
+
+    private static IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> CreateContext(
+        ModKey modKey,
+        IMajorRecord record)
+        => new ModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter>(
+            modKey,
+            record,
+            (_, _) => throw new NotSupportedException(),
+            (_, _, _, _) => throw new NotSupportedException());
 
     private static ArmorModel CreateArmorModel(string modelPath, string iconPath)
     {

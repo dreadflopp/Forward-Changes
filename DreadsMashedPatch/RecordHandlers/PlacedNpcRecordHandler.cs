@@ -16,12 +16,23 @@ namespace DreadsMashedPatch.RecordHandlers
     // Migration note:
     // - Generalized: placed-NPC location links and ragdoll byte payloads use shared reflection handlers.
     //   XLRL/LocationReference intentionally stays on this conflict-aware path: a newly added value that
-    //   survives into the winner already produces no patch, while a later removal remains a real conflict,
-    //   matching xEdit's cpBenignIfAdded behavior.
-    // - Specialized: NPC placement/list behavior remains specialized; Mutagen 0.54.4 now exposes LocationReference as ILocationGetter.
-    // - Rationale: only the generated link target changed, so no record-specific behavior needed replacement.
+    //   survives into the winner already produces no patch. A later omission may remove it only when that
+    //   mod has the adding mod as an actual or configured virtual master; otherwise the addition is retained.
+    // - Specialized: Placement is one cohesive value with xEdit-precision position equality, circular normalized-angle
+    //   equality, and degree diagnostics. A recognized safe UDR keeps Initially Disabled, Placement, and EnableParent
+    //   on the snapshot selected by the approved flag handler. ActivateParents and NPC list behavior remain specialized.
+    // - Intentionally non-migrated: ordinary Initially Disabled references are not treated as UDRs, and
+    //   LocationReference remains independently conflict-resolved because it is not part of the safe-disable bundle.
+    // - Rationale: exact float equality creates invisible conflicts, and independent UDR fields can otherwise produce
+    //   contradictory hybrids. Mutagen 0.54.4 exposes LocationReference as ILocationGetter.
     public class PlacedNpcRecordHandler : AbstractRecordHandler
     {
+        protected override PropertyForwardingCoordination CoordinateForwardedProperties(
+            IReadOnlyList<IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter>> recordContexts)
+        {
+            return PlacedReferenceUdrCoordinator.Coordinate(recordContexts, PropertyContexts);
+        }
+
         public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()
         {
             { "EditorID", new EditorIDHandler() },
@@ -39,7 +50,7 @@ namespace DreadsMashedPatch.RecordHandlers
             { "Radius", new SimpleReflectionPropertyHandler<float?, IPlacedNpc, IPlacedNpcGetter>("Radius") },
             { "Health", new SimpleReflectionPropertyHandler<float?, IPlacedNpc, IPlacedNpcGetter>("Health") },
             { "LinkedReferences", new SimpleReflectionListPropertyHandler<ILinkedReferencesGetter, IPlacedNpc, IPlacedNpcGetter>("LinkedReferences", ListSemantics.SortedKeyed, keySelector: entry => entry.KeywordOrReference.FormKey) },
-            { "ActivateParents", new ComplexReflectionPropertyHandler<IActivateParentsGetter, IPlacedNpc, IPlacedNpcGetter>("ActivateParents") },
+            { "ActivateParents", new GeneratedCopyReflectionPropertyHandler<IActivateParentsGetter, ActivateParents, IPlacedNpc, IPlacedNpcGetter>("ActivateParents", value => value.DeepCopy(), ActivateParentsMixIn.Equals) },
             { "LinkedReferenceColor", new ComplexReflectionPropertyHandler<ILinkedReferenceColorGetter, IPlacedNpc, IPlacedNpcGetter>("LinkedReferenceColor") },
             { "PersistentLocation", new SimpleReflectionFormLinkPropertyHandler<ILocationGetter, IPlacedNpc, IPlacedNpcGetter>("PersistentLocation") },
             { "LocationReference", new SimpleReflectionFormLinkPropertyHandler<ILocationGetter, IPlacedNpc, IPlacedNpcGetter>("LocationReference") },
@@ -55,7 +66,7 @@ namespace DreadsMashedPatch.RecordHandlers
             { "MultiBoundReference", new SimpleReflectionFormLinkPropertyHandler<IPlacedObjectGetter, IPlacedNpc, IPlacedNpcGetter>("MultiBoundReference") },
             { "IsIgnoredBySandbox2", new SimpleReflectionPropertyHandler<bool, IPlacedNpc, IPlacedNpcGetter>("IsIgnoredBySandbox2") },
             { "Scale", new SimpleReflectionPropertyHandler<float?, IPlacedNpc, IPlacedNpcGetter>("Scale") },
-            { "Placement", new ComplexReflectionPropertyHandler<IPlacementGetter, IPlacedNpc, IPlacedNpcGetter>("Placement") },
+            { "Placement", new PlacementHandler() },
             { "VirtualMachineAdapter", new VirtualMachineAdapterHandler() }
         };
 

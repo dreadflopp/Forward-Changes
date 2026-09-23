@@ -26,7 +26,16 @@ public abstract class AbstractScriptListPropertyHandler : AbstractListPropertyHa
         List<IScriptEntryGetter>? value2)
     {
         if (value1 == null && value2 == null) return true;
-        if (value1 == null || value2 == null || value1.Count != value2.Count) return false;
+        if (value1 == null || value2 == null) return false;
+
+        return AreScriptCollectionsEqual(value1, value2);
+    }
+
+    protected internal static bool AreScriptCollectionsEqual(
+        IReadOnlyList<IScriptEntryGetter> value1,
+        IReadOnlyList<IScriptEntryGetter> value2)
+    {
+        if (value1.Count != value2.Count) return false;
 
         var unmatched = value2.ToList();
         foreach (var script in value1)
@@ -141,7 +150,7 @@ public abstract class AbstractScriptListPropertyHandler : AbstractListPropertyHa
                 : $"[{PropertyName}] {newOwner}: New atomic value for script '{recordScript.Name}' accepted (previous owner: {previousOwner})");
     }
 
-    protected static bool AreScriptsEqual(IScriptEntryGetter script1, IScriptEntryGetter script2)
+    protected internal static bool AreScriptsEqual(IScriptEntryGetter script1, IScriptEntryGetter script2)
     {
         if (!string.Equals(script1.Name, script2.Name, StringComparison.Ordinal) ||
             script1.Flags != script2.Flags ||
@@ -161,7 +170,7 @@ public abstract class AbstractScriptListPropertyHandler : AbstractListPropertyHa
         return unmatched.Count == 0;
     }
 
-    protected static bool AreScriptPropertiesEqual(
+    protected internal static bool AreScriptPropertiesEqual(
         IScriptPropertyGetter property1,
         IScriptPropertyGetter property2)
     {

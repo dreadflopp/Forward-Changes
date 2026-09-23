@@ -3,4 +3,19 @@
         <Nullable>enable</Nullable>
         <WarningsAsErrors>nullable</WarningsAsErrors>
     </PropertyGroup>
+
+    <!--
+      Mutagen.Bethesda.Synthesis already contains the generated global
+      AssemblyVersions type. Its transitive Noggog analyzer would generate the
+      same type again in every consuming project, producing CS0436 warnings.
+      Keep the package's runtime/compile assets while preventing that redundant
+      consumer-side source generation.
+    -->
+    <ItemGroup>
+        <PackageReference Include="Noggog.SourceGenerators"
+                          Version="4.3.0"
+                          ExcludeAssets="analyzers"
+                          GeneratePathProperty="true"
+                          PrivateAssets="all" />
+    </ItemGroup>
 </Project>

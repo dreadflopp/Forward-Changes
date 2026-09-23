@@ -10,7 +10,6 @@ using DreadsMashedPatch.PropertyHandlers.Abstracts;
 using DreadsMashedPatch.PropertyHandlers.General;
 using DreadsMashedPatch.PropertyHandlers.Interfaces;
 using DreadsMashedPatch.RecordHandlers.Abstracts;
-using DreadsMashedPatch.Enums;
 
 namespace DreadsMashedPatch.RecordHandlers;
 
@@ -18,10 +17,10 @@ namespace DreadsMashedPatch.RecordHandlers;
 // - Generalized: SMQN links, controls, and quest rows use shared semantic handlers.
 // - Kept specialized: Conditions uses the shared polymorphic condition handler.
 // - Intentionally non-migrated: none; Parent and PreviousSibling remain registered so topology changes are detected.
-// - Coupled forwarding: topology, conditions, flags, and limits establish complete-node ownership by default;
+// - Coupled forwarding: topology, conditions, flags, and limits always establish complete-node ownership;
 //   quest rows remain mergeable while that configuration is stable.
 // - Rationale: quest FormID is xEdit's row key, but selection controls and list contents must not be mixed
-//   across a configuration boundary.
+//   across a configuration boundary, so independent configuration forwarding is intentionally unavailable.
 public class StoryManagerQuestNodeRecordHandler : AbstractRecordHandler
 {
     private static readonly IReadOnlySet<string> ConfigurationPropertyNames = new HashSet<string>(StringComparer.Ordinal)
@@ -35,19 +34,8 @@ public class StoryManagerQuestNodeRecordHandler : AbstractRecordHandler
         "MaxNumQuestsToRun"
     };
 
-    private readonly StoryManagerForwardingPolicy _forwardingPolicy;
-
-    public StoryManagerQuestNodeRecordHandler(StoryManagerForwardingPolicy? forwardingPolicy = null)
-    {
-        _forwardingPolicy = forwardingPolicy ?? PatcherSettings.StoryManagerPolicy;
-    }
-
-    public StoryManagerForwardingPolicy ForwardingPolicy => _forwardingPolicy;
-
     protected override IReadOnlySet<string> AtomicOwnershipTriggerProperties =>
-        _forwardingPolicy == StoryManagerForwardingPolicy.AtomicOnConfigurationChange
-            ? ConfigurationPropertyNames
-            : EmptyAtomicOwnershipTriggerProperties;
+        ConfigurationPropertyNames;
 
     public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()
     {

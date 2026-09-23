@@ -1,41 +1,13 @@
-using System.Globalization;
 using DreadsMashedPatch.PropertyHandlers.General;
 using Mutagen.Bethesda.Skyrim;
-using Noggog;
 
 namespace DreadsMashedPatch.PropertyHandlers.PlacedObject
 {
     /// <summary>
-    /// Forwards a placed object's complete placement while providing readable log output.
+    /// Placed-object specialization of the shared cohesive Placement policy.
     /// </summary>
     public sealed class PlacementHandler
-        : ComplexReflectionPropertyHandler<IPlacementGetter, IPlacedObject, IPlacedObjectGetter>
+        : PlacementPropertyHandler<IPlacedObject, IPlacedObjectGetter>
     {
-        public PlacementHandler()
-            : base("Placement")
-        {
-        }
-
-        public override string FormatValue(object? value)
-        {
-            if (value is not IPlacementGetter placement)
-            {
-                return base.FormatValue(value);
-            }
-
-            return $"Position=({Format(placement.Position)}), Rotation=({Format(placement.Rotation)})";
-        }
-
-        private static string Format(P3Float value)
-        {
-            var x = value.X == 0f ? 0f : value.X;
-            var y = value.Y == 0f ? 0f : value.Y;
-            var z = value.Z == 0f ? 0f : value.Z;
-
-            return string.Join(", ",
-                x.ToString("F4", CultureInfo.InvariantCulture),
-                y.ToString("F4", CultureInfo.InvariantCulture),
-                z.ToString("F4", CultureInfo.InvariantCulture));
-        }
     }
 }

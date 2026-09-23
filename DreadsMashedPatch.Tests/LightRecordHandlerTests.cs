@@ -15,9 +15,12 @@ public sealed class LightRecordHandlerTests
     private static readonly ModKey PatchModKey = ModKey.FromNameAndExtension("LightPatch.esp");
 
     [Fact]
-    public void ModelUsesSharedFullModelHandler()
+    public void ModelAndBoundsUseSharedCoordinator()
     {
-        Assert.IsType<ModelHandler>(new LightRecordHandler().PropertyHandlers["Model"]);
+        var handlers = new LightRecordHandler().PropertyHandlers;
+        Assert.IsType<ModelBoundsHandler>(handlers["ModelAndBounds"]);
+        Assert.DoesNotContain("Model", handlers.Keys);
+        Assert.DoesNotContain("ObjectBounds", handlers.Keys);
     }
 
     [Fact]

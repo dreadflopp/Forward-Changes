@@ -45,7 +45,7 @@ namespace DreadsMashedPatch.PropertyHandlers.General
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error getting VirtualMachineAdapter property via reflection: {ex.Message}");
+                LogCollector.AddError(PropertyName, "Could not read VirtualMachineAdapter via reflection", ex);
                 return null;
             }
         }
@@ -64,7 +64,7 @@ namespace DreadsMashedPatch.PropertyHandlers.General
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error setting VirtualMachineAdapter property via reflection: {ex.Message}");
+                LogCollector.AddError(PropertyName, "Could not apply VirtualMachineAdapter via reflection", ex);
             }
         }
 

@@ -1,4 +1,5 @@
 using DreadsMashedPatch.App.Models;
+using Mutagen.Bethesda;
 using Mutagen.Bethesda.Plugins;
 using Mutagen.Bethesda.Plugins.Analysis;
 using Mutagen.Bethesda.Skyrim;
@@ -14,10 +15,58 @@ public sealed class PatcherRunner
     public static string GetOutputPath(StandaloneSettings settings) =>
         Path.Combine(settings.DataFolderPath, OutputPluginName);
 
-    public async Task RunAsync(StandaloneSettings settings, Action<string> writeLog)
+    public EmptyOutputResult CreateEmptyOutput(StandaloneSettings settings)
+    {
+        ArgumentNullException.ThrowIfNull(settings);
+        settings.Normalize();
+
+        var outputPath = GetOutputPath(settings);
+        var outputDirectory = Path.GetDirectoryName(outputPath)
+            ?? throw new InvalidOperationException("The patch output directory could not be determined.");
+        Directory.CreateDirectory(outputDirectory);
+
+        var temporaryPath = Path.Combine(
+            outputDirectory,
+            $".{Path.GetFileName(outputPath)}.{Guid.NewGuid():N}.tmp");
+        try
+        {
+            var outputModKey = ModKey.FromNameAndExtension(OutputPluginName.AsSpan());
+            var release = settings.GameRelease == GameRelease.SkyrimVR
+                ? SkyrimRelease.SkyrimVR
+                : SkyrimRelease.SkyrimSE;
+            var emptyMod = new SkyrimMod(outputModKey, release);
+            using (var stream = File.Create(temporaryPath))
+            {
+                emptyMod.WriteToBinary(stream);
+            }
+
+            var removedOutputs = CleanupSplitOutputs(outputPath);
+            if (File.Exists(outputPath))
+            {
+                File.Delete(outputPath);
+                removedOutputs++;
+            }
+
+            File.Move(temporaryPath, outputPath);
+            return new EmptyOutputResult(outputPath, removedOutputs);
+        }
+        finally
+        {
+            if (File.Exists(temporaryPath))
+            {
+                File.Delete(temporaryPath);
+            }
+        }
+    }
+
+    public async Task<PatcherRunResult> RunAsync(
+        StandaloneSettings settings,
+        Action<string> writeLog,
+        Action<string> writeUiLog)
     {
         ArgumentNullException.ThrowIfNull(settings);
         ArgumentNullException.ThrowIfNull(writeLog);
+        ArgumentNullException.ThrowIfNull(writeUiLog);
 
         settings.Normalize();
 
@@ -60,7 +109,7 @@ public sealed class PatcherRunner
             LoadOrderFilePath = preparedLoadOrder.Path,
             ExtraDataFolder = SettingsStore.SettingsDirectory,
             PersistencePath = Path.Combine(SettingsStore.SettingsDirectory, "Persistence"),
-            PatcherName = "Dread's Mashed Patch",
+            PatcherName = "Mashed Patch",
             // Synthesis uses this primary ModKey as the load-order cutoff, removing
             // it and every later listing before importing any input plugins. Keep
             // this as the unsuffixed key even when automatic output splitting is on.
@@ -73,11 +122,11 @@ public sealed class PatcherRunner
 
         try
         {
-            await Task.Run(async () =>
+            return await Task.Run(async () =>
             {
                 var originalOut = Console.Out;
                 var originalError = Console.Error;
-                using var writer = new UiTextWriter(writeLog);
+                var writer = new UiTextWriter(writeLog, writeUiLog);
                 Console.SetOut(writer);
                 Console.SetError(writer);
 
@@ -91,7 +140,10 @@ public sealed class PatcherRunner
                 {
                     Console.SetOut(originalOut);
                     Console.SetError(originalError);
+                    writer.Dispose();
                 }
+
+                return new PatcherRunResult(writer.WarningCount, writer.ErrorCount);
             });
         }
         finally
@@ -131,3 +183,7 @@ public sealed class PatcherRunner
         return removed;
     }
 }
+
+public sealed record PatcherRunResult(int WarningCount, int ErrorCount);
+
+public sealed record EmptyOutputResult(string OutputPath, int RemovedOutputCount);

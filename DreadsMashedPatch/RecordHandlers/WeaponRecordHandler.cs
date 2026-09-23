@@ -13,9 +13,10 @@ namespace DreadsMashedPatch.RecordHandlers
 {
     // Migration note:
     // - Generalized: inherited EditorID and reflection-safe WEAP aggregate leaves use shared handlers.
-    // - Kept specialized: model, script, destructible, description, and flag behavior that carries record-specific semantics.
+    // - Kept specialized: model, script, destructible, description, flags, and the weapon-only mutually-exclusive type keyword rule.
     // - Intentionally excluded: Unused*, Data.Unused*, Critical.Unused*, and Data.Unknown* are outside the semantic conflict surface.
-    // - Rationale: exact dotted registrations expose semantic leaves while preserving dedicated copy and flag behavior.
+    // - Rationale: exact dotted registrations expose semantic leaves while preserving dedicated copy/flag behavior;
+    //   only WEAP keywords need the configured type-family ownership rule, so other record keyword handlers stay generic.
     public class WeaponRecordHandler : AbstractRecordHandler
     {
         public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()
@@ -26,10 +27,9 @@ namespace DreadsMashedPatch.RecordHandlers
             { "MajorRecordFlagsRaw", new MajorRecordFlagsRawHandler() },
             { "SkyrimMajorRecordFlags", new SkyrimMajorRecordFlagsHandler() },
             { "MajorFlags", new MajorFlagsHandler() },
-            { "Model", new ModelHandler() },
+            { "ModelAndBounds", new ModelBoundsHandler() },
             { "Icons", new IconsHandler() },
-            { "ObjectBounds", new ObjectBoundsHandler() },
-            { "Keywords", new KeywordListHandler() },
+            { "Keywords", new WeaponKeywordListHandler() },
             { "VirtualMachineAdapter", new VirtualMachineAdapterHandler() },
 
             // Weapon-specific properties

@@ -15,10 +15,11 @@ namespace DreadsMashedPatch.RecordHandlers
 {
     // Migration note:
     // - Generalized: independent SNDR scalar, translated-string, and link fields retain shared handlers.
-    // - Kept specialized: SoundFiles uses exact indexed order and preserves serialized GivenPath values.
-    // - Intentionally non-migrated: none in the sound-path collection.
-    // - Rationale: xEdit defines Sounds as an alignable, non-sorted wbRArray; Mutagen's
-    //   DataRelativePath is lookup-normalized and must not be written back as the source ANAM text.
+    // - Kept specialized: SoundFiles preserves exact indexed paths; BNAM pitch and volume pairs are
+    //   atomic semantic groups, while Priority remains independently mergeable.
+    // - Intentionally non-migrated: LoopAndRumble is LNAM, not part of the BNAM grouping.
+    // - Rationale: paired pitch and attenuation settings describe one adjustment, while grouping the
+    //   entire packed BNAM would unnecessarily couple Priority to unrelated acoustic changes.
     public class SoundDescriptorRecordHandler : AbstractRecordHandler
     {
         public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()
@@ -34,11 +35,9 @@ namespace DreadsMashedPatch.RecordHandlers
             { "String", new ComplexReflectionPropertyHandler<ITranslatedStringGetter, ISoundDescriptor, ISoundDescriptorGetter>("String") },
             { "Conditions", new ConditionsHandler() },
             { "LoopAndRumble", new ComplexReflectionPropertyHandler<ISoundLoopAndRumbleGetter, ISoundDescriptor, ISoundDescriptorGetter>("LoopAndRumble") },
-            { "PercentFrequencyShift", new SimpleReflectionPropertyHandler<sbyte, ISoundDescriptor, ISoundDescriptorGetter>("PercentFrequencyShift") },
-            { "PercentFrequencyVariance", new SimpleReflectionPropertyHandler<sbyte, ISoundDescriptor, ISoundDescriptorGetter>("PercentFrequencyVariance") },
+            { "Pitch", new SoundDescriptorPitchHandler() },
             { "Priority", new SimpleReflectionPropertyHandler<byte, ISoundDescriptor, ISoundDescriptorGetter>("Priority") },
-            { "Variance", new SimpleReflectionPropertyHandler<byte, ISoundDescriptor, ISoundDescriptorGetter>("Variance") },
-            { "StaticAttenuation", new SimpleReflectionPropertyHandler<float, ISoundDescriptor, ISoundDescriptorGetter>("StaticAttenuation") }
+            { "Volume", new SoundDescriptorVolumeHandler() }
         };
 
         public override IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter>[] GetRecordContexts(

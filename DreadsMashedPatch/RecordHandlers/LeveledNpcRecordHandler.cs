@@ -24,12 +24,11 @@ namespace DreadsMashedPatch.RecordHandlers
             { "EditorID", new EditorIDHandler() },
             { "MajorRecordFlagsRaw", new MajorRecordFlagsRawHandler() },
             { "SkyrimMajorRecordFlags", new SkyrimMajorRecordFlagsHandler() },
-            { "ObjectBounds", new ObjectBoundsHandler() },
             { "ChanceNone", new SimpleReflectionPropertyHandler<Percent, ILeveledNpc, ILeveledNpcGetter>("ChanceNone") },
             { "Flags", new SimpleReflectionFlagPropertyHandler<Mutagen.Bethesda.Skyrim.LeveledNpc.Flag, ILeveledNpc, ILeveledNpcGetter>("Flags") },
             { "Global", new SimpleReflectionFormLinkPropertyHandler<IGlobalGetter, ILeveledNpc, ILeveledNpcGetter>("Global") },
             { "Entries", new EntriesHandler() },
-            { "Model", new ModelHandler() }
+            { "ModelAndBounds", new ModelBoundsHandler() }
         };
 
         public override IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter>[] GetRecordContexts(

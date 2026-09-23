@@ -64,8 +64,7 @@ them. The migration replaced them with sorted/keyed handling.
 | --- | --- | --- | --- |
 | `MagicEffect.Sounds` | `wbArrayS(SNDD)` | sound `Type` | Sorted/keyed handler; replace the sound for a type instead of comparing the whole pair as identity. |
 | `LandscapeTexture.Grasses` | `wbRArrayS` | grass FormID | Sorted scalar set. |
-| `PlacedObject.LinkedReferences` | `wbRArrayS`, `wbStructSK([0])` | `Keyword/Ref` | Sorted/keyed handler; `Ref` is data for the key. |
-| `PlacedNpc.LinkedReferences` | `wbRArrayS`, `wbStructSK([0])` | `Keyword/Ref` | Same as placed objects. |
+| `PlacedNpc.LinkedReferences` | `wbRArrayS`, `wbStructSK([0])` | `Keyword/Ref` | Sorted/keyed handler; `Ref` is data for the key. |
 
 Changing only the enum value is sufficient for `Grasses`, whose item is a
 scalar FormLink. The three complex properties need keyed replacement support;
@@ -105,6 +104,7 @@ handling as summarized in `LIST_ORDERING_MIGRATION.md`.
 | `Ingredient/Ingestible/ObjectEffect/Spell/Scroll.Effects` | `wbRArray('Effects', wbRStruct('Effect', ...))` without an outer `StructSK` | Exact positional identity; each complete Effect is atomic. The nested EFIT `StructSK` does not key the outer row. |
 | `Quest.TextDisplayGlobals` | `wbRArray('Text Display Globals')` | global FormID |
 | `SoundDescriptor.SoundFiles` | `wbRArray('Sounds', wbString(ANAM, 'Sound'))` without a sort key | Exact positional identity; each numbered ANAM sound slot is atomic. |
+| `PlacedObject.LinkedReferences` | `wbRArray('Linked References', wbStruct(XLKR, ...))` without a `StructSK` | Exact positional identity; REFR declaration order is retained. This intentionally differs from ACHR, whose linked references are sorted by `Keyword/Ref`. |
 | `StoryManagerQuestNode.Quests` | `wbRArray`, `wbRStructSK([0])` | quest FormID |
 
 `DialogView.Topics` is also an ordered `wbRArray`, but no active property
@@ -195,9 +195,11 @@ when declaration order is irrelevant.
 1. Replace the binary `ListOrdering` model with explicit `Unordered`,
    `SortedKeyed`, `AlignedOrdered`, and `ExactOrdered` modes. Atomic structural
    lists use an `AbstractPropertyHandler` rather than the per-entry list engine.
-2. Correct scalar high-confidence registrations: Armature, Camera Shots, LinkTo,
-   Branches, SlotParents, TextDisplayGlobals, Grasses, and the music/idle scalar
-   sequences.
+2. Correct scalar high-confidence registrations: Camera Shots, LinkTo, Branches,
+   SlotParents, TextDisplayGlobals, Grasses, and the music/idle scalar sequences.
+   Armature was subsequently made atomic: its rows are orderable in xEdit, but
+   unioning independently authored Armor Addon lists can create an equipped model
+   combination that no source plugin declared.
 3. Add a reusable keyed-entry handler for xEdit `StructSK` collections, then
    migrate Magic Effect sounds and linked references.
 4. Add atomic/positional handlers for Parent/Previous pairs, procedure trees,

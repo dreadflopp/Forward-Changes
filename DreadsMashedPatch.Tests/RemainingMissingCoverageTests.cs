@@ -12,7 +12,7 @@ public sealed class RemainingMissingCoverageTests
     [Fact]
     public void LowRiskAndFormListFieldsUseEstablishedHandlers()
     {
-        Assert.IsType<ObjectBoundsHandler>(new IngestibleRecordHandler().PropertyHandlers["ObjectBounds"]);
+        Assert.IsType<ModelBoundsHandler>(new IngestibleRecordHandler().PropertyHandlers["ModelAndBounds"]);
         Assert.IsType<EditorIDHandler>(new WeaponRecordHandler().PropertyHandlers["EditorID"]);
 
         var formListHandlers = new FormIdRecordHandler().PropertyHandlers;

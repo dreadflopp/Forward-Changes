@@ -1,7 +1,9 @@
 using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Collections.Concurrent;
+using Loqui;
 using Mutagen.Bethesda.Plugins;
+using Mutagen.Bethesda.Plugins.Records;
 
 namespace DreadsMashedPatch;
 
@@ -57,6 +59,14 @@ public static partial class RecordTypeCatalog
             "GMST" => "Game Setting",
             _ => string.Join(" / ", getterTypes.Select(GetDisplayName).Distinct(StringComparer.Ordinal))
         };
+    }
+
+    public static string GetRecordDescription(IMajorRecordGetter record)
+    {
+        ArgumentNullException.ThrowIfNull(record);
+
+        var getterType = ((ILoquiObject)record).Registration.GetterType;
+        return $"{GetSignature(getterType)} - {GetDisplayName(getterType)}";
     }
 
     private static Type? GetConcreteRecordType(Type getterType)

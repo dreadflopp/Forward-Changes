@@ -169,7 +169,7 @@ namespace DreadsMashedPatch.PropertyHandlers.General
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error getting property '{PropertyName}' via reflection: {ex.Message}");
+                LogCollector.AddError(PropertyName, "Could not read the complex property via reflection", ex);
                 return null;
             }
         }
@@ -273,11 +273,24 @@ namespace DreadsMashedPatch.PropertyHandlers.General
                                         try
                                         {
                                             var propValue = overlayProp.GetValue(valueToSet);
+
+                                            // Mutagen binary overlays expose opaque byte payloads as
+                                            // ReadOnlyMemorySlice<byte>, while their mutable counterparts
+                                            // require MemorySlice<byte>. Preserve the complete payload.
+                                            if (propValue is ReadOnlyMemorySlice<byte> byteSlice
+                                                && mutableProp.PropertyType == typeof(MemorySlice<byte>))
+                                            {
+                                                propValue = new MemorySlice<byte>(byteSlice.ToArray());
+                                            }
+
                                             mutableProp.SetValue(mutableInstance, propValue);
                                         }
-                                        catch
+                                        catch (Exception propertyCopyEx)
                                         {
-                                            // Skip properties that can't be copied
+                                            LogCollector.AddWarning(
+                                                PropertyName,
+                                                $"Skipped property '{overlayProp.Name}' while converting a binary overlay",
+                                                propertyCopyEx);
                                         }
                                     }
                                 }
@@ -288,7 +301,10 @@ namespace DreadsMashedPatch.PropertyHandlers.General
                         }
                         catch (Exception ex)
                         {
-                            Console.WriteLine($"Warning: Could not convert binary overlay to mutable type for {PropertyName}: {ex.Message}");
+                            LogCollector.AddWarning(
+                                PropertyName,
+                                "Could not convert the binary overlay to a mutable type; trying direct assignment",
+                                ex);
                             // Fall through to try setting the overlay (will likely fail, but at least we tried)
                         }
                     }
@@ -298,7 +314,7 @@ namespace DreadsMashedPatch.PropertyHandlers.General
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error setting property '{PropertyName}' via reflection: {ex.Message}");
+                LogCollector.AddError(PropertyName, "Could not apply the complex property via reflection", ex);
             }
         }
 
@@ -420,7 +436,7 @@ namespace DreadsMashedPatch.PropertyHandlers.General
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Warning: Error deep copying {sourceType.Name}: {ex.Message}, returning original");
+                LogCollector.AddWarning(PropertyName, $"Could not deep-copy {sourceType.Name}; using the original value", ex);
                 return source;
             }
         }
@@ -476,7 +492,7 @@ namespace DreadsMashedPatch.PropertyHandlers.General
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Warning: Error copying TranslatedString: {ex.Message}");
+                LogCollector.AddWarning(PropertyName, "Could not copy TranslatedString; using the original value", ex);
                 return translatedString;
             }
         }
@@ -586,7 +602,7 @@ namespace DreadsMashedPatch.PropertyHandlers.General
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Warning: Error copying FormLink: {ex.Message}");
+                LogCollector.AddWarning(PropertyName, "Could not copy FormLink; using the original value", ex);
                 return formLink;
             }
         }
@@ -623,8 +639,12 @@ namespace DreadsMashedPatch.PropertyHandlers.General
                             {
                                 newCollection = System.Activator.CreateInstance(collectionType);
                             }
-                            catch
+                            catch (Exception ex)
                             {
+                                LogCollector.AddDiagnostic(
+                                    PropertyName,
+                                    $"Could not instantiate collection type {collectionType.Name}; using List<T> fallback",
+                                    ex);
                                 newCollection = System.Activator.CreateInstance(genericListType);
                             }
                         }
@@ -666,9 +686,12 @@ namespace DreadsMashedPatch.PropertyHandlers.General
                             }
                         }
                     }
-                    catch
+                    catch (Exception ex)
                     {
-                        Console.WriteLine($"Warning: Could not deep copy collection of type {collectionType.Name}");
+                        LogCollector.AddWarning(
+                            PropertyName,
+                            $"Could not deep-copy collection type {collectionType.Name}; using the original collection",
+                            ex);
                         return collection;
                     }
                 }
@@ -677,7 +700,7 @@ namespace DreadsMashedPatch.PropertyHandlers.General
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Warning: Error deep copying collection: {ex.Message}");
+                LogCollector.AddWarning(PropertyName, "Could not deep-copy collection; using the original collection", ex);
                 return collection;
             }
         }
@@ -713,9 +736,12 @@ namespace DreadsMashedPatch.PropertyHandlers.General
                             return boolResult;
                         }
                     }
-                    catch
+                    catch (Exception ex)
                     {
-                        // Continue to next interface or fallback
+                        LogCollector.AddDiagnostic(
+                            PropertyName,
+                            $"IEquatable comparison failed for {valueType.Name}; trying another equality strategy",
+                            ex);
                     }
                 }
             }
@@ -725,9 +751,12 @@ namespace DreadsMashedPatch.PropertyHandlers.General
             {
                 return value1.Equals(value2);
             }
-            catch
+            catch (Exception ex)
             {
-                // Fallback: compare properties recursively
+                LogCollector.AddDiagnostic(
+                    PropertyName,
+                    $"Equals failed for {valueType.Name}; comparing properties recursively",
+                    ex);
                 return CompareProperties(value1, value2);
             }
         }
@@ -882,7 +911,7 @@ namespace DreadsMashedPatch.PropertyHandlers.General
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Warning: Error converting ReadOnlyMemory/Span to array: {ex.Message}");
+                LogCollector.AddWarning(PropertyName, "Could not convert ReadOnlyMemory/Span to an array; using the original value", ex);
                 return value;
             }
         }

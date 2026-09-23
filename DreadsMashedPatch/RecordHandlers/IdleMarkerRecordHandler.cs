@@ -24,11 +24,10 @@ namespace DreadsMashedPatch.RecordHandlers
             { "EditorID", new EditorIDHandler() },
             { "MajorRecordFlagsRaw", new MajorRecordFlagsRawHandler() },
             { "SkyrimMajorRecordFlags", new SkyrimMajorRecordFlagsHandler() },
-            { "ObjectBounds", new ObjectBoundsHandler() },
             { "Flags", new FlagsHandler() },
             { "IdleTimer", new SimpleReflectionPropertyHandler<float?, IIdleMarker, IIdleMarkerGetter>("IdleTimer", 0.001f) },
             { "Animations", new AtomicReflectionListPropertyHandler<IFormLinkGetter<IIdleAnimationGetter>, IIdleMarker, IIdleMarkerGetter>("Animations", true) },
-            { "Model", new ModelHandler() },
+            { "ModelAndBounds", new ModelBoundsHandler() },
             { "MajorFlags", new SimpleReflectionFlagPropertyHandler<Mutagen.Bethesda.Skyrim.IdleMarker.MajorFlag, IIdleMarker, IIdleMarkerGetter>("MajorFlags") }
         };
 

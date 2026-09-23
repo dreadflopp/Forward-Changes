@@ -3,11 +3,15 @@ using System.Collections.Generic;
 using System.Linq;
 using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.Plugins.Records;
-using Mutagen.Bethesda.Plugins;
 using DreadsMashedPatch.PropertyHandlers.Abstracts;
 
-namespace DreadsMashedPatch.PropertyHandlers.Npc
+namespace DreadsMashedPatch.PropertyHandlers.General
 {
+    /// <summary>
+    /// Copies the shared NPC/RACE attack collection through Mutagen's typed deep-copy path.
+    /// Binary overlays expose AttackData as IAttackDataGetter, which cannot be assigned directly
+    /// to the mutable AttackData property by the generic reflection list handler.
+    /// </summary>
     public class AttacksHandler : AbstractListPropertyHandler<IAttackGetter>
     {
         public override string PropertyName => "Attacks";
@@ -22,12 +26,15 @@ namespace DreadsMashedPatch.PropertyHandlers.Npc
         {
             if (record is INpcGetter npcRecord)
             {
-                return npcRecord.Attacks?.ToList();
+                return npcRecord.Attacks.ToList();
             }
-            else
+
+            if (record is IRaceGetter raceRecord)
             {
-                Console.WriteLine($"Error: Record does not implement INpcGetter for {PropertyName}");
+                return raceRecord.Attacks.ToList();
             }
+
+            Console.WriteLine($"Error: Record does not implement INpcGetter or IRaceGetter for {PropertyName}");
             return null;
         }
 
@@ -35,51 +42,30 @@ namespace DreadsMashedPatch.PropertyHandlers.Npc
         {
             if (record is INpc npcRecord)
             {
-                if (value == null)
-                {
-                    npcRecord.Attacks.Clear();
-                    return;
-                }
-
-                // Clear existing attacks and add new ones
-                npcRecord.Attacks.Clear();
-                foreach (var attack in value)
-                {
-                    if (attack != null)
-                    {
-                        // Create a deep copy of the attack
-                        var newAttack = new Attack
-                        {
-                            AttackEvent = attack.AttackEvent
-                        };
-
-                        // Deep copy AttackData if it exists
-                        if (attack.AttackData != null)
-                        {
-                            var newAttackData = new AttackData
-                            {
-                                DamageMult = attack.AttackData.DamageMult,
-                                Chance = attack.AttackData.Chance,
-                                Spell = new FormLink<ISpellRecordGetter>(attack.AttackData.Spell.FormKey),
-                                Flags = attack.AttackData.Flags,
-                                AttackAngle = attack.AttackData.AttackAngle,
-                                StrikeAngle = attack.AttackData.StrikeAngle,
-                                Stagger = attack.AttackData.Stagger,
-                                AttackType = new FormLink<IKeywordGetter>(attack.AttackData.AttackType.FormKey),
-                                Knockdown = attack.AttackData.Knockdown,
-                                RecoveryTime = attack.AttackData.RecoveryTime,
-                                StaminaMult = attack.AttackData.StaminaMult
-                            };
-                            newAttack.AttackData = newAttackData;
-                        }
-
-                        npcRecord.Attacks.Add(newAttack);
-                    }
-                }
+                ReplaceAttacks(npcRecord.Attacks, value);
+                return;
             }
-            else
+
+            if (record is IRace raceRecord)
             {
-                Console.WriteLine($"Error: Record does not implement INpc for {PropertyName}");
+                ReplaceAttacks(raceRecord.Attacks, value);
+                return;
+            }
+
+            Console.WriteLine($"Error: Record does not implement INpc or IRace for {PropertyName}");
+        }
+
+        private static void ReplaceAttacks(ICollection<Attack> target, List<IAttackGetter>? value)
+        {
+            target.Clear();
+            if (value == null)
+            {
+                return;
+            }
+
+            foreach (var attack in value)
+            {
+                target.Add(attack.DeepCopy());
             }
         }
 

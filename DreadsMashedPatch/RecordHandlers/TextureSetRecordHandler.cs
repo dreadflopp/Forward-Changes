@@ -11,12 +11,13 @@ using DreadsMashedPatch.PropertyHandlers.Interfaces;
 namespace DreadsMashedPatch.RecordHandlers
 {
     // Migration note:
-    // - Independent: TX00-TX07 texture slots remain separately forwardable Skyrim fields.
-    // - Kept specialized/atomic: the complete DODT decal payload remains one cohesive value.
-    // - Flag decision: the raw record-header handler is the sole header storage path; nullable
-    //   TXST DNAM presence and its individual bits are handled together by the typed flag handler.
-    // - Rationale: texture slots can be intentionally supplied independently, while partial decal
-    //   geometry/settings and scalar flag replacement can create invalid or lost combinations.
+    // - Kept specialized/atomic: TX00-TX07 plus typed DNAM flags form one authored texture
+    //   definition; the complete DODT decal payload remains a separate cohesive value.
+    // - Independent: ObjectBounds remains independently forwardable.
+    // - Flag decision: TextureDefinition delegates DNAM presence/bit copying and equality to the
+    //   project-approved typed nullable flag handler rather than generic reflection.
+    // - Rationale: DNAM changes how several texture slots are interpreted, and independently
+    //   combining channels can create a texture set no source plugin authored.
     public class TextureSetRecordHandler : AbstractRecordHandler
     {
         public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()
@@ -24,19 +25,11 @@ namespace DreadsMashedPatch.RecordHandlers
             { "EditorID", new EditorIDHandler() },
             { "MajorRecordFlagsRaw", new MajorRecordFlagsRawHandler(typeof(SkyrimMajorRecord.SkyrimMajorRecordFlag)) },
             { "ObjectBounds", new ObjectBoundsHandler() },
-            { "Diffuse", new DiffuseHandler() },
-            { "NormalOrGloss", new NormalOrGlossHandler() },
-            { "EnvironmentMaskOrSubsurfaceTint", new EnvironmentMaskOrSubsurfaceTintHandler() },
-            { "GlowOrDetailMap", new GlowOrDetailMapHandler() },
-            { "Height", new HeightHandler() },
-            { "Environment", new EnvironmentHandler() },
-            { "Multilayer", new MultilayerHandler() },
-            { "BacklightMaskOrSpecular", new BacklightMaskOrSpecularHandler() },
+            { "TextureDefinition", new TextureDefinitionHandler() },
             { "Decal", new GeneratedCopyReflectionPropertyHandler<IDecalGetter, Decal, ITextureSet, ITextureSetGetter>(
                 "Decal",
                 value => value.DeepCopy(),
                 DecalMixIn.Equals) },
-            { "Flags", new FlagsHandler() },
         };
 
 

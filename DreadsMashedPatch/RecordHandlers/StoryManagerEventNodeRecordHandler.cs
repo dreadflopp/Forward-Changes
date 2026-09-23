@@ -9,7 +9,6 @@ using Mutagen.Bethesda.Synthesis;
 using DreadsMashedPatch.PropertyHandlers.General;
 using DreadsMashedPatch.PropertyHandlers.Interfaces;
 using DreadsMashedPatch.RecordHandlers.Abstracts;
-using DreadsMashedPatch.Enums;
 
 namespace DreadsMashedPatch.RecordHandlers;
 
@@ -18,8 +17,9 @@ namespace DreadsMashedPatch.RecordHandlers;
 // - Kept specialized: Conditions uses the shared polymorphic condition handler.
 // - Intentionally non-migrated: none; Parent and PreviousSibling remain registered so topology changes are detected.
 // - Coupled forwarding: every topology, condition, flag, concurrency, or event-type change establishes
-//   complete-node ownership by default.
-// - Rationale: these fields jointly define the event branch and cannot safely be recombined independently.
+//   complete-node ownership.
+// - Rationale: these fields jointly define the event branch and cannot safely be recombined independently;
+//   independent configuration forwarding is intentionally unavailable.
 public class StoryManagerEventNodeRecordHandler : AbstractRecordHandler
 {
     private static readonly IReadOnlySet<string> ConfigurationPropertyNames = new HashSet<string>(StringComparer.Ordinal)
@@ -32,19 +32,8 @@ public class StoryManagerEventNodeRecordHandler : AbstractRecordHandler
         "Type"
     };
 
-    private readonly StoryManagerForwardingPolicy _forwardingPolicy;
-
-    public StoryManagerEventNodeRecordHandler(StoryManagerForwardingPolicy? forwardingPolicy = null)
-    {
-        _forwardingPolicy = forwardingPolicy ?? PatcherSettings.StoryManagerPolicy;
-    }
-
-    public StoryManagerForwardingPolicy ForwardingPolicy => _forwardingPolicy;
-
     protected override IReadOnlySet<string> AtomicOwnershipTriggerProperties =>
-        _forwardingPolicy == StoryManagerForwardingPolicy.AtomicOnConfigurationChange
-            ? ConfigurationPropertyNames
-            : EmptyAtomicOwnershipTriggerProperties;
+        ConfigurationPropertyNames;
 
     public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()
     {

@@ -26,8 +26,7 @@ namespace DreadsMashedPatch.RecordHandlers
         {
             { "EditorID", new EditorIDHandler() },
             { "MajorRecordFlagsRaw", new MajorRecordFlagsRawHandler(typeof(SkyrimMajorRecord.SkyrimMajorRecordFlag), typeof(Mutagen.Bethesda.Skyrim.Static.MajorFlag)) },
-            { "ObjectBounds", new ObjectBoundsHandler() },
-            { "Model", new DreadsMashedPatch.PropertyHandlers.Static.ModelHandler() },
+            { "ModelAndBounds", new ModelBoundsHandler() },
             { "MaxAngle", new SimpleReflectionPropertyHandler<float, IStatic, IStaticGetter>("MaxAngle", 0.0001f) },
             { "Material", new SimpleReflectionFormLinkPropertyHandler<IMaterialObjectGetter, IStatic, IStaticGetter>("Material") },
             { "Flags", new FlagsHandler() },

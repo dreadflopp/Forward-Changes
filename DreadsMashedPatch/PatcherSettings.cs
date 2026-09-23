@@ -11,11 +11,25 @@ namespace DreadsMashedPatch
     {
         private static PatcherConfiguration _current = new();
         private static HashSet<ModKey> _creationClubPlugins = [];
+        private static HashSet<ModKey> _ignoredMods = [];
+        private static Dictionary<ModKey, int> _alwaysWinningModPriorities = [];
         private static Dictionary<ModKey, HashSet<ModKey>> _virtualMastersByTarget = [];
+        private static HashSet<FormKey> _vanillaWeaponTypeKeywords = [];
 
         public static bool TreatCreationClubAsVanilla => _current.Forwarding.TreatCreationClubAsVanilla;
 
+        public static bool EnforceSingleVanillaWeaponTypeKeyword =>
+            _current.Forwarding.EnforceSingleVanillaWeaponTypeKeyword;
+
+        public static IReadOnlySet<FormKey> VanillaWeaponTypeKeywords => _vanillaWeaponTypeKeywords;
+
+        public static EditorIdForwardingPolicy EditorIdPolicy => _current.Forwarding.EditorIdPolicy;
+
         public static IReadOnlySet<ModKey> CreationClubPlugins => _creationClubPlugins;
+
+        public static int IgnoredModCount => _ignoredMods.Count;
+
+        public static int AlwaysWinningModCount => _alwaysWinningModPriorities.Count;
 
         public static int CompatibilityRuleCount => _current.CompatibilityRules.Count;
 
@@ -23,19 +37,62 @@ namespace DreadsMashedPatch
 
         public static ProtectionForwardingPolicy ProtectionPolicy => _current.Forwarding.ProtectionPolicy;
 
-        public static PerkForwardingPolicy PerkPolicy => _current.Forwarding.PerkPolicy;
-
-        public static QuestForwardingPolicy QuestPolicy => _current.Forwarding.QuestPolicy;
-
-        public static StoryManagerForwardingPolicy StoryManagerPolicy => _current.Forwarding.StoryManagerPolicy;
-
         public static void Apply(PatcherConfiguration configuration, IEnumerable<ModKey>? creationClubPlugins = null)
         {
             ArgumentNullException.ThrowIfNull(configuration);
             _current = configuration.Copy();
             _creationClubPlugins = creationClubPlugins?.ToHashSet() ?? [];
+            _ignoredMods = _current.IgnoredMods
+                .Select(name => ModKey.TryFromFileName(name, out var modKey) ? modKey : (ModKey?)null)
+                .Where(modKey => modKey.HasValue)
+                .Select(modKey => modKey!.Value)
+                .ToHashSet();
+            _alwaysWinningModPriorities = _current.AlwaysWinningMods
+                .Select((name, priority) =>
+                    ModKey.TryFromFileName(name, out var modKey)
+                        ? (ModKey: (ModKey?)modKey, Priority: priority)
+                        : (ModKey: (ModKey?)null, Priority: priority))
+                .Where(entry => entry.ModKey.HasValue)
+                .ToDictionary(entry => entry.ModKey!.Value, entry => entry.Priority);
             _virtualMastersByTarget = BuildVirtualMasterLookup(_current.CompatibilityRules);
+            _vanillaWeaponTypeKeywords = _current.Forwarding.VanillaWeaponTypeKeywords
+                .Select(value => FormKey.TryFactory(value.AsSpan(), out var formKey)
+                    ? formKey
+                    : (FormKey?)null)
+                .Where(formKey => formKey.HasValue)
+                .Select(formKey => formKey!.Value)
+                .ToHashSet();
             LoggingSettings.Apply(_current.Diagnostics);
+        }
+
+        public static bool IsIgnoredMod(ModKey modKey) => _ignoredMods.Contains(modKey);
+
+        public static bool IsAlwaysWinningMod(ModKey modKey) =>
+            _alwaysWinningModPriorities.ContainsKey(modKey);
+
+        public static int GetAlwaysWinningPriority(ModKey modKey) =>
+            _alwaysWinningModPriorities.GetValueOrDefault(modKey, -1);
+
+        internal static TContext? SelectAlwaysWinningContext<TContext>(
+            IEnumerable<TContext> contexts,
+            Func<TContext, ModKey> modKeySelector)
+            where TContext : class
+        {
+            TContext? selected = null;
+            var selectedPriority = -1;
+            foreach (var context in contexts)
+            {
+                var priority = GetAlwaysWinningPriority(modKeySelector(context));
+                if (priority <= selectedPriority)
+                {
+                    continue;
+                }
+
+                selected = context;
+                selectedPriority = priority;
+            }
+
+            return selected;
         }
 
         public static bool HasMasterOrVirtualMaster(ISkyrimModGetter mod, string? ownerMod)

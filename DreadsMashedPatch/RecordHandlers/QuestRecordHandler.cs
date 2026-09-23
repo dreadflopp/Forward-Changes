@@ -6,7 +6,6 @@ using Mutagen.Bethesda.Plugins.Cache;
 using Mutagen.Bethesda.Plugins;
 using Mutagen.Bethesda.Strings;
 using DreadsMashedPatch.RecordHandlers.Abstracts;
-using DreadsMashedPatch.Enums;
 using DreadsMashedPatch.PropertyHandlers.Interfaces;
 using DreadsMashedPatch.PropertyHandlers.Quest;
 using DreadsMashedPatch.PropertyHandlers.General;
@@ -19,11 +18,13 @@ namespace DreadsMashedPatch.RecordHandlers;
 
 // Migration note:
 // - Generalized: translated text and DNAM flags use semantic handlers; unnamed DNAM bits are preserved.
-// - Specialized: VMAD, stages, objectives, and aliases retain their format-aware handlers and validation.
+// - Specialized: VMAD, stages, objectives, aliases, and condition lists retain their format-aware handlers
+//   and validation; the shared condition handler reads GetEventData through its concrete generated surface.
 // - Intentionally excluded: Unknown is opaque; QuestFormVersion is marked cpIgnore by xEdit; VMAD Versioning is serializer state.
-// - Coupled forwarding: structural graph changes establish a complete QUEST ownership boundary by default.
+// - Coupled forwarding: structural graph changes always establish a complete QUEST ownership boundary.
 // - Rationale: aliases, objectives, stages, fragments, conditions, and event data cross-reference one another and
-//   must not be independently combined into a graph that never existed in any source plugin.
+//   must not be independently combined into a graph that never existed in any source plugin;
+//   independent forwarding is intentionally not configurable.
 public class QuestRecordHandler : AbstractRecordHandler
 {
     private const string VirtualMachineAdapterPrefix = "VirtualMachineAdapter.";
@@ -50,24 +51,8 @@ public class QuestRecordHandler : AbstractRecordHandler
         "Aliases"
     };
 
-    private readonly QuestForwardingPolicy _forwardingPolicy;
-
-    public QuestRecordHandler()
-        : this(PatcherSettings.QuestPolicy)
-    {
-    }
-
-    public QuestRecordHandler(QuestForwardingPolicy forwardingPolicy)
-    {
-        _forwardingPolicy = forwardingPolicy;
-    }
-
-    public QuestForwardingPolicy ForwardingPolicy => _forwardingPolicy;
-
     protected override IReadOnlySet<string> AtomicOwnershipTriggerProperties =>
-        _forwardingPolicy == QuestForwardingPolicy.AtomicOnStructuralChange
-            ? StructuralPropertyNames
-            : EmptyAtomicOwnershipTriggerProperties;
+        StructuralPropertyNames;
 
     public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()
     {

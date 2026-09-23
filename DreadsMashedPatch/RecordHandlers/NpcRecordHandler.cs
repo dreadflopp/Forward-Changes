@@ -16,7 +16,7 @@ namespace DreadsMashedPatch.RecordHandlers
 {
     // Migration note:
     // - Generalized: semantic AIData, Configuration, and scalar PlayerSkills leaves use exact dotted shared handlers.
-    // - Specialized: protection policy, skill dictionaries, float tolerance, and NPC collection merging remain record-specific.
+    // - Specialized: protection policy, skill dictionaries, float tolerance, NPC collection merging, and typed attack deep-copying remain explicit.
     // - Intentionally excluded: AIData.Unused and PlayerSkills.Unused* are serialization-only fields.
     // - Rationale: direct semantic leaves are reflection-safe; unused storage is not an xEdit-visible conflict surface.
     public class NpcRecordHandler : AbstractRecordHandler

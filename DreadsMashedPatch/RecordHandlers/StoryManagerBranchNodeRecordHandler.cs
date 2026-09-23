@@ -9,7 +9,6 @@ using Mutagen.Bethesda.Synthesis;
 using DreadsMashedPatch.PropertyHandlers.General;
 using DreadsMashedPatch.PropertyHandlers.Interfaces;
 using DreadsMashedPatch.RecordHandlers.Abstracts;
-using DreadsMashedPatch.Enums;
 
 namespace DreadsMashedPatch.RecordHandlers;
 
@@ -17,8 +16,9 @@ namespace DreadsMashedPatch.RecordHandlers;
 // - Generalized: SMBN links and scalar fields use shared semantic handlers.
 // - Kept specialized: Conditions uses the shared polymorphic condition handler.
 // - Intentionally non-migrated: none; Parent and PreviousSibling remain registered so topology changes are detected.
-// - Coupled forwarding: every topology or behavior change establishes complete-node ownership by default.
-// - Rationale: parent/sibling links, conditions, flags, and concurrency form one behavior-graph decision.
+// - Coupled forwarding: every topology or behavior change always establishes complete-node ownership.
+// - Rationale: parent/sibling links, conditions, flags, and concurrency form one behavior-graph decision;
+//   independent configuration forwarding is intentionally unavailable.
 public class StoryManagerBranchNodeRecordHandler : AbstractRecordHandler
 {
     private static readonly IReadOnlySet<string> ConfigurationPropertyNames = new HashSet<string>(StringComparer.Ordinal)
@@ -30,19 +30,8 @@ public class StoryManagerBranchNodeRecordHandler : AbstractRecordHandler
         "MaxConcurrentQuests"
     };
 
-    private readonly StoryManagerForwardingPolicy _forwardingPolicy;
-
-    public StoryManagerBranchNodeRecordHandler(StoryManagerForwardingPolicy? forwardingPolicy = null)
-    {
-        _forwardingPolicy = forwardingPolicy ?? PatcherSettings.StoryManagerPolicy;
-    }
-
-    public StoryManagerForwardingPolicy ForwardingPolicy => _forwardingPolicy;
-
     protected override IReadOnlySet<string> AtomicOwnershipTriggerProperties =>
-        _forwardingPolicy == StoryManagerForwardingPolicy.AtomicOnConfigurationChange
-            ? ConfigurationPropertyNames
-            : EmptyAtomicOwnershipTriggerProperties;
+        ConfigurationPropertyNames;
 
     public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()
     {

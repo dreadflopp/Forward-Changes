@@ -1,0 +1,13 @@
+<Project>
+    <!--
+      ExcludeAssets does not remove an analyzer that also arrives through a
+      transitive dependency. Remove only Noggog's analyzer from the resolved
+      compiler inputs; the package's compile/runtime assembly remains available.
+    -->
+    <Target Name="RemoveRedundantNoggogSourceGenerator"
+            BeforeTargets="CoreCompile">
+        <ItemGroup>
+            <Analyzer Remove="$(PkgNoggog_SourceGenerators)\analyzers\dotnet\cs\Noggog.SourceGenerators.dll" />
+        </ItemGroup>
+    </Target>
+</Project>

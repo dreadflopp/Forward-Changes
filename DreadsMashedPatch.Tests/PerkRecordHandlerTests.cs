@@ -1,6 +1,5 @@
 using System.Collections;
 using DreadsMashedPatch.Contexts.Interfaces;
-using DreadsMashedPatch.Enums;
 using DreadsMashedPatch.PropertyHandlers.General;
 using DreadsMashedPatch.RecordHandlers;
 using Mutagen.Bethesda.Plugins;
@@ -17,12 +16,7 @@ public sealed class PerkRecordHandlerTests
     [Fact]
     public void AtomicCoupledForwardingIsTheDefaultPolicy()
     {
-        Assert.Equal(
-            PerkForwardingPolicy.AtomicOnCoupledPropertyChange,
-            PatcherSettings.PerkPolicy);
-
         var handler = new TestablePerkRecordHandler();
-        Assert.Equal(PerkForwardingPolicy.AtomicOnCoupledPropertyChange, handler.ForwardingPolicy);
         Assert.Equal(
             new HashSet<string>(StringComparer.Ordinal)
             {
@@ -37,18 +31,6 @@ public sealed class PerkRecordHandlerTests
                 "Effects"
             },
             handler.AtomicTriggers);
-    }
-
-    [Fact]
-    public void StandardForwardingDisablesAtomicTriggers()
-    {
-        var handler = new TestablePerkRecordHandler(PerkForwardingPolicy.StandardForwarding);
-        var previous = CreatePerk();
-        var current = CreatePerk();
-        current.Level = 10;
-
-        Assert.Empty(handler.AtomicTriggers);
-        Assert.Empty(handler.GetChangedTriggers(previous, current));
     }
 
     [Theory]
@@ -218,9 +200,7 @@ public sealed class PerkRecordHandlerTests
             (_, _) => throw new NotSupportedException(),
             (_, _, _, _) => throw new NotSupportedException());
 
-    private sealed class TestablePerkRecordHandler(
-        PerkForwardingPolicy? forwardingPolicy = null)
-        : PerkRecordHandler(forwardingPolicy)
+    private sealed class TestablePerkRecordHandler : PerkRecordHandler
     {
         public IReadOnlySet<string> AtomicTriggers => AtomicOwnershipTriggerProperties;
 

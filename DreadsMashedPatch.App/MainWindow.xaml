@@ -1,7 +1,7 @@
 <Window x:Class="DreadsMashedPatch.App.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Mash Patch"
+        Title="Mashed Patch"
         Icon="Assets/AppIcon.png"
         Width="1040"
         Height="760"
@@ -14,47 +14,56 @@
         PreviewKeyDown="OnWindowPreviewKeyDown">
     <Grid Background="{StaticResource WindowBackgroundBrush}">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <Border Grid.Row="0" Background="{StaticResource HeaderBrush}" Padding="22,12">
+        <Border Grid.Row="0"
+                Background="{StaticResource HeaderBrush}"
+                Padding="22,12">
             <Grid>
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <Image Source="Assets/AppIcon.png"
-                           Width="54"
-                           Height="54"
-                           Margin="0,0,14,0"
-                           Stretch="Uniform"
-                           RenderOptions.BitmapScalingMode="HighQuality"
-                           SnapsToDevicePixels="True"
-                           AutomationProperties.Name="Mash Patch icon" />
-                    <TextBlock Text="Mash Patch"
+                <StackPanel Orientation="Horizontal"
+                            VerticalAlignment="Center">
+                    <TextBlock Text="Mashed Patch"
                                Foreground="White"
                                FontSize="25"
                                FontWeight="SemiBold"
-                               VerticalAlignment="Center" />
+                               VerticalAlignment="Center"/>
                 </StackPanel>
-                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                    <ProgressBar Width="90" Height="7" Margin="0,0,12,0" IsIndeterminate="True" Foreground="{StaticResource AccentBrush}">
+                <StackPanel Grid.Column="1"
+                            Orientation="Horizontal"
+                            VerticalAlignment="Center">
+                    <ProgressBar Width="90"
+                                 Height="7"
+                                 Margin="0,0,12,0"
+                                 IsIndeterminate="True"
+                                 Foreground="{StaticResource AccentBrush}">
                         <ProgressBar.Style>
                             <Style TargetType="ProgressBar">
-                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Setter Property="Visibility"
+                                        Value="Collapsed"/>
                                 <Style.Triggers>
-                                    <DataTrigger Binding="{Binding IsRunning}" Value="True">
-                                        <Setter Property="Visibility" Value="Visible" />
+                                    <DataTrigger Binding="{Binding IsRunning}"
+                                                 Value="True">
+                                        <Setter Property="Visibility"
+                                                Value="Visible"/>
                                     </DataTrigger>
                                 </Style.Triggers>
                             </Style>
                         </ProgressBar.Style>
                     </ProgressBar>
-                    <TextBlock Text="{Binding StatusText}" Foreground="White" FontWeight="SemiBold" />
-                    <TextBlock Text="{Binding ElapsedText}" Foreground="{StaticResource HeaderMutedTextBrush}" FontFamily="Consolas" Margin="12,0,0,0" />
+                    <TextBlock Text="{Binding StatusText}"
+                               Foreground="White"
+                               FontWeight="SemiBold"/>
+                    <TextBlock Text="{Binding ElapsedText}"
+                               Foreground="{StaticResource HeaderMutedTextBrush}"
+                               FontFamily="Consolas"
+                               Margin="12,0,0,0"/>
                 </StackPanel>
             </Grid>
         </Border>
@@ -65,38 +74,68 @@
                     Background="{StaticResource WindowBackgroundBrush}"
                     BorderBrush="{StaticResource BorderBrush}">
             <TabItem Header="General">
-                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="18">
-                    <StackPanel MaxWidth="820" HorizontalAlignment="Left">
-                        <TextBlock Style="{StaticResource SectionTitle}" Text="Game paths" />
+                <ScrollViewer VerticalScrollBarVisibility="Auto"
+                              Padding="18">
+                    <StackPanel MaxWidth="820"
+                                HorizontalAlignment="Left">
+                        <TextBlock Style="{StaticResource SectionTitle}"
+                                   Text="Game paths"/>
 
-                        <Button Content="Detect paths" Click="OnAutoDetectPaths" HorizontalAlignment="Left" Margin="0,5,0,7" />
+                        <Button Content="Detect paths"
+                                Click="OnAutoDetectPaths"
+                                HorizontalAlignment="Left"
+                                Margin="0,5,0,7"/>
 
-                        <TextBlock Style="{StaticResource FieldLabel}" Text="Game release" />
+                        <TextBlock Style="{StaticResource FieldLabel}"
+                                   Text="Game release"/>
                         <ComboBox ItemsSource="{Binding GameReleaseChoices}"
                                   DisplayMemberPath="DisplayName"
                                   SelectedValuePath="Value"
-                                  SelectedValue="{Binding Settings.GameRelease}" />
+                                  SelectedValue="{Binding Settings.GameRelease}"/>
 
-                        <TextBlock Style="{StaticResource FieldLabel}" Text="Skyrim game folder" />
+                        <TextBlock Style="{StaticResource FieldLabel}"
+                                   Text="Skyrim game folder"/>
                         <DockPanel LastChildFill="True">
-                            <Button DockPanel.Dock="Right" Content="Browse…" Click="OnBrowseGameFolder" Margin="8,0,0,0" />
-                            <TextBox Text="{Binding Settings.GameFolderPath, UpdateSourceTrigger=PropertyChanged}" />
-                        </DockPanel>
-                        <TextBlock Style="{StaticResource HelpText}" Text="Contains SkyrimSE.exe or SkyrimVR.exe and Skyrim.ccc. For Wabbajack, this is normally the Stock Game folder." />
-
-                        <TextBlock Style="{StaticResource FieldLabel}" Text="Skyrim Data folder" />
-                        <DockPanel LastChildFill="True">
-                            <Button DockPanel.Dock="Right" Content="Browse…" Click="OnBrowseDataFolder" Margin="8,0,0,0" />
-                            <TextBox Text="{Binding Settings.DataFolderPath, UpdateSourceTrigger=PropertyChanged}" />
-                        </DockPanel>
-
-                        <TextBlock Style="{StaticResource FieldLabel}" Text="Load order file (plugins.txt)" />
-                        <DockPanel LastChildFill="True">
-                            <Button DockPanel.Dock="Right" Content="Browse…" Click="OnBrowseLoadOrder" Margin="8,0,0,0" />
-                            <TextBox Text="{Binding Settings.LoadOrderFilePath, UpdateSourceTrigger=PropertyChanged}" />
+                            <Button DockPanel.Dock="Right"
+                                    Content="Browse…"
+                                    Click="OnBrowseGameFolder"
+                                    Margin="8,0,0,0"/>
+                            <TextBox Text="{Binding Settings.GameFolderPath, UpdateSourceTrigger=PropertyChanged}"/>
                         </DockPanel>
                         <TextBlock Style="{StaticResource HelpText}"
-                                   Text="MO2: usually &lt;MO2 folder&gt;\profiles\&lt;profile name&gt;\plugins.txt. Without MO2: usually %LOCALAPPDATA%\Skyrim Special Edition\plugins.txt (or the matching GOG or VR folder)." />
+                                   Text="Contains SkyrimSE.exe or SkyrimVR.exe and Skyrim.ccc. MO2 users should select the base folder configured in MO2's settings."/>
+
+                        <TextBlock Style="{StaticResource FieldLabel}"
+                                   Text="Skyrim Data folder"/>
+                        <DockPanel LastChildFill="True">
+                            <Button DockPanel.Dock="Right"
+                                    Content="Browse…"
+                                    Click="OnBrowseDataFolder"
+                                    Margin="8,0,0,0"/>
+                            <TextBox Text="{Binding Settings.DataFolderPath, UpdateSourceTrigger=PropertyChanged}"/>
+                        </DockPanel>
+                        <TextBlock Style="{StaticResource HelpText}"
+                                   Text="The game's Data folder, usually located inside the main game folder."/>
+
+                        <TextBlock Style="{StaticResource FieldLabel}"
+                                   Text="Load order file (plugins.txt)"/>
+                        <DockPanel LastChildFill="True">
+                            <Button DockPanel.Dock="Right"
+                                    Content="Browse…"
+                                    Click="OnBrowseLoadOrder"
+                                    Margin="8,0,0,0"/>
+                            <TextBox Text="{Binding Settings.LoadOrderFilePath, UpdateSourceTrigger=PropertyChanged}"/>
+                        </DockPanel>
+                        <TextBlock Style="{StaticResource HelpText}"
+                                   Text="MO2: usually &lt;MO2 folder&gt;\profiles\&lt;profile name&gt;\plugins.txt. Without MO2: usually %LOCALAPPDATA%\Skyrim Special Edition\plugins.txt (or the matching GOG or VR folder)."/>
+
+                        <TextBlock Style="{StaticResource FieldLabel}"
+                                   Text="Initial load-order placement"/>
+                        <Button Content="Create empty patch output"
+                                Click="OnCreateEmptyOutput"
+                                HorizontalAlignment="Left"/>
+                        <TextBlock Style="{StaticResource HelpText}"
+                                   Text="Replaces all current patch output plugins with a single empty plugin. Enable it and position it in your mod manager before the first full run."/>
                     </StackPanel>
                 </ScrollViewer>
             </TabItem>
@@ -104,31 +143,89 @@
             <TabItem Header="Record Types">
                 <Grid Margin="16">
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
                     <StackPanel>
-                        <TextBlock Style="{StaticResource SectionTitle}" Text="Record families" />
+                        <TextBlock Style="{StaticResource SectionTitle}"
+                                   Text="Record families"/>
                         <TextBlock Style="{StaticResource HelpText}"
-                                   Text="Only enabled record families are included in the patch. Use Shift or Ctrl to select multiple rows, then press Space to enable or disable them together." />
+                                   Text="The patcher processes only the enabled record families."/>
+                        <Border Background="{StaticResource InfoPanelBrush}"
+                                BorderBrush="{StaticResource InfoBorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="4"
+                                Padding="12,9"
+                                Margin="0,3,0,8">
+                            <StackPanel>
+                                <TextBlock Text="Disabled by default"
+                                           FontWeight="SemiBold"
+                                           Margin="0,0,0,5"/>
+                                <TextBlock TextWrapping="Wrap"
+                                           Margin="0,1">
+                                    <Run FontWeight="SemiBold" Text="DIAL — Dialog Topic:"/>
+                                    <Run Text=" Quest and branch links participate in a coupled dialogue graph and are unsafe to merge independently."/>
+                                </TextBlock>
+                                <TextBlock TextWrapping="Wrap"
+                                           Margin="0,1">
+                                    <Run FontWeight="SemiBold" Text="DLBR — Dialog Branch:"/>
+                                    <Run Text=" The quest, flags, and starting topic jointly define branch routing and should remain authored together."/>
+                                </TextBlock>
+                                <TextBlock TextWrapping="Wrap"
+                                           Margin="0,1">
+                                    <Run FontWeight="SemiBold" Text="INFO — Dialog Response:"/>
+                                    <Run Text=" Topic links, response chains, conditions, scripts, and response text can become inconsistent when forwarded separately."/>
+                                </TextBlock>
+                                <TextBlock TextWrapping="Wrap"
+                                           Margin="0,1">
+                                    <Run FontWeight="SemiBold" Text="DLVW — Dialog View:"/>
+                                    <Run Text=" Its quest, branch list, and topic list describe the same dialogue layout and must stay synchronized."/>
+                                </TextBlock>
+                                <TextBlock TextWrapping="Wrap"
+                                           Margin="0,1">
+                                    <Run FontWeight="SemiBold" Text="NAVM — Navigation Mesh:"/>
+                                    <Run Text=" Connector arrays contain indexes into the navmesh geometry; mixing sources can point them at the wrong vertices."/>
+                                </TextBlock>
+                                <TextBlock TextWrapping="Wrap"
+                                           Margin="0,1">
+                                    <Run FontWeight="SemiBold" Text="PACK — Package:"/>
+                                    <Run Text=" Its indexed data and procedure tree must move together, but the current Mutagen writer reorders that data."/>
+                                </TextBlock>
+                                <TextBlock Text="These families remain available as advanced opt-ins. Review their generated overrides in xEdit when enabling them."
+                                           TextWrapping="Wrap"
+                                           FontStyle="Italic"
+                                           Margin="0,6,0,0"/>
+                            </StackPanel>
+                        </Border>
                     </StackPanel>
                     <StackPanel Grid.Row="1"
                                 Orientation="Horizontal"
                                 HorizontalAlignment="Right"
                                 Margin="0,5,0,10">
-                        <Button Content="Enable all" Click="OnEnableAll" />
-                        <Button Content="Disable all" Click="OnDisableAll" />
-                        <Button Content="Invert" Click="OnInvert" Margin="0" />
+                        <Button Content="Enable all"
+                                Click="OnEnableAll"/>
+                        <Button Content="Disable all"
+                                Click="OnDisableAll"/>
+                        <Button Content="Invert"
+                                Click="OnInvert"
+                                Margin="0"/>
                     </StackPanel>
-                    <Border Grid.Row="2" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="4">
+                    <Border Grid.Row="2"
+                            BorderBrush="{StaticResource BorderBrush}"
+                            BorderThickness="1"
+                            CornerRadius="4">
                         <Grid>
                             <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="*" />
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
                             </Grid.RowDefinitions>
-                            <Border Background="{StaticResource PanelBrush}" Padding="10,7" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1">
-                                <TextBlock Text="{Binding SelectedRecordTypeCountText}" FontWeight="SemiBold" />
+                            <Border Background="{StaticResource PanelBrush}"
+                                    Padding="10,7"
+                                    BorderBrush="{StaticResource BorderBrush}"
+                                    BorderThickness="0,0,0,1">
+                                <TextBlock Text="{Binding SelectedRecordTypeCountText}"
+                                           FontWeight="SemiBold"/>
                             </Border>
                             <ListBox x:Name="RecordTypeList"
                                      Grid.Row="1"
@@ -145,8 +242,8 @@
                                         <Grid Background="Transparent"
                                               ToolTip="{Binding DisplayName}">
                                             <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="Auto" />
-                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
                                             </Grid.ColumnDefinitions>
                                             <CheckBox IsChecked="{Binding IsEnabled, Mode=TwoWay}"
                                                       Focusable="False"
@@ -154,12 +251,16 @@
                                                       Height="30"
                                                       Margin="2,0,8,0"
                                                       HorizontalContentAlignment="Center"
-                                                      AutomationProperties.Name="{Binding DisplayName}" />
+                                                      AutomationProperties.Name="{Binding DisplayName}"/>
                                             <StackPanel Grid.Column="1"
                                                         Orientation="Horizontal"
                                                         VerticalAlignment="Center">
-                                                <TextBlock Text="{Binding Signature}" FontFamily="Consolas" FontWeight="SemiBold" Width="55" />
-                                                <TextBlock Text="{Binding DisplayName}" MinWidth="240" />
+                                                <TextBlock Text="{Binding Signature}"
+                                                           FontFamily="Consolas"
+                                                           FontWeight="SemiBold"
+                                                           Width="55"/>
+                                                <TextBlock Text="{Binding DisplayName}"
+                                                           MinWidth="240"/>
                                             </StackPanel>
                                         </Grid>
                                     </DataTemplate>
@@ -170,45 +271,111 @@
                 </Grid>
             </TabItem>
 
+            <TabItem Header="Priority Mods">
+                <ScrollViewer VerticalScrollBarVisibility="Auto"
+                              Padding="18">
+                    <StackPanel MaxWidth="820"
+                                HorizontalAlignment="Left">
+                        <TextBlock Style="{StaticResource SectionTitle}"
+                                   Text="Mods that always win"/>
+                        <TextBlock Style="{StaticResource HelpText}"
+                                   Text="When a listed plugin edits a record but is not the winning override, the patch copies that plugin's entire record unchanged. If multiple listed plugins edit the same record, the last of those plugins in this list wins. Nothing is forwarded when the selected plugin already wins."/>
+                        <TextBlock Style="{StaticResource FieldLabel}"
+                                   Text="Plugin filenames"/>
+                        <TextBlock Style="{StaticResource HelpText}"
+                                   Text="Enter one full plugin filename per line, including .esp, .esm, or .esl. Order matters: entries lower in the list have higher priority."/>
+                        <TextBox Text="{Binding AlwaysWinningModsText, UpdateSourceTrigger=PropertyChanged}"
+                                 AcceptsReturn="True"
+                                 MinWidth="520"
+                                 MinHeight="220"
+                                 VerticalContentAlignment="Top"
+                                 VerticalScrollBarVisibility="Auto"
+                                 FontFamily="Consolas"/>
+                        <TextBlock Style="{StaticResource HelpText}"
+                                   Text="A plugin cannot also appear under Ignored Mods. The patcher rejects that contradictory configuration before a run."/>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <TabItem Header="Ignored Mods">
+                <ScrollViewer VerticalScrollBarVisibility="Auto"
+                              Padding="18">
+                    <StackPanel MaxWidth="820"
+                                HorizontalAlignment="Left">
+                        <TextBlock Style="{StaticResource SectionTitle}"
+                                   Text="Mods excluded from conflict discovery"/>
+                        <TextBlock Style="{StaticResource HelpText}"
+                                   Text="Ignored plugins are excluded when the patcher determines which values to forward."/>
+
+                        <TextBlock Style="{StaticResource FieldLabel}"
+                                   Text="Plugin filenames"/>
+                        <TextBlock Style="{StaticResource HelpText}"
+                                   Text="Enter one complete plugin filename per line, including .esm, .esp, or .esl."/>
+                        <TextBox Height="180"
+                                 AcceptsReturn="True"
+                                 VerticalContentAlignment="Top"
+                                 VerticalScrollBarVisibility="Auto"
+                                 Text="{Binding IgnoredModsText, UpdateSourceTrigger=PropertyChanged}"
+                                 ToolTip="Enter one complete plugin filename per line."/>
+                        <TextBlock Style="{StaticResource HelpText}"
+                                   Text="A plugin cannot also appear under Priority Mods. The patcher rejects that contradictory configuration before a run."/>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
             <TabItem Header="Smart Forwarding">
-                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="18">
-                    <StackPanel MaxWidth="820" HorizontalAlignment="Left">
-                        <TextBlock Style="{StaticResource SectionTitle}" Text="Smarter choices for complex records" />
-                        <TextBlock Style="{StaticResource HelpText}" Text="Most changes can be forwarded one field at a time. These options let the patcher recognize related data and make safer, record-specific decisions instead." />
+                <ScrollViewer VerticalScrollBarVisibility="Auto"
+                              Padding="18">
+                    <StackPanel MaxWidth="820"
+                                HorizontalAlignment="Left">
+                        <TextBlock Style="{StaticResource SectionTitle}"
+                                   Text="Smarter choices for complex records"/>
+                        <TextBlock Style="{StaticResource HelpText}"
+                                   Text="These options apply specialized forwarding rules to fields that cannot always be merged safely by the general rules."/>
 
                         <CheckBox Content="Treat Creation Club content as official baseline"
                                   FontWeight="SemiBold"
-                                  IsChecked="{Binding Settings.Patcher.Forwarding.TreatCreationClubAsVanilla}" />
+                                  IsChecked="{Binding Settings.Patcher.Forwarding.TreatCreationClubAsVanilla}"/>
                         <TextBlock Style="{StaticResource HelpText}"
-                                   Text="Recommended. Treats Creation Club plugins like Bethesda's base-game files, so their original values are not mistaken for ordinary mod changes." />
+                                   Text="Recommended. Treats Creation Club plugins like Bethesda's base-game files, so their original values are not mistaken for ordinary mod changes."/>
 
-                        <TextBlock Style="{StaticResource FieldLabel}" Text="NPC protection status" />
+                        <CheckBox Content="Keep one vanilla weapon type keyword"
+                                  FontWeight="SemiBold"
+                                  IsChecked="{Binding Settings.Patcher.Forwarding.EnforceSingleVanillaWeaponTypeKeyword}"/>
+                        <TextBlock Style="{StaticResource HelpText}"
+                                   Text="When the patcher accepts a mod's change to exactly one configured vanilla weapon-type keyword, it also removes the other configured vanilla weapon types. Other keywords are unaffected. Overrides that intentionally contain several configured vanilla types are preserved."/>
+                        <Expander Header="Configured vanilla weapon type keywords"
+                                  Margin="0,4,0,10"
+                                  IsExpanded="False">
+                            <StackPanel Margin="18,8,0,0">
+                                <TextBlock Style="{StaticResource HelpText}"
+                                           Text="One FormKey per line, in 000000:Plugin.ext format. These keywords are treated as mutually exclusive weapon types."/>
+                                <TextBox Text="{Binding VanillaWeaponTypeKeywordsText, UpdateSourceTrigger=PropertyChanged}"
+                                         AcceptsReturn="True"
+                                         MinWidth="420"
+                                         MinHeight="145"
+                                         VerticalScrollBarVisibility="Auto"
+                                         FontFamily="Consolas"/>
+                            </StackPanel>
+                        </Expander>
+
+                        <TextBlock Style="{StaticResource FieldLabel}"
+                                   Text="Editor IDs (EDID)"/>
+                        <ComboBox ItemsSource="{Binding EditorIdPolicies}"
+                                  DisplayMemberPath="DisplayName"
+                                  SelectedValuePath="Value"
+                                  SelectedValue="{Binding Settings.Patcher.Forwarding.EditorIdPolicy}"/>
+                        <TextBlock Style="{StaticResource HelpText}"
+                                   Text="Recommended: forward a computed Editor ID only when another property already requires a patch record. This preserves relevant renames without creating EDID-only overrides."/>
+
+                        <TextBlock Style="{StaticResource FieldLabel}"
+                                   Text="NPC protection status"/>
                         <ComboBox ItemsSource="{Binding ProtectionPolicies}"
                                   DisplayMemberPath="DisplayName"
                                   SelectedValuePath="Value"
-                                  SelectedValue="{Binding Settings.Patcher.Forwarding.ProtectionPolicy}" />
-                        <TextBlock Style="{StaticResource HelpText}" Text="Avoids accidentally making an Essential or Protected NPC vulnerable while still allowing a later mod to change the status deliberately." />
-
-                        <TextBlock Style="{StaticResource FieldLabel}" Text="Perks" />
-                        <ComboBox ItemsSource="{Binding PerkPolicies}"
-                                  DisplayMemberPath="DisplayName"
-                                  SelectedValuePath="Value"
-                                  SelectedValue="{Binding Settings.Patcher.Forwarding.PerkPolicy}" />
-                        <TextBlock Style="{StaticResource HelpText}" Text="Perk effects and their supporting settings can depend on each other. Keeping them together avoids creating a combination that no source mod contains." />
-
-                        <TextBlock Style="{StaticResource FieldLabel}" Text="Quests" />
-                        <ComboBox ItemsSource="{Binding QuestPolicies}"
-                                  DisplayMemberPath="DisplayName"
-                                  SelectedValuePath="Value"
-                                  SelectedValue="{Binding Settings.Patcher.Forwarding.QuestPolicy}" />
-                        <TextBlock Style="{StaticResource HelpText}" Text="Quest stages, objectives, aliases, and scripts form one connected structure. Keeping structural changes together prevents broken mixtures from different mods." />
-
-                        <TextBlock Style="{StaticResource FieldLabel}" Text="Story Manager nodes" />
-                        <ComboBox ItemsSource="{Binding StoryManagerPolicies}"
-                                  DisplayMemberPath="DisplayName"
-                                  SelectedValuePath="Value"
-                                  SelectedValue="{Binding Settings.Patcher.Forwarding.StoryManagerPolicy}" />
-                        <TextBlock Style="{StaticResource HelpText}" Text="Story Manager nodes contain connected conditions, limits, and links. Keeping a changed setup together preserves the behavior authored by one mod." />
+                                  SelectedValue="{Binding Settings.Patcher.Forwarding.ProtectionPolicy}"/>
+                        <TextBlock Style="{StaticResource HelpText}"
+                                   Text="Avoids accidentally making an Essential or Protected NPC vulnerable while still allowing a later mod to change the status deliberately."/>
                     </StackPanel>
                 </ScrollViewer>
             </TabItem>
@@ -216,62 +383,92 @@
             <TabItem Header="Master Rules">
                 <Grid Margin="18">
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
                     <StackPanel Margin="0,0,0,10">
-                        <TextBlock Style="{StaticResource SectionTitle}" Text="Treat plugins as declared masters" />
+                        <TextBlock Style="{StaticResource SectionTitle}"
+                                   Text="Treat plugins as declared masters"/>
                         <TextBlock Style="{StaticResource HelpText}"
-                                   Text="A mod is normally allowed to undo another plugin's changes only when that plugin is in its masters list. Add a rule to grant the same permission when the header does not declare that relationship. Plugin files are not modified." />
+                                   Text="A mod is normally allowed to revert another plugin's changes only when that plugin is one of its declared masters. Add a rule to grant the same permission when the relationship is missing from the mod's header. No plugin files are modified."/>
                     </StackPanel>
 
-                    <Border Grid.Row="1" Background="{StaticResource InfoPanelBrush}" BorderBrush="{StaticResource InfoBorderBrush}" BorderThickness="1" CornerRadius="4" Padding="12" Margin="0,0,0,12">
+                    <Border Grid.Row="1"
+                            Background="{StaticResource InfoPanelBrush}"
+                            BorderBrush="{StaticResource InfoBorderBrush}"
+                            BorderThickness="1"
+                            CornerRadius="4"
+                            Padding="12"
+                            Margin="0,0,0,12">
                         <DockPanel LastChildFill="True">
-                            <Button DockPanel.Dock="Right" Content="Add example" Click="OnAddSimonRimExampleRule" Margin="12,0,0,0" />
+                            <StackPanel DockPanel.Dock="Right"
+                                        Orientation="Horizontal"
+                                        Margin="12,0,0,0">
+                                <Button Content="Import rules…"
+                                        Click="OnImportCompatibilityRules"/>
+                                <Button Content="Export rules…"
+                                        Click="OnExportCompatibilityRules"/>
+                                <Button Content="Restore default rules"
+                                        Click="OnRestoreDefaultCompatibilityRules"
+                                        Margin="0"/>
+                            </StackPanel>
                             <StackPanel>
-                                <TextBlock FontWeight="SemiBold" Text="Example: let SimonRim mods intentionally overwrite USSEP" />
-                                <TextBlock Style="{StaticResource HelpText}" Margin="0,3,0,0"
-                                           Text="Treat Unofficial Skyrim Special Edition Patch.esp as a master of Adamant.esp, MysticismMagic.esp, Aetherius.esp, Mundus.esp, BladeAndBlunt.esp, and Apothecary.esp." />
+                                <TextBlock FontWeight="SemiBold"
+                                           Text="Default master rules"/>
+                                <TextBlock Style="{StaticResource HelpText}"
+                                           Margin="0,3,0,0"
+                                           Text="Import replaces the current list. Export saves only these master rules as portable JSON. New settings include curated rules that can be restored after editing or removing them."/>
                             </StackPanel>
                         </DockPanel>
                     </Border>
 
                     <Grid Grid.Row="2">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="260" />
-                            <ColumnDefinition Width="14" />
-                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="260"/>
+                            <ColumnDefinition Width="14"/>
+                            <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
 
                         <DockPanel Grid.Column="0">
-                            <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,10,0,0">
-                                <Button Content="Add rule" Click="OnAddCompatibilityRule" />
-                                <Button Content="Remove" Click="OnRemoveCompatibilityRule" Margin="0" />
+                            <StackPanel DockPanel.Dock="Bottom"
+                                        Orientation="Horizontal"
+                                        Margin="0,10,0,0">
+                                <Button Content="Add rule"
+                                        Click="OnAddCompatibilityRule"/>
+                                <Button Content="Remove"
+                                        Click="OnRemoveCompatibilityRule"
+                                        Margin="0"/>
                             </StackPanel>
                             <ListBox ItemsSource="{Binding CompatibilityRules}"
                                      SelectedItem="{Binding SelectedCompatibilityRule}"
                                      DisplayMemberPath="DisplayName"
-                                     AutomationProperties.Name="Master rules" />
+                                     AutomationProperties.Name="Master rules"/>
                         </DockPanel>
 
-                        <Border Grid.Column="2" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="4" Padding="14">
+                        <Border Grid.Column="2"
+                                BorderBrush="{StaticResource BorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="4"
+                                Padding="14">
                             <StackPanel DataContext="{Binding SelectedCompatibilityRule}">
-                                <TextBlock Style="{StaticResource FieldLabel}" Text="Plugin to treat as a master" />
+                                <TextBlock Style="{StaticResource FieldLabel}"
+                                           Text="Plugin to treat as a master"/>
                                 <TextBox Text="{Binding InjectedMaster, UpdateSourceTrigger=PropertyChanged}"
-                                         ToolTip="For example: Unofficial Skyrim Special Edition Patch.esp" />
+                                         ToolTip="For example: Unofficial Skyrim Special Edition Patch.esp"/>
                                 <TextBlock Style="{StaticResource HelpText}"
-                                           Text="Use the complete plugin filename, including .esm, .esp, or .esl." />
+                                           Text="Use the complete plugin filename, including .esm, .esp, or .esl."/>
 
-                                <TextBlock Style="{StaticResource FieldLabel}" Text="Mods that should treat it as a master" />
+                                 <TextBlock Style="{StaticResource FieldLabel}"
+                                           Text="Mods that should treat this plugin as a master"/>
                                 <TextBox Height="230"
                                          AcceptsReturn="True"
                                          VerticalContentAlignment="Top"
                                          VerticalScrollBarVisibility="Auto"
                                          Text="{Binding TargetModsText, UpdateSourceTrigger=PropertyChanged}"
-                                         ToolTip="Enter one complete plugin filename per line." />
+                                         ToolTip="Enter one complete plugin filename per line."/>
                                 <TextBlock Style="{StaticResource HelpText}"
-                                           Text="Enter one complete plugin filename per line. These mods may intentionally restore values that the master plugin changed." />
+                                           Text="Enter one complete plugin filename per line. These mods may intentionally restore values that the master plugin changed. A rule with no target mods has no effect."/>
                             </StackPanel>
                         </Border>
                     </Grid>
@@ -279,64 +476,99 @@
             </TabItem>
 
             <TabItem Header="Diagnostics">
-                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="18">
-                    <StackPanel MaxWidth="820" HorizontalAlignment="Left">
-                        <TextBlock Style="{StaticResource SectionTitle}" Text="Logging and deep-dive diagnostics" />
-                        <TextBlock Style="{StaticResource HelpText}" Text="Warnings and run progress are always shown. Debug mode adds property decision details and targeted deep dives; it can produce very large logs." />
+                <ScrollViewer VerticalScrollBarVisibility="Auto"
+                              Padding="18">
+                    <StackPanel MaxWidth="820"
+                                HorizontalAlignment="Left">
+                        <TextBlock Style="{StaticResource SectionTitle}"
+                                   Text="Logging and deep-dive diagnostics"/>
+                        <TextBlock Style="{StaticResource HelpText}"
+                                   Text="Warnings and run progress are always shown. Debug mode adds property-level decisions and optional deep-dive logging, and can produce very large log files. Use deep dives to limit detailed logging to specific records or record families."/>
 
-                        <TextBlock Style="{StaticResource FieldLabel}" Text="Historical logs to keep" />
-                        <TextBlock Style="{StaticResource HelpText}" Text="The current log is always kept. Completed run logs are timestamped, and the oldest are removed when this limit is exceeded. Use 0 to retain only the current log." />
-                        <TextBox Width="120" HorizontalAlignment="Left" Margin="0,0,0,12"
-                                 Text="{Binding Settings.HistoricalLogsToKeep, UpdateSourceTrigger=LostFocus}" />
+                        <TextBlock Style="{StaticResource FieldLabel}"
+                                   Text="Historical logs to keep"/>
+                        <TextBlock Style="{StaticResource HelpText}"
+                                   Text="Use 0 to retain only the current log."/>
+                        <TextBox Width="120"
+                                 HorizontalAlignment="Left"
+                                 Margin="0,0,0,12"
+                                 Text="{Binding Settings.HistoricalLogsToKeep, UpdateSourceTrigger=LostFocus}"/>
 
                         <CheckBox x:Name="DebugModeCheck"
                                   Content="Enable debug mode"
                                   FontWeight="SemiBold"
-                                  IsChecked="{Binding Settings.Patcher.Diagnostics.DebugMode}" />
+                                  IsChecked="{Binding Settings.Patcher.Diagnostics.DebugMode}"/>
 
-                        <StackPanel IsEnabled="{Binding IsChecked, ElementName=DebugModeCheck}" Margin="20,0,0,0">
-                            <TextBlock Style="{StaticResource FieldLabel}" Text="Verbosity" />
+                        <StackPanel IsEnabled="{Binding IsChecked, ElementName=DebugModeCheck}"
+                                    Margin="20,0,0,0">
+                            <TextBlock Style="{StaticResource FieldLabel}"
+                                       Text="Verbosity"/>
                             <ComboBox ItemsSource="{Binding LogVerbosityChoices}"
                                       DisplayMemberPath="DisplayName"
                                       SelectedValuePath="Value"
-                                      SelectedValue="{Binding Settings.Patcher.Diagnostics.Verbosity}" />
+                                      SelectedValue="{Binding Settings.Patcher.Diagnostics.Verbosity}"/>
                             <CheckBox Content="Print enabled record types at startup"
-                                      IsChecked="{Binding Settings.Patcher.Diagnostics.EnableStartupDiagnostics}" />
+                                      IsChecked="{Binding Settings.Patcher.Diagnostics.EnableStartupDiagnostics}"/>
 
-                            <TextBlock Style="{StaticResource FieldLabel}" Text="Maximum value preview length" />
-                            <TextBox Width="120" HorizontalAlignment="Left"
-                                     Text="{Binding Settings.Patcher.Diagnostics.MaxValuePreviewLength, UpdateSourceTrigger=LostFocus}" />
+                            <TextBlock Style="{StaticResource FieldLabel}"
+                                       Text="Maximum value preview length"/>
+                            <TextBox Width="120"
+                                     HorizontalAlignment="Left"
+                                     Text="{Binding Settings.Patcher.Diagnostics.MaxValuePreviewLength, UpdateSourceTrigger=LostFocus}"/>
 
-                            <TextBlock Style="{StaticResource FieldLabel}" Text="Deep-dive record signatures" />
-                            <TextBlock Style="{StaticResource HelpText}" Text="One xEdit record signature per line, for example QUST." />
-                            <TextBox Height="72" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"
-                                     Text="{Binding DeepDiveRecordSignaturesText, UpdateSourceTrigger=PropertyChanged}" />
+                            <TextBlock Style="{StaticResource FieldLabel}"
+                                       Text="Deep-dive record signatures"/>
+                            <TextBlock Style="{StaticResource HelpText}"
+                                       Text="One xEdit record signature per line, for example QUST."/>
+                            <TextBox Height="72"
+                                     AcceptsReturn="True"
+                                     VerticalContentAlignment="Top"
+                                     VerticalScrollBarVisibility="Auto"
+                                     Text="{Binding DeepDiveRecordSignaturesText, UpdateSourceTrigger=PropertyChanged}"/>
 
-                            <TextBlock Style="{StaticResource FieldLabel}" Text="Deep-dive FormKeys" />
-                            <TextBlock Style="{StaticResource HelpText}" Text="One FormKey per line, for example 00285D:Update.esm. Bare hexadecimal FormIDs are also accepted." />
-                            <TextBox Height="72" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"
-                                     Text="{Binding DeepDiveFormKeysText, UpdateSourceTrigger=PropertyChanged}" />
+                            <TextBlock Style="{StaticResource FieldLabel}"
+                                       Text="Deep-dive FormKeys"/>
+                            <TextBlock Style="{StaticResource HelpText}"
+                                       Text="One FormKey per line, for example 00285D:Update.esm. Bare hexadecimal FormIDs are also accepted."/>
+                            <TextBox Height="72"
+                                     AcceptsReturn="True"
+                                     VerticalContentAlignment="Top"
+                                     VerticalScrollBarVisibility="Auto"
+                                     Text="{Binding DeepDiveFormKeysText, UpdateSourceTrigger=PropertyChanged}"/>
 
-                            <TextBlock Style="{StaticResource FieldLabel}" Text="Deep-dive properties" />
-                            <TextBlock Style="{StaticResource HelpText}" Text="Optional xEdit field signatures such as EDID, FULL, DESC, KWDA, VMAD, or CTDA. Friendly property names such as Responses are also accepted. Leave empty to inspect every property on matching records." />
-                            <TextBox Height="72" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"
-                                     Text="{Binding DeepDivePropertiesText, UpdateSourceTrigger=PropertyChanged}" />
+                            <TextBlock Style="{StaticResource FieldLabel}"
+                                       Text="Deep-dive properties"/>
+                            <TextBlock Style="{StaticResource HelpText}"
+                                       Text="Optional xEdit field signatures such as EDID, FULL, DESC, KWDA, VMAD, or CTDA. Friendly property names such as Responses are also accepted. Leave empty to inspect every property on matching records."/>
+                            <TextBox Height="72"
+                                     AcceptsReturn="True"
+                                     VerticalContentAlignment="Top"
+                                     VerticalScrollBarVisibility="Auto"
+                                     Text="{Binding DeepDivePropertiesText, UpdateSourceTrigger=PropertyChanged}"/>
                         </StackPanel>
                     </StackPanel>
                 </ScrollViewer>
             </TabItem>
 
-            <TabItem x:Name="RunLogTab" Header="Run Log">
+            <TabItem x:Name="RunLogTab"
+                     Header="Run Log">
                 <Grid Margin="12">
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
                     <DockPanel Margin="0,0,0,8">
-                        <Button DockPanel.Dock="Right" Content="Copy log" Click="OnCopyLog" Margin="8,0,0,0" />
-                        <Button DockPanel.Dock="Right" Content="Clear" Click="OnClearLog" Margin="8,0,0,0" />
-                        <Button DockPanel.Dock="Right" Content="Open logs folder" Click="OnOpenLogsFolder" Margin="8,0,0,0" />
-                        <TextBlock Text="Run output" Style="{StaticResource SectionTitle}" VerticalAlignment="Center" />
+                        <Button DockPanel.Dock="Right"
+                                Content="Copy visible messages"
+                                Click="OnCopyLog"
+                                Margin="8,0,0,0"/>
+                        <Button DockPanel.Dock="Right"
+                                Content="Open logs folder"
+                                Click="OnOpenLogsFolder"
+                                Margin="8,0,0,0"/>
+                        <TextBlock Text="Progress, warnings, and errors"
+                                   Style="{StaticResource SectionTitle}"
+                                   VerticalAlignment="Center"/>
                     </DockPanel>
                     <TextBox x:Name="RunLogTextBox"
                              Grid.Row="1"
@@ -345,37 +577,52 @@
                              TextWrapping="NoWrap"
                              FontFamily="Consolas"
                              FontSize="12"
+                             VerticalContentAlignment="Top"
                              VerticalScrollBarVisibility="Auto"
                              HorizontalScrollBarVisibility="Auto"
-                             AutomationProperties.Name="Patcher run log" />
+                             AutomationProperties.Name="Patcher run log"/>
                 </Grid>
             </TabItem>
         </TabControl>
 
-        <Border Grid.Row="2" Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0" Padding="16,11">
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                    <Button Content="Save settings" Click="OnSave">
-                        <Button.Style>
-                            <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding IsRunning}" Value="True">
-                                        <Setter Property="IsEnabled" Value="False" />
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Button.Style>
-                    </Button>
-                    <Button Content="Run patcher" Click="OnRun" Margin="0">
-                        <Button.Style>
-                            <Style TargetType="Button" BasedOn="{StaticResource PrimaryButton}">
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding IsRunning}" Value="True">
-                                        <Setter Property="IsEnabled" Value="False" />
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Button.Style>
-                    </Button>
+        <Border Grid.Row="2"
+                Background="{StaticResource PanelBrush}"
+                BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="0,1,0,0"
+                Padding="16,11">
+            <StackPanel Orientation="Horizontal"
+                        HorizontalAlignment="Right">
+                <Button Content="Save settings"
+                        Click="OnSave">
+                    <Button.Style>
+                        <Style TargetType="Button"
+                               BasedOn="{StaticResource {x:Type Button}}">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsRunning}"
+                                             Value="True">
+                                    <Setter Property="IsEnabled"
+                                            Value="False"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
+                <Button Content="Run patcher"
+                        Click="OnRun"
+                        Margin="0">
+                    <Button.Style>
+                        <Style TargetType="Button"
+                               BasedOn="{StaticResource PrimaryButton}">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsRunning}"
+                                             Value="True">
+                                    <Setter Property="IsEnabled"
+                                            Value="False"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
             </StackPanel>
         </Border>
     </Grid>

@@ -138,7 +138,7 @@ namespace DreadsMashedPatch.PropertyHandlers.General
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error getting property '{PropertyName}' via reflection: {ex.Message}");
+                LogCollector.AddError(PropertyName, "Could not read the binary property via reflection", ex);
                 return null;
             }
         }
@@ -243,7 +243,10 @@ namespace DreadsMashedPatch.PropertyHandlers.General
                             }
                             catch (Exception createEx)
                             {
-                                Console.WriteLine($"Warning: Could not create {underlyingType.Name} from byte array: {createEx.Message}");
+                                LogCollector.AddWarning(
+                                    PropertyName,
+                                    $"Could not create {underlyingType.Name} from a byte array; trying direct assignment",
+                                    createEx);
                                 // Fallback: try direct assignment (might have implicit conversion)
                                 valueToSet = arrayValue;
                             }
@@ -281,11 +284,10 @@ namespace DreadsMashedPatch.PropertyHandlers.General
             catch (Exception ex)
             {
                 var propertyType = _setterProperty?.PropertyType;
-                Console.WriteLine($"Error setting property '{PropertyName}' via reflection. Property type: {propertyType?.FullName ?? "unknown"}, Error: {ex.Message}");
-                if (ex.InnerException != null)
-                {
-                    Console.WriteLine($"Inner exception: {ex.InnerException.Message}");
-                }
+                LogCollector.AddError(
+                    PropertyName,
+                    $"Could not apply the binary property via reflection (property type: {propertyType?.FullName ?? "unknown"})",
+                    ex);
             }
         }
 

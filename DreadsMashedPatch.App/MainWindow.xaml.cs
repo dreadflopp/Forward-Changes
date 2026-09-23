@@ -14,8 +14,11 @@ namespace DreadsMashedPatch.App;
 
 public partial class MainWindow : Window
 {
+    private const int MaxUiLogCharacters = 250_000;
+
     private readonly MainWindowViewModel _viewModel = new();
     private readonly SettingsStore _settingsStore = new();
+    private readonly MasterRuleStore _masterRuleStore = new();
     private readonly PatcherRunner _patcherRunner = new();
     private readonly DispatcherTimer _elapsedTimer;
     private Stopwatch? _runStopwatch;
@@ -127,11 +130,7 @@ public partial class MainWindow : Window
 
         using (logSession)
         {
-            void WriteRunLog(string text)
-            {
-                logSession.Write(text);
-                AppendLog(text);
-            }
+            void WriteFullLog(string text) => logSession.Write(text);
 
             MainTabs.SelectedItem = RunLogTab;
             RunLogTextBox.Clear();
@@ -140,26 +139,35 @@ public partial class MainWindow : Window
             _runStopwatch = Stopwatch.StartNew();
             _elapsedTimer.Start();
             UpdateElapsedTime();
-            WriteRunLog($"Dread's Mashed Patch started at {DateTime.Now:G}{Environment.NewLine}{Environment.NewLine}");
+            WriteFullLog($"Mashed Patch started at {DateTime.Now:G}{Environment.NewLine}{Environment.NewLine}");
+            AppendLog(
+                $"Running. Full diagnostic output is being written to:{Environment.NewLine}" +
+                $"{logSession.Path}{Environment.NewLine}{Environment.NewLine}");
 
             try
             {
-                await _patcherRunner.RunAsync(_viewModel.Settings, WriteRunLog);
+                var result = await _patcherRunner.RunAsync(_viewModel.Settings, WriteFullLog, AppendLog);
                 _runStopwatch.Stop();
-                WriteRunLog($"{Environment.NewLine}Completed successfully in {_runStopwatch.Elapsed:g}.{Environment.NewLine}");
+                WriteFullLog($"{Environment.NewLine}Completed successfully in {_runStopwatch.Elapsed:g}.{Environment.NewLine}");
+                AppendLog(
+                    $"{Environment.NewLine}Completed successfully in {_runStopwatch.Elapsed:g}. " +
+                    $"Warnings: {result.WarningCount}; errors: {result.ErrorCount}.{Environment.NewLine}");
                 _viewModel.StatusText = "Completed";
                 MessageBox.Show(
                     "Patch created successfully.",
-                    "Dread's Mashed Patch completed",
+                    "Mashed Patch completed",
                     MessageBoxButton.OK,
                     MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
                 _runStopwatch.Stop();
-                WriteRunLog($"{Environment.NewLine}FAILED after {_runStopwatch.Elapsed:g}{Environment.NewLine}{ex}{Environment.NewLine}");
+                WriteFullLog($"{Environment.NewLine}FAILED after {_runStopwatch.Elapsed:g}{Environment.NewLine}{ex}{Environment.NewLine}");
+                AppendLog(
+                    $"{Environment.NewLine}[Error] Patcher failed after {_runStopwatch.Elapsed:g}: {ex.Message}" +
+                    $"{Environment.NewLine}See the full diagnostic log for details.{Environment.NewLine}");
                 _viewModel.StatusText = "Failed";
-                ShowError("The patcher failed. See the Run Log tab for details", ex);
+                ShowError("The patcher failed. See the Run Log tab and full diagnostic log for details", ex);
             }
             finally
             {
@@ -307,8 +315,156 @@ public partial class MainWindow : Window
     private void OnRemoveCompatibilityRule(object sender, RoutedEventArgs e) =>
         _viewModel.RemoveSelectedCompatibilityRule();
 
-    private void OnAddSimonRimExampleRule(object sender, RoutedEventArgs e) =>
-        _viewModel.AddSimonRimExampleRule();
+    private async void OnImportCompatibilityRules(object sender, RoutedEventArgs e)
+    {
+        if (_viewModel.IsRunning)
+        {
+            return;
+        }
+
+        var dialog = new OpenFileDialog
+        {
+            Title = "Import master rules",
+            Filter = "Master rule files (*.json)|*.json|All files (*.*)|*.*",
+            CheckFileExists = true,
+            DefaultExt = ".json"
+        };
+
+        if (dialog.ShowDialog(this) != true)
+        {
+            return;
+        }
+
+        try
+        {
+            var importedRules = await _masterRuleStore.LoadAsync(dialog.FileName);
+            if (!TryValidateMasterRules(importedRules, out var validationError))
+            {
+                MessageBox.Show(
+                    validationError,
+                    "Invalid master-rule file",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+                return;
+            }
+
+            if (MessageBox.Show(
+                    $"Replace the current master rules with {importedRules.Count} imported rule(s)?",
+                    "Import master rules",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Question) != MessageBoxResult.Yes)
+            {
+                return;
+            }
+
+            _viewModel.ReplaceCompatibilityRules(importedRules);
+            _viewModel.StatusText = $"Imported {importedRules.Count} master rule(s)";
+        }
+        catch (Exception ex)
+        {
+            ShowError("Could not import master rules", ex);
+        }
+    }
+
+    private async void OnExportCompatibilityRules(object sender, RoutedEventArgs e)
+    {
+        if (_viewModel.IsRunning)
+        {
+            return;
+        }
+
+        var rules = _viewModel.GetCompatibilityRules();
+        if (!TryValidateMasterRules(rules, out var validationError))
+        {
+            MessageBox.Show(
+                validationError,
+                "Cannot export master rules",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+            return;
+        }
+
+        var dialog = new SaveFileDialog
+        {
+            Title = "Export master rules",
+            Filter = "Master rule files (*.json)|*.json|All files (*.*)|*.*",
+            DefaultExt = ".json",
+            AddExtension = true,
+            OverwritePrompt = true,
+            FileName = "MashedPatch.MasterRules.json"
+        };
+
+        if (dialog.ShowDialog(this) != true)
+        {
+            return;
+        }
+
+        try
+        {
+            await _masterRuleStore.SaveAsync(dialog.FileName, rules);
+            _viewModel.StatusText = $"Exported {rules.Count} master rule(s)";
+        }
+        catch (Exception ex)
+        {
+            ShowError("Could not export master rules", ex);
+        }
+    }
+
+    private void OnRestoreDefaultCompatibilityRules(object sender, RoutedEventArgs e)
+    {
+        if (MessageBox.Show(
+                "Replace all current master rules with the defaults?",
+                "Restore default master rules",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question) == MessageBoxResult.Yes)
+        {
+            _viewModel.RestoreDefaultCompatibilityRules();
+        }
+    }
+
+    private void OnCreateEmptyOutput(object sender, RoutedEventArgs e)
+    {
+        if (_viewModel.IsRunning)
+        {
+            return;
+        }
+
+        _viewModel.UpdateSettingsFromEditor();
+        if (!Directory.Exists(_viewModel.Settings.DataFolderPath))
+        {
+            MessageBox.Show(
+                "Select an existing Skyrim Data folder first.",
+                "Check patcher settings",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+            return;
+        }
+
+        if (MessageBox.Show(
+                "This will delete the current patch output, then create one empty patch plugin. Continue?",
+                "Create empty patch output",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning) != MessageBoxResult.Yes)
+        {
+            return;
+        }
+
+        try
+        {
+            var result = _patcherRunner.CreateEmptyOutput(_viewModel.Settings);
+            _viewModel.StatusText = "Empty patch created";
+            MessageBox.Show(
+                $"Created an empty patch at:{Environment.NewLine}{result.OutputPath}{Environment.NewLine}{Environment.NewLine}" +
+                $"Removed previous output files: {result.RemovedOutputCount}",
+                "Empty patch created",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+        }
+        catch (Exception ex)
+        {
+            ShowError("Could not create the empty patch output", ex);
+        }
+    }
 
     private void OnRecordTypeListPreviewKeyDown(object sender, KeyEventArgs e)
     {
@@ -345,11 +501,9 @@ public partial class MainWindow : Window
         if (!string.IsNullOrEmpty(RunLogTextBox.Text))
         {
             Clipboard.SetText(RunLogTextBox.Text);
-            _viewModel.StatusText = "Log copied";
+            _viewModel.StatusText = "Visible messages copied";
         }
     }
-
-    private void OnClearLog(object sender, RoutedEventArgs e) => RunLogTextBox.Clear();
 
     private void OnOpenLogsFolder(object sender, RoutedEventArgs e)
     {
@@ -369,7 +523,7 @@ public partial class MainWindow : Window
         }
 
         MessageBox.Show(
-            "The patcher is still running. Wait for it to finish before closing Dread's Mashed Patch.",
+            "The patcher is still running. Wait for it to finish before closing Mashed Patch.",
             "Patcher is running",
             MessageBoxButton.OK,
             MessageBoxImage.Information);
@@ -384,11 +538,30 @@ public partial class MainWindow : Window
 
     private void AppendLog(string text)
     {
-        Dispatcher.BeginInvoke(() =>
+        Dispatcher.BeginInvoke(
+            DispatcherPriority.Background,
+            new Action(() =>
+            {
+                RunLogTextBox.AppendText(text);
+                TrimUiLog();
+                RunLogTextBox.ScrollToEnd();
+            }));
+    }
+
+    private void TrimUiLog()
+    {
+        var excessCharacters = RunLogTextBox.Text.Length - MaxUiLogCharacters;
+        if (excessCharacters <= 0)
         {
-            RunLogTextBox.AppendText(text);
-            RunLogTextBox.ScrollToEnd();
-        });
+            return;
+        }
+
+        var firstCompleteLine = RunLogTextBox.Text.IndexOf('\n', excessCharacters);
+        var charactersToRemove = firstCompleteLine >= 0
+            ? firstCompleteLine + 1
+            : excessCharacters;
+        RunLogTextBox.Select(0, charactersToRemove);
+        RunLogTextBox.SelectedText = string.Empty;
     }
 
     private void OnElapsedTimerTick(object? sender, EventArgs e) => UpdateElapsedTime();
@@ -432,18 +605,57 @@ public partial class MainWindow : Window
             return false;
         }
 
-        for (var index = 0; index < settings.Patcher.CompatibilityRules.Count; index++)
+        var invalidIgnoredMod = settings.Patcher.IgnoredMods
+            .FirstOrDefault(name => !ModKey.TryFromFileName(name, out _));
+        if (invalidIgnoredMod is not null)
         {
-            var rule = settings.Patcher.CompatibilityRules[index];
+            error = $"The ignored-plugins list contains an invalid plugin filename: {invalidIgnoredMod}";
+            return false;
+        }
+
+        var invalidAlwaysWinningMod = settings.Patcher.AlwaysWinningMods
+            .FirstOrDefault(name => !ModKey.TryFromFileName(name, out _));
+        if (invalidAlwaysWinningMod is not null)
+        {
+            error = $"The always-win list contains an invalid plugin filename: {invalidAlwaysWinningMod}";
+            return false;
+        }
+
+        var contradictoryMod = settings.Patcher.AlwaysWinningMods
+            .FirstOrDefault(settings.Patcher.IgnoredMods.Contains);
+        if (contradictoryMod is not null)
+        {
+            error = $"A plugin cannot be both ignored and configured to always win: {contradictoryMod}";
+            return false;
+        }
+
+        var invalidWeaponTypeKeyword = settings.Patcher.Forwarding.VanillaWeaponTypeKeywords
+            .FirstOrDefault(value => !FormKey.TryFactory(value.AsSpan(), out _));
+        if (invalidWeaponTypeKeyword is not null)
+        {
+            error = $"The vanilla weapon type keyword list contains an invalid FormKey: {invalidWeaponTypeKeyword}";
+            return false;
+        }
+
+        if (!TryValidateMasterRules(settings.Patcher.CompatibilityRules, out error))
+        {
+            return false;
+        }
+
+        error = string.Empty;
+        return true;
+    }
+
+    private static bool TryValidateMasterRules(
+        IReadOnlyList<VirtualMasterRule> rules,
+        out string error)
+    {
+        for (var index = 0; index < rules.Count; index++)
+        {
+            var rule = rules[index];
             if (!ModKey.TryFromFileName(rule.InjectedMaster, out _))
             {
                 error = $"Master rule {index + 1} has an invalid filename for the plugin to treat as a master.";
-                return false;
-            }
-
-            if (rule.TargetMods.Count == 0)
-            {
-                error = $"Master rule {index + 1} must contain at least one target mod.";
                 return false;
             }
 
@@ -463,7 +675,7 @@ public partial class MainWindow : Window
     {
         MessageBox.Show(
             $"{heading}.\n\n{exception.Message}",
-            "Dread's Mashed Patch",
+            "Mashed Patch",
             MessageBoxButton.OK,
             MessageBoxImage.Error);
     }

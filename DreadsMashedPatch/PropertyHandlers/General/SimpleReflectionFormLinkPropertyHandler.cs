@@ -86,7 +86,7 @@ namespace DreadsMashedPatch.PropertyHandlers.General
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error getting property '{PropertyName}' via reflection: {ex.Message}");
+                LogCollector.AddError(PropertyName, "Could not read the FormLink property via reflection", ex);
                 return null;
             }
         }
@@ -111,6 +111,14 @@ namespace DreadsMashedPatch.PropertyHandlers.General
 
                 if (value != null && !value.FormKey.IsNull)
                 {
+                    // Mutagen link properties expose their mutable link object through IFormLink.
+                    // Prefer the typed API so nullable FormKey parameters do not need reflection matching.
+                    if (currentValue is IFormLink<TTarget> currentLink)
+                    {
+                        currentLink.SetTo(value.FormKey);
+                        return;
+                    }
+
                     // Prefer mutating existing link object (works for both FormLink and FormLinkNullable)
                     if (currentValue != null)
                     {
@@ -152,16 +160,24 @@ namespace DreadsMashedPatch.PropertyHandlers.General
                 }
                 else
                 {
-                    // Clear the FormLink - prefer SetTo(FormKey.Null), then Clear(), then null assignment.
+                    // Nullable links must contain an actual null FormKeyNullable so Mutagen omits
+                    // the subrecord. FormKey.Null represents a present link to 00000000 instead.
+                    if (currentValue is IFormLinkNullable<TTarget> nullableLink)
+                    {
+                        nullableLink.SetToNull();
+                        return;
+                    }
+
+                    // Non-nullable links cannot represent absence; clear them to FormKey.Null.
+                    if (currentValue is IFormLink<TTarget> currentLink)
+                    {
+                        currentLink.SetTo(FormKey.Null);
+                        return;
+                    }
+
+                    // Reflection fallbacks for unusual generated link implementations.
                     if (currentValue != null)
                     {
-                        var setToFormKey = currentValue.GetType().GetMethod("SetTo", new[] { typeof(FormKey) });
-                        if (setToFormKey != null)
-                        {
-                            setToFormKey.Invoke(currentValue, new object[] { FormKey.Null });
-                            return;
-                        }
-
                         var clearMethod = currentValue.GetType().GetMethod("Clear");
                         if (clearMethod != null)
                         {
@@ -191,7 +207,7 @@ namespace DreadsMashedPatch.PropertyHandlers.General
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error setting property '{PropertyName}' via reflection: {ex.Message}");
+                LogCollector.AddError(PropertyName, "Could not apply the FormLink property via reflection", ex);
             }
         }
 

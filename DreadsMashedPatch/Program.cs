@@ -163,8 +163,19 @@ namespace DreadsMashedPatch
         {
             try
             {
-                // First, check if the winning context is vanilla - if so, we can break early immediately
-                if (Utility.IsVanilla(winningContext))
+                var contexts = winningContext.Record.ToLink()
+                    .ResolveAllContexts<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter>(state.LinkCache)
+                    .Where(context => !PatcherSettings.IsIgnoredMod(context.ModKey))
+                    .Take(3)
+                    .ToArray();
+
+                if (contexts.Length == 0)
+                {
+                    return true;
+                }
+
+                // Ignore-list filtering can expose a different effective winner.
+                if (Utility.IsVanilla(contexts[0]))
                 {
                     //Console.WriteLine("Breaking early: Winning context is vanilla");
                     return true;
@@ -173,8 +184,6 @@ namespace DreadsMashedPatch
                 // If we can't determine early break from winning context alone, 
                 // we need to load contexts (but only the first 3 for efficiency)
                 //var contexts = GetRecordContextsForEarlyBreak(winningContext, state);
-                var contexts = winningContext.Record.ToLink().ResolveAllContexts<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter>(state.LinkCache).Take(3).ToArray();
-
                 // If we have ≤2 contexts, we can break early
                 if (contexts.Length <= 2)
                 {
@@ -193,17 +202,35 @@ namespace DreadsMashedPatch
                 // No early break conditions met
                 return false;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                //Console.WriteLine($"     Early break optimization failed for {winningContext.Record.FormKey} ({winningContext.ModKey}): {ex.Message}");
-                //Console.WriteLine($"     Record type: {winningContext.Record.GetType().Name}");
-                //Console.WriteLine($"     Exception type: {ex.GetType().Name}");
+                LogCollector.AddWarning(
+                    "EarlyBreakOptimization",
+                    $"Early-break optimization failed for {winningContext.Record.FormKey} " +
+                    $"({winningContext.ModKey}, {winningContext.Record.GetType().Name}); processing will continue",
+                    ex);
+                // Filtering happens before record processing, so no record-level flush
+                // is guaranteed to follow this diagnostic.
+                LogCollector.PrintAllAndClear();
                 return false;
             }
         }
 
-        private static TContext[] LoadContextsSafely<TContext>(IEnumerable<TContext> contexts, string contextName)
+        private static IModContext<ISkyrimMod, ISkyrimModGetter, TRecord, TRecordGetter>[] LoadContextsSafely<TRecord, TRecordGetter>(
+            IEnumerable<IModContext<ISkyrimMod, ISkyrimModGetter, TRecord, TRecordGetter>> contexts,
+            string contextName)
+            where TRecord : class, IMajorRecordQueryable, TRecordGetter
+            where TRecordGetter : class, IMajorRecordQueryableGetter
         {
+            // Some Mutagen families (Global and GameSetting) are queried through a
+            // shared base interface and narrowed afterward. Enable a query whenever
+            // its getter is an enabled type or a base of one.
+            var queryIsEnabled = IsRecordTypeQueryEnabled(typeof(TRecordGetter));
+            if (!queryIsEnabled)
+            {
+                return [];
+            }
+
             var skippedCount = 0;
             var loaded = contexts
                 .Catch(ex =>
@@ -219,6 +246,23 @@ namespace DreadsMashedPatch
             }
 
             return loaded;
+        }
+
+        internal static bool IsRecordTypeQueryEnabled(Type queryGetterType)
+        {
+            ArgumentNullException.ThrowIfNull(queryGetterType);
+            return IsRecordTypeQueryEnabled(
+                queryGetterType,
+                SupportedRecordTypes.Where(PatcherSettings.IsRecordTypeEnabled));
+        }
+
+        internal static bool IsRecordTypeQueryEnabled(
+            Type queryGetterType,
+            IEnumerable<Type> enabledRecordTypes)
+        {
+            ArgumentNullException.ThrowIfNull(queryGetterType);
+            ArgumentNullException.ThrowIfNull(enabledRecordTypes);
+            return enabledRecordTypes.Any(queryGetterType.IsAssignableFrom);
         }
 
         private static IModContext<ISkyrimMod, ISkyrimModGetter, TDerivedSetter, TDerivedGetter>[] NarrowContexts<
@@ -247,7 +291,7 @@ namespace DreadsMashedPatch
 
         public static void RunPatch(IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
         {
-            Console.WriteLine("Starting Dread's Mashed Patch patcher...");
+            Console.WriteLine("Starting Mashed Patch patcher...");
             var vanillaBaseline = Utility.InitializeVanillaMods(
                 state.LoadOrder.ListedOrder.Select(x => x.ModKey),
                 PatcherSettings.CreationClubPlugins,
@@ -256,9 +300,12 @@ namespace DreadsMashedPatch
                 $"Official baseline: {vanillaBaseline.PresentCount} plugins present, " +
                 $"{vanillaBaseline.MissingCount} absent; Creation Club is " +
                 $"{(vanillaBaseline.IncludesCreationClub ? "included" : "treated as mods")}");
+            Console.WriteLine($"Editor ID policy: {PatcherSettings.EditorIdPolicy}");
             Console.WriteLine(
                 $"Master rules: {PatcherSettings.CompatibilityRuleCount} rules for " +
                 $"{PatcherSettings.CompatibilityTargetCount} target plugins");
+            Console.WriteLine($"Ignored plugins: {PatcherSettings.IgnoredModCount}");
+            Console.WriteLine($"Always-win plugins: {PatcherSettings.AlwaysWinningModCount}");
             var enabledRecordTypes = SupportedRecordTypes
                 .Where(PatcherSettings.IsRecordTypeEnabled)
                 .ToArray();
@@ -1498,7 +1545,7 @@ namespace DreadsMashedPatch
                 }
             }
 
-            Console.WriteLine("\nDread's Mashed Patch patcher completed.");
+            Console.WriteLine("\nMashed Patch patcher completed.");
         }
     }
 }

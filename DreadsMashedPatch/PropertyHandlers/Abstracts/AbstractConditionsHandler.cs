@@ -53,10 +53,12 @@ namespace DreadsMashedPatch.PropertyHandlers.Abstracts
 
                 var conditions = new List<IConditionGetter>();
 
-                foreach (var condition in value)
+                for (var index = 0; index < value.Count; index++)
                 {
+                    var condition = value[index];
                     if (condition == null)
                     {
+                        LogCollector.AddWarning(PropertyName, $"Skipped null condition at index {index} while applying the property");
                         continue;
                     }
 
@@ -64,9 +66,12 @@ namespace DreadsMashedPatch.PropertyHandlers.Abstracts
                     {
                         conditions.Add(condition.DeepCopy());
                     }
-                    catch
+                    catch (Exception ex)
                     {
-                        // Preserve the existing best-effort behavior for malformed conditions.
+                        LogCollector.AddWarning(
+                            PropertyName,
+                            $"Skipped malformed condition at index {index} while applying the property",
+                            ex);
                     }
                 }
 
@@ -97,15 +102,13 @@ namespace DreadsMashedPatch.PropertyHandlers.Abstracts
                     IConditionGlobalGetter globalCondition => DiagnosticValueFormatter.Format(globalCondition.ComparisonValue),
                     _ => "n/a"
                 };
-                var parameters = (IConditionParametersGetter)item.Data;
-
                 return $"{item.GetType().Name}(Op:{item.CompareOperator}, Flags:{item.Flags}, "
                     + $"CompVal:{comparisonValue}, Data:{item.Data.GetType().Name}{{Func:{item.Data.Function}, "
                     + $"RunOn:{item.Data.RunOnType}, RunOnIdx:{item.Data.RunOnTypeIndex}, "
                     + $"Aliases:{item.Data.UseAliases}, PkgData:{item.Data.UsePackageData}, "
                     + $"Ref:{item.Data.Reference.FormKey}, "
-                    + $"Param1:{DiagnosticValueFormatter.Format(parameters.Parameter1)}, "
-                    + $"Param2:{DiagnosticValueFormatter.Format(parameters.Parameter2)}}})";
+                    + $"Param1:{DiagnosticValueFormatter.Format(GetConditionParameter(item.Data, first: true))}, "
+                    + $"Param2:{DiagnosticValueFormatter.Format(GetConditionParameter(item.Data, first: false))}}})";
             }
             catch (Exception ex)
             {
@@ -157,8 +160,12 @@ namespace DreadsMashedPatch.PropertyHandlers.Abstracts
 
             var parameters1 = (IConditionParametersGetter)item1.Data;
             var parameters2 = (IConditionParametersGetter)item2.Data;
-            return AreConditionParametersEqual(parameters1.Parameter1, parameters2.Parameter1)
-                && AreConditionParametersEqual(parameters1.Parameter2, parameters2.Parameter2)
+            return AreConditionParametersEqual(
+                    GetConditionParameter(item1.Data, first: true),
+                    GetConditionParameter(item2.Data, first: true))
+                && AreConditionParametersEqual(
+                    GetConditionParameter(item1.Data, first: false),
+                    GetConditionParameter(item2.Data, first: false))
                 && AreAlignmentStringsEqual(
                     parameters1.StringParameter1,
                     parameters2.StringParameter1)
@@ -185,10 +192,28 @@ namespace DreadsMashedPatch.PropertyHandlers.Abstracts
                 return false;
             }
 
-            var parameters1 = (IConditionParametersGetter)data1;
-            var parameters2 = (IConditionParametersGetter)data2;
-            return AreConditionParametersEqual(parameters1.Parameter1, parameters2.Parameter1)
-                && AreConditionParametersEqual(parameters1.Parameter2, parameters2.Parameter2);
+            return AreConditionParametersEqual(
+                    GetConditionParameter(data1, first: true),
+                    GetConditionParameter(data2, first: true))
+                && AreConditionParametersEqual(
+                    GetConditionParameter(data1, first: false),
+                    GetConditionParameter(data2, first: false));
+        }
+
+        private static object? GetConditionParameter(IConditionDataGetter data, bool first)
+        {
+            // Mutagen 0.54.4's GetEventData implementation leaves the generic getter
+            // parameters on ConditionData unimplemented. Its concrete getter exposes the
+            // same CTDA values, so use those without weakening parameter comparisons.
+            if (data is IGetEventDataConditionDataGetter eventData)
+            {
+                return first
+                    ? (int)((uint)eventData.Function << 16) | (int)eventData.Member
+                    : eventData.Record;
+            }
+
+            var parameters = (IConditionParametersGetter)data;
+            return first ? parameters.Parameter1 : parameters.Parameter2;
         }
 
         private static bool AreConditionParametersEqual(object? parameter1, object? parameter2)

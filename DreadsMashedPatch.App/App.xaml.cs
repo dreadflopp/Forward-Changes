@@ -17,7 +17,7 @@ public partial class App : Application
     {
         MessageBox.Show(
             e.Exception.ToString(),
-            "Dread's Mashed Patch encountered an unexpected error",
+            "Mashed Patch encountered an unexpected error",
             MessageBoxButton.OK,
             MessageBoxImage.Error);
         e.Handled = true;

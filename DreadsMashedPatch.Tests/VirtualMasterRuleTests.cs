@@ -8,6 +8,32 @@ namespace DreadsMashedPatch.Tests;
 public sealed class VirtualMasterRuleTests
 {
     [Fact]
+    public void AlwaysWinListUsesNormalizedPluginKeys()
+    {
+        PatcherSettings.Apply(new PatcherConfiguration
+        {
+            AlwaysWinningMods = [" priority.esp "]
+        });
+
+        Assert.True(PatcherSettings.IsAlwaysWinningMod(ModKey.FromNameAndExtension("Priority.esp")));
+        Assert.False(PatcherSettings.IsAlwaysWinningMod(ModKey.FromNameAndExtension("Other.esp")));
+        Assert.Equal(0, PatcherSettings.GetAlwaysWinningPriority(
+            ModKey.FromNameAndExtension("Priority.esp")));
+    }
+
+    [Fact]
+    public void IgnoreListUsesNormalizedPluginKeys()
+    {
+        PatcherSettings.Apply(new PatcherConfiguration
+        {
+            IgnoredMods = [" true light.esp "]
+        });
+
+        Assert.True(PatcherSettings.IsIgnoredMod(ModKey.FromNameAndExtension("True Light.esp")));
+        Assert.False(PatcherSettings.IsIgnoredMod(ModKey.FromNameAndExtension("Other.esp")));
+    }
+
+    [Fact]
     public void RuleGrantsOnlyConfiguredTargetVirtualMasterPermission()
     {
         var unofficialPatch = ModKey.FromNameAndExtension("Unofficial Skyrim Special Edition Patch.esp");

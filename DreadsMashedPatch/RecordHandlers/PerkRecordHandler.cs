@@ -12,7 +12,6 @@ using DreadsMashedPatch.PropertyHandlers.General;
 using DreadsMashedPatch.PropertyHandlers.Interfaces;
 using DreadsMashedPatch.PropertyHandlers.Perk;
 using DreadsMashedPatch.RecordHandlers.Abstracts;
-using DreadsMashedPatch.Enums;
 
 namespace DreadsMashedPatch.RecordHandlers;
 
@@ -20,9 +19,10 @@ namespace DreadsMashedPatch.RecordHandlers;
 // - Generalized: PERK scalar, translated text, and link fields.
 // - Kept specialized: polymorphic effects and condition lists.
 // - Flag decision: the raw record-header handler is the sole storage path and owns common Skyrim plus PERK flags.
-// - Coupled forwarding: gameplay-tree changes establish a complete PERK ownership boundary by default.
+// - Coupled forwarding: gameplay-tree changes always establish a complete PERK ownership boundary.
 // - Rationale: generated DeepCopy dispatch preserves each concrete abstract-base subtype, while atomic ownership
-//   prevents independently merged ranks, entry points, conditions, and predecessor links from forming invalid trees.
+//   prevents independently merged ranks, entry points, conditions, and predecessor links from forming invalid trees;
+//   independent forwarding is intentionally not configurable.
 public class PerkRecordHandler : AbstractRecordHandler
 {
     private static readonly IReadOnlySet<string> CoupledPropertyNames = new HashSet<string>(StringComparer.Ordinal)
@@ -38,19 +38,8 @@ public class PerkRecordHandler : AbstractRecordHandler
         "Effects"
     };
 
-    private readonly PerkForwardingPolicy _forwardingPolicy;
-
-    public PerkRecordHandler(PerkForwardingPolicy? forwardingPolicy = null)
-    {
-        _forwardingPolicy = forwardingPolicy ?? PatcherSettings.PerkPolicy;
-    }
-
-    public PerkForwardingPolicy ForwardingPolicy => _forwardingPolicy;
-
     protected override IReadOnlySet<string> AtomicOwnershipTriggerProperties =>
-        _forwardingPolicy == PerkForwardingPolicy.AtomicOnCoupledPropertyChange
-            ? CoupledPropertyNames
-            : EmptyAtomicOwnershipTriggerProperties;
+        CoupledPropertyNames;
 
     public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()
     {

@@ -13,6 +13,9 @@ public sealed class MainWindowViewModel : BindableBase
     private string _deepDiveRecordSignaturesText = string.Empty;
     private string _deepDiveFormKeysText = string.Empty;
     private string _deepDivePropertiesText = string.Empty;
+    private string _ignoredModsText = string.Empty;
+    private string _alwaysWinningModsText = string.Empty;
+    private string _vanillaWeaponTypeKeywordsText = string.Empty;
     private string _elapsedText = "00:00:00";
     private VirtualMasterRuleViewModel? _selectedCompatibilityRule;
 
@@ -26,6 +29,16 @@ public sealed class MainWindowViewModel : BindableBase
 
     public ObservableCollection<VirtualMasterRuleViewModel> CompatibilityRules { get; } = [];
 
+    public IReadOnlyList<EnumChoice<EditorIdForwardingPolicy>> EditorIdPolicies { get; } =
+    [
+        new(EditorIdForwardingPolicy.ForwardOnlyWithOtherChanges,
+            "Forward only on an existing patch record (Recommended)"),
+        new(EditorIdForwardingPolicy.PreserveBaseline,
+            "Preserve the official Editor ID"),
+        new(EditorIdForwardingPolicy.StandardForwarding,
+            "Forward Editor ID changes")
+    ];
+
     public VirtualMasterRuleViewModel? SelectedCompatibilityRule
     {
         get => _selectedCompatibilityRule;
@@ -35,50 +48,17 @@ public sealed class MainWindowViewModel : BindableBase
     public IReadOnlyList<EnumChoice<ProtectionForwardingPolicy>> ProtectionPolicies { get; } =
     [
         new(ProtectionForwardingPolicy.PreferHigherWithAuthorizedDowngrades,
-            "Protect NPCs unless deliberately changed (Recommended)",
-            "Prefer Essential over Protected over None, while honoring an intentional downgrade made by a later plugin."),
+            "Protect NPCs unless deliberately changed (Recommended)"),
         new(ProtectionForwardingPolicy.HighestWins,
-            "Always keep the strongest protection",
-            "Always preserve the highest protection status found anywhere in the override chain."),
+            "Always keep the strongest protection"),
         new(ProtectionForwardingPolicy.StandardForwarding,
-            "Forward each status change normally",
-            "Treat the protection flags like ordinary fields and forward the last meaningful change.")
-    ];
-
-    public IReadOnlyList<EnumChoice<PerkForwardingPolicy>> PerkPolicies { get; } =
-    [
-        new(PerkForwardingPolicy.AtomicOnCoupledPropertyChange,
-            "Keep related perk data together (Recommended)",
-            "When coupled gameplay data changes, take that data from one owning override rather than mixing related fields."),
-        new(PerkForwardingPolicy.StandardForwarding,
-            "Forward perk fields separately",
-            "Forward registered PERK properties independently.")
-    ];
-
-    public IReadOnlyList<EnumChoice<QuestForwardingPolicy>> QuestPolicies { get; } =
-    [
-        new(QuestForwardingPolicy.AtomicOnStructuralChange,
-            "Keep related quest data together (Recommended)",
-            "A structural quest change establishes an ownership boundary for the interdependent quest graph."),
-        new(QuestForwardingPolicy.StandardForwarding,
-            "Forward quest fields separately",
-            "Forward registered QUEST properties independently.")
-    ];
-
-    public IReadOnlyList<EnumChoice<StoryManagerForwardingPolicy>> StoryManagerPolicies { get; } =
-    [
-        new(StoryManagerForwardingPolicy.AtomicOnConfigurationChange,
-            "Keep each node's setup together (Recommended)",
-            "Configuration changes establish ownership of the complete Story Manager node while compatible quest rows may still merge."),
-        new(StoryManagerForwardingPolicy.StandardForwarding,
-            "Forward node fields separately",
-            "Forward registered Story Manager properties independently.")
+            "Forward each status change normally")
     ];
 
     public IReadOnlyList<EnumChoice<PatcherLogVerbosity>> LogVerbosityChoices { get; } =
     [
-        new(PatcherLogVerbosity.Summary, "Summary only", "Show progress and warnings."),
-        new(PatcherLogVerbosity.ContextChanges, "Changed records", "Also show decisions for records whose source changes.")
+        new(PatcherLogVerbosity.Summary, "Summary only"),
+        new(PatcherLogVerbosity.ContextChanges, "Changed records")
     ];
 
     public IReadOnlyList<GameReleaseChoice> GameReleaseChoices => GameReleaseChoice.Supported;
@@ -122,6 +102,24 @@ public sealed class MainWindowViewModel : BindableBase
         set => SetProperty(ref _deepDivePropertiesText, value);
     }
 
+    public string IgnoredModsText
+    {
+        get => _ignoredModsText;
+        set => SetProperty(ref _ignoredModsText, value);
+    }
+
+    public string AlwaysWinningModsText
+    {
+        get => _alwaysWinningModsText;
+        set => SetProperty(ref _alwaysWinningModsText, value);
+    }
+
+    public string VanillaWeaponTypeKeywordsText
+    {
+        get => _vanillaWeaponTypeKeywordsText;
+        set => SetProperty(ref _vanillaWeaponTypeKeywordsText, value);
+    }
+
     public void Load(StandaloneSettings settings)
     {
         settings.Normalize();
@@ -155,6 +153,10 @@ public sealed class MainWindowViewModel : BindableBase
         DeepDiveRecordSignaturesText = JoinLines(settings.Patcher.Diagnostics.DeepDiveRecordSignatures);
         DeepDiveFormKeysText = JoinLines(settings.Patcher.Diagnostics.DeepDiveFormKeys);
         DeepDivePropertiesText = JoinLines(settings.Patcher.Diagnostics.DeepDiveProperties);
+        IgnoredModsText = JoinLines(settings.Patcher.IgnoredMods);
+        AlwaysWinningModsText = JoinLinesInOrder(settings.Patcher.AlwaysWinningMods);
+        VanillaWeaponTypeKeywordsText = JoinLines(
+            settings.Patcher.Forwarding.VanillaWeaponTypeKeywords);
         foreach (var rule in settings.Patcher.CompatibilityRules)
         {
             CompatibilityRules.Add(new VirtualMasterRuleViewModel(rule));
@@ -172,8 +174,28 @@ public sealed class MainWindowViewModel : BindableBase
         Settings.Patcher.Diagnostics.DeepDiveRecordSignatures = ParseEntries(DeepDiveRecordSignaturesText);
         Settings.Patcher.Diagnostics.DeepDiveFormKeys = ParseEntries(DeepDiveFormKeysText);
         Settings.Patcher.Diagnostics.DeepDiveProperties = ParseEntries(DeepDivePropertiesText);
-        Settings.Patcher.CompatibilityRules = CompatibilityRules.Select(rule => rule.ToModel()).ToList();
+        Settings.Patcher.IgnoredMods = ParseEntries(IgnoredModsText);
+        Settings.Patcher.AlwaysWinningMods = ParseOrderedEntries(AlwaysWinningModsText);
+        Settings.Patcher.Forwarding.VanillaWeaponTypeKeywords =
+            ParseEntries(VanillaWeaponTypeKeywordsText);
+        Settings.Patcher.CompatibilityRules = GetCompatibilityRules();
         Settings.Normalize();
+    }
+
+    public List<VirtualMasterRule> GetCompatibilityRules() =>
+        CompatibilityRules.Select(rule => rule.ToModel().Normalize()).ToList();
+
+    public void ReplaceCompatibilityRules(IEnumerable<VirtualMasterRule> rules)
+    {
+        ArgumentNullException.ThrowIfNull(rules);
+
+        CompatibilityRules.Clear();
+        foreach (var rule in rules)
+        {
+            CompatibilityRules.Add(new VirtualMasterRuleViewModel(rule.Copy().Normalize()));
+        }
+
+        SelectedCompatibilityRule = CompatibilityRules.FirstOrDefault();
     }
 
     public void AddCompatibilityRule()
@@ -183,34 +205,9 @@ public sealed class MainWindowViewModel : BindableBase
         SelectedCompatibilityRule = rule;
     }
 
-    public void AddSimonRimExampleRule()
+    public void RestoreDefaultCompatibilityRules()
     {
-        const string unofficialPatch = "Unofficial Skyrim Special Edition Patch.esp";
-        string[] simonRimPlugins =
-        [
-            "Adamant.esp",
-            "MysticismMagic.esp",
-            "Aetherius.esp",
-            "Mundus.esp",
-            "BladeAndBlunt.esp",
-            "Apothecary.esp"
-        ];
-
-        var rule = CompatibilityRules.FirstOrDefault(candidate =>
-            string.Equals(candidate.InjectedMaster.Trim(), unofficialPatch, StringComparison.OrdinalIgnoreCase));
-        if (rule is null)
-        {
-            rule = new VirtualMasterRuleViewModel(new VirtualMasterRule
-            {
-                InjectedMaster = unofficialPatch
-            });
-            CompatibilityRules.Add(rule);
-        }
-
-        var targetMods = rule.ToModel().TargetMods;
-        targetMods.UnionWith(simonRimPlugins);
-        rule.TargetModsText = string.Join(Environment.NewLine, targetMods.Order(StringComparer.OrdinalIgnoreCase));
-        SelectedCompatibilityRule = rule;
+        ReplaceCompatibilityRules(PatcherConfiguration.CreateDefaultCompatibilityRules());
     }
 
     public void RemoveSelectedCompatibilityRule()
@@ -263,7 +260,18 @@ public sealed class MainWindowViewModel : BindableBase
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
     }
 
+    private static List<string> ParseOrderedEntries(string text) =>
+        text.Split(['\r', '\n', ',', ';'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Where(x => x.Length > 0)
+            .Reverse()
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Reverse()
+            .ToList();
+
     private static string JoinLines(IEnumerable<string> values) =>
         string.Join(Environment.NewLine, values.Order(StringComparer.OrdinalIgnoreCase));
+
+    private static string JoinLinesInOrder(IEnumerable<string> values) =>
+        string.Join(Environment.NewLine, values);
 
 }

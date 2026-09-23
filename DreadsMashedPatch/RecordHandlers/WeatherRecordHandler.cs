@@ -17,8 +17,8 @@ using Noggog;
 namespace DreadsMashedPatch.RecordHandlers;
 
 // Migration note:
-// - Generalized: WTHR scalar/binary/link/complex fields plus CloudTextures/Clouds arrays via dedicated handlers.
-// - Kept specialized: none.
+// - Generalized: WTHR scalar/binary/link fields plus CloudTextures/Clouds arrays via dedicated handlers.
+// - Kept specialized: generated Weather aggregate copying preserves indexed TimeOfDay members without reflecting over indexers.
 // - Intentionally excluded: NAM0DataTypeState is serialization state; Unknown is outside the semantic conflict surface.
 // - Rationale: semantic fields are forwarded while the winning record retains its binary NAM0 layout.
 public class WeatherRecordHandler : AbstractRecordHandler
@@ -38,23 +38,23 @@ public class WeatherRecordHandler : AbstractRecordHandler
         { "ONAM", new SimpleReflectionBinaryDataPropertyHandler<IWeather, IWeatherGetter>("ONAM") },
         { "CloudTextures", new CloudTexturesHandler() },
         { "Clouds", new CloudLayersHandler() },
-        { "SkyUpperColor", new ComplexReflectionPropertyHandler<IWeatherColorGetter, IWeather, IWeatherGetter>("SkyUpperColor") },
-        { "FogNearColor", new ComplexReflectionPropertyHandler<IWeatherColorGetter, IWeather, IWeatherGetter>("FogNearColor") },
-        { "UnknownColor", new ComplexReflectionPropertyHandler<IWeatherColorGetter, IWeather, IWeatherGetter>("UnknownColor") },
-        { "AmbientColor", new ComplexReflectionPropertyHandler<IWeatherColorGetter, IWeather, IWeatherGetter>("AmbientColor") },
-        { "SunlightColor", new ComplexReflectionPropertyHandler<IWeatherColorGetter, IWeather, IWeatherGetter>("SunlightColor") },
-        { "SunColor", new ComplexReflectionPropertyHandler<IWeatherColorGetter, IWeather, IWeatherGetter>("SunColor") },
-        { "StarsColor", new ComplexReflectionPropertyHandler<IWeatherColorGetter, IWeather, IWeatherGetter>("StarsColor") },
-        { "SkyLowerColor", new ComplexReflectionPropertyHandler<IWeatherColorGetter, IWeather, IWeatherGetter>("SkyLowerColor") },
-        { "HorizonColor", new ComplexReflectionPropertyHandler<IWeatherColorGetter, IWeather, IWeatherGetter>("HorizonColor") },
-        { "EffectLightingColor", new ComplexReflectionPropertyHandler<IWeatherColorGetter, IWeather, IWeatherGetter>("EffectLightingColor") },
-        { "CloudLodDiffuseColor", new ComplexReflectionPropertyHandler<IWeatherColorGetter, IWeather, IWeatherGetter>("CloudLodDiffuseColor") },
-        { "CloudLodAmbientColor", new ComplexReflectionPropertyHandler<IWeatherColorGetter, IWeather, IWeatherGetter>("CloudLodAmbientColor") },
-        { "FogFarColor", new ComplexReflectionPropertyHandler<IWeatherColorGetter, IWeather, IWeatherGetter>("FogFarColor") },
-        { "SkyStaticsColor", new ComplexReflectionPropertyHandler<IWeatherColorGetter, IWeather, IWeatherGetter>("SkyStaticsColor") },
-        { "WaterMultiplierColor", new ComplexReflectionPropertyHandler<IWeatherColorGetter, IWeather, IWeatherGetter>("WaterMultiplierColor") },
-        { "SunGlareColor", new ComplexReflectionPropertyHandler<IWeatherColorGetter, IWeather, IWeatherGetter>("SunGlareColor") },
-        { "MoonGlareColor", new ComplexReflectionPropertyHandler<IWeatherColorGetter, IWeather, IWeatherGetter>("MoonGlareColor") },
+        { "SkyUpperColor", WeatherColorHandler("SkyUpperColor") },
+        { "FogNearColor", WeatherColorHandler("FogNearColor") },
+        { "UnknownColor", WeatherColorHandler("UnknownColor") },
+        { "AmbientColor", WeatherColorHandler("AmbientColor") },
+        { "SunlightColor", WeatherColorHandler("SunlightColor") },
+        { "SunColor", WeatherColorHandler("SunColor") },
+        { "StarsColor", WeatherColorHandler("StarsColor") },
+        { "SkyLowerColor", WeatherColorHandler("SkyLowerColor") },
+        { "HorizonColor", WeatherColorHandler("HorizonColor") },
+        { "EffectLightingColor", WeatherColorHandler("EffectLightingColor") },
+        { "CloudLodDiffuseColor", WeatherColorHandler("CloudLodDiffuseColor") },
+        { "CloudLodAmbientColor", WeatherColorHandler("CloudLodAmbientColor") },
+        { "FogFarColor", WeatherColorHandler("FogFarColor") },
+        { "SkyStaticsColor", WeatherColorHandler("SkyStaticsColor") },
+        { "WaterMultiplierColor", WeatherColorHandler("WaterMultiplierColor") },
+        { "SunGlareColor", WeatherColorHandler("SunGlareColor") },
+        { "MoonGlareColor", WeatherColorHandler("MoonGlareColor") },
         { "FogDistanceDayNear", new SimpleReflectionPropertyHandler<float, IWeather, IWeatherGetter>("FogDistanceDayNear") },
         { "FogDistanceDayFar", new SimpleReflectionPropertyHandler<float, IWeather, IWeatherGetter>("FogDistanceDayFar") },
         { "FogDistanceNightNear", new SimpleReflectionPropertyHandler<float, IWeather, IWeatherGetter>("FogDistanceNightNear") },
@@ -80,14 +80,18 @@ public class WeatherRecordHandler : AbstractRecordHandler
         { "WindDirectionRange", new SimpleReflectionPropertyHandler<float, IWeather, IWeatherGetter>("WindDirectionRange") },
         { "Sounds", new SimpleReflectionListPropertyHandler<IWeatherSoundGetter, IWeather, IWeatherGetter>("Sounds", ListSemantics.SortedKeyed, keySelector: sound => sound.Type) },
         { "SkyStatics", new SimpleReflectionListPropertyHandler<IFormLinkGetter<IStaticGetter>, IWeather, IWeatherGetter>("SkyStatics", ListSemantics.SortedKeyed) },
-        { "ImageSpaces", new ComplexReflectionPropertyHandler<IWeatherImageSpacesGetter, IWeather, IWeatherGetter>("ImageSpaces") },
-        { "VolumetricLighting", new ComplexReflectionPropertyHandler<IWeatherVolumetricLightingGetter, IWeather, IWeatherGetter>("VolumetricLighting") },
-        { "DirectionalAmbientLightingColors", new ComplexReflectionPropertyHandler<IWeatherAmbientColorSetGetter, IWeather, IWeatherGetter>("DirectionalAmbientLightingColors") },
+        { "ImageSpaces", new GeneratedCopyReflectionPropertyHandler<IWeatherImageSpacesGetter, WeatherImageSpaces, IWeather, IWeatherGetter>("ImageSpaces", value => value.DeepCopy(), WeatherImageSpacesMixIn.Equals) },
+        { "VolumetricLighting", new GeneratedCopyReflectionPropertyHandler<IWeatherVolumetricLightingGetter, WeatherVolumetricLighting, IWeather, IWeatherGetter>("VolumetricLighting", value => value.DeepCopy(), WeatherVolumetricLightingMixIn.Equals) },
+        { "DirectionalAmbientLightingColors", new GeneratedCopyReflectionPropertyHandler<IWeatherAmbientColorSetGetter, WeatherAmbientColorSet, IWeather, IWeatherGetter>("DirectionalAmbientLightingColors", value => value.DeepCopy(), WeatherAmbientColorSetMixIn.Equals) },
         { "NAM2", new SimpleReflectionBinaryDataPropertyHandler<IWeather, IWeatherGetter>("NAM2") },
         { "NAM3", new SimpleReflectionBinaryDataPropertyHandler<IWeather, IWeatherGetter>("NAM3") },
         { "Aurora", new SimpleReflectionModelPropertyHandler<IWeather, IWeatherGetter>("Aurora") },
         { "SunGlareLensFlare", new SimpleReflectionFormLinkPropertyHandler<ILensFlareGetter, IWeather, IWeatherGetter>("SunGlareLensFlare") },
     };
+
+    private static GeneratedCopyReflectionPropertyHandler<IWeatherColorGetter, WeatherColor, IWeather, IWeatherGetter>
+        WeatherColorHandler(string propertyName) =>
+        new(propertyName, value => value.DeepCopy(), WeatherColorMixIn.Equals);
 
     public override IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter>[] GetRecordContexts(
         IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter> winningContext,

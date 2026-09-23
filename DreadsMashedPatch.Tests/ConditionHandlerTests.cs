@@ -196,6 +196,29 @@ public sealed class ConditionHandlerTests
     }
 
     [Fact]
+    public void BinaryOverlayGetEventDataUsesConcreteGeneratedParameters()
+    {
+        var record = new FormKey(SourceModKey, 0x1707);
+        var source = new SkyrimMod(SourceModKey, SkyrimRelease.SkyrimSE);
+        var idle = new IdleAnimation(new FormKey(SourceModKey, 0x1708), SkyrimRelease.SkyrimSE);
+        idle.Conditions.Add(CreateEventDataCondition(
+            GetEventDataConditionData.EventMember.CreatedObject,
+            record));
+        source.IdleAnimations.Add(idle);
+
+        using var stream = new MemoryStream();
+        source.WriteToBinary(stream);
+        stream.Position = 0;
+        using var overlay = SkyrimMod.CreateFromBinaryOverlay(stream, SkyrimRelease.SkyrimSE, SourceModKey);
+        var overlayCondition = Assert.Single(Assert.Single(overlay.IdleAnimations).Conditions);
+
+        var handler = new ConditionsHandler();
+        Assert.True(handler.AreValuesEqual(
+            [overlayCondition],
+            [CreateEventDataCondition(GetEventDataConditionData.EventMember.CreatedObject, record)]));
+    }
+
+    [Fact]
     public void GlobalComparisonValueChangesConditionIdentity()
     {
         var handler = new ConditionsHandler();
@@ -203,6 +226,25 @@ public sealed class ConditionHandlerTests
         var secondCondition = CreateGlobalCondition(new FormKey(SourceModKey, 0x702));
 
         Assert.False(handler.AreValuesEqual([firstCondition], [secondCondition]));
+    }
+
+    [Fact]
+    public void GetEventDataUsesConcreteGeneratedParameters()
+    {
+        var record = new FormKey(SourceModKey, 0x1706);
+        var firstCondition = CreateEventDataCondition(
+            GetEventDataConditionData.EventMember.CreatedObject,
+            record);
+        var matchingCondition = CreateEventDataCondition(
+            GetEventDataConditionData.EventMember.CreatedObject,
+            record);
+        var changedCondition = CreateEventDataCondition(
+            GetEventDataConditionData.EventMember.NewLocation,
+            record);
+        var handler = new ConditionsHandler();
+
+        Assert.True(handler.AreValuesEqual([firstCondition], [matchingCondition]));
+        Assert.False(handler.AreValuesEqual([firstCondition], [changedCondition]));
     }
 
     private static ConditionFloat CreateGetStageCondition(FormKey quest)
@@ -268,6 +310,25 @@ public sealed class ConditionHandlerTests
         };
         condition.ComparisonValue.SetTo(global);
         return condition;
+    }
+
+    private static ConditionFloat CreateEventDataCondition(
+        GetEventDataConditionData.EventMember member,
+        FormKey record)
+    {
+        var data = new GetEventDataConditionData
+        {
+            Function = GetEventDataConditionData.EventFunction.GetIsID,
+            Member = member
+        };
+        data.Record.SetTo(record);
+
+        return new ConditionFloat
+        {
+            CompareOperator = CompareOperator.EqualTo,
+            ComparisonValue = 1,
+            Data = data
+        };
     }
 
     private sealed class InspectableConditionsHandler :

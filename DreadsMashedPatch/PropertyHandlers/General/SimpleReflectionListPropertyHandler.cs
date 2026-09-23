@@ -3,7 +3,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 using Mutagen.Bethesda.Plugins;
 using Mutagen.Bethesda.Plugins.Records;
 using DreadsMashedPatch.PropertyHandlers.Abstracts;
@@ -116,14 +115,6 @@ namespace DreadsMashedPatch.PropertyHandlers.General
                     return null;
                 }
 
-                if (list != null && _isFormLinkList && PropertyName == "LocationRefTypes")
-                {
-                    var keysBefore = string.Join(", ", list.Select((item, i) => $"[{i}] {GetFormKey(item)}"));
-                    var refsBefore = string.Join(", ", list.Select((item, i) => $"[{i}] {RuntimeHelpers.GetHashCode(item)}"));
-                    Console.WriteLine($"[DEBUG {PropertyName}] GetValue: count={list.Count} before norm. FormKeys=[{keysBefore}]");
-                    Console.WriteLine($"[DEBUG {PropertyName}] GetValue: refs (hash) before norm = [{refsBefore}]");
-                }
-
                 // For FormLink lists: normalize so items with the same FormKey share the same reference.
                 // This ensures the abstract class's GroupBy(item => item) and addition logic don't treat
                 // duplicate FormKeys as separate groups (which would add 2+2+1+1=6 instead of 2+1+1=4).
@@ -140,18 +131,11 @@ namespace DreadsMashedPatch.PropertyHandlers.General
                     }
                 }
 
-                if (list != null && _isFormLinkList && PropertyName == "LocationRefTypes")
-                {
-                    var keysAfter = string.Join(", ", list.Select((item, i) => $"[{i}] {GetFormKey(item)}"));
-                    var refsAfter = string.Join(", ", list.Select((item, i) => $"[{i}] {RuntimeHelpers.GetHashCode(item)}"));
-                    Console.WriteLine($"[DEBUG {PropertyName}] GetValue: count={list.Count} after norm. FormKeys=[{keysAfter}]");
-                    Console.WriteLine($"[DEBUG {PropertyName}] GetValue: refs (hash) after norm = [{refsAfter}]");
-                }
                 return list;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error getting property '{PropertyName}' via reflection: {ex.Message}");
+                LogCollector.AddError(PropertyName, "Could not read the list property via reflection", ex);
                 return null;
             }
         }
@@ -318,7 +302,7 @@ namespace DreadsMashedPatch.PropertyHandlers.General
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error setting property '{PropertyName}' via reflection: {ex.Message}");
+                LogCollector.AddError(PropertyName, "Could not apply the list property via reflection", ex);
             }
         }
 
@@ -550,7 +534,7 @@ namespace DreadsMashedPatch.PropertyHandlers.General
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Warning: Could not set property {property.Name}: {ex.Message}");
+                    LogCollector.AddWarning(property.Name, $"Could not set nested property '{property.Name}'", ex);
                 }
                 return;
             }
@@ -567,7 +551,7 @@ namespace DreadsMashedPatch.PropertyHandlers.General
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Warning: Could not create default for {propType.Name}: {ex.Message}");
+                    LogCollector.AddWarning(property.Name, $"Could not create a default {propType.Name} value", ex);
                 }
             }
             else
@@ -578,7 +562,7 @@ namespace DreadsMashedPatch.PropertyHandlers.General
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Warning: Could not set property {property.Name} to null: {ex.Message}");
+                    LogCollector.AddWarning(property.Name, $"Could not clear nested property '{property.Name}'", ex);
                 }
             }
         }
@@ -615,9 +599,12 @@ namespace DreadsMashedPatch.PropertyHandlers.General
                     return true;
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                // Ignore and fall back to SetValue
+                LogCollector.AddDiagnostic(
+                    property.Name,
+                    $"SetTo could not clear nested property '{property.Name}'; trying SetValue",
+                    ex);
             }
             return false;
         }
@@ -669,7 +656,10 @@ namespace DreadsMashedPatch.PropertyHandlers.General
                     catch (Exception getEx)
                     {
                         // Getter can throw for invalid/null FormLink (e.g. binary overlay); set default and continue
-                        Console.WriteLine($"Warning: Could not read property '{getterProp.Name}' in {typeof(TItem).Name}: {getEx.InnerException?.Message ?? getEx.Message}");
+                        LogCollector.AddWarning(
+                            PropertyName,
+                            $"Could not read nested property '{getterProp.Name}' in {typeof(TItem).Name}; using its default",
+                            getEx);
                         SetPropertyValueOrDefault(mutableInstance, mutableProp, null);
                         continue;
                     }
@@ -702,15 +692,18 @@ namespace DreadsMashedPatch.PropertyHandlers.General
                         try
                         {
                             FormKey? formKey = null;
+                            Exception? reflectionFailure = null;
                             try
                             {
                                 var formKeyProperty = valueType.GetProperty("FormKey");
                                 if (formKeyProperty != null && (formKeyProperty.GetValue(value) is FormKey fk))
                                     formKey = fk;
                             }
-                            catch (Exception)
+                            catch (Exception reflectionEx)
                             {
-                                // Reflection can throw for null/default FormLink; treat as null
+                                // Dynamic access below is the supported fallback for some
+                                // generated FormLink implementations. Report only if it also fails.
+                                reflectionFailure = reflectionEx;
                             }
                             if (!formKey.HasValue)
                             {
@@ -723,9 +716,16 @@ namespace DreadsMashedPatch.PropertyHandlers.General
                                     else if (dynamicFormKey != null)
                                         formKey = dynamicFormKey as FormKey?;
                                 }
-                                catch (Exception)
+                                catch (Exception dynamicEx)
                                 {
-                                    // Dynamic fallback failed; treat as null FormLink
+                                    var reflectionDetail = reflectionFailure == null
+                                        ? "Reflection did not expose a FormKey"
+                                        : $"Reflection failed with {reflectionFailure.GetType().Name}: {reflectionFailure.Message}";
+                                    LogCollector.AddWarning(
+                                        PropertyName,
+                                        $"Could not read FormKey from property '{getterProp.Name}'; treating it as a null link. " +
+                                        reflectionDetail,
+                                        dynamicEx);
                                 }
                             }
                             if (!formKey.HasValue || formKey.Value.IsNull)
@@ -763,9 +763,10 @@ namespace DreadsMashedPatch.PropertyHandlers.General
                         }
                         catch (Exception formLinkEx)
                         {
-                            Console.WriteLine($"Warning: Error copying FormLink property '{getterProp.Name}' in {typeof(TItem).Name}: {formLinkEx.Message}");
-                            if (formLinkEx.InnerException != null)
-                                Console.WriteLine($"  Inner exception: {formLinkEx.InnerException.Message}");
+                            LogCollector.AddWarning(
+                                PropertyName,
+                                $"Could not copy FormLink property '{getterProp.Name}' in {typeof(TItem).Name}; using its default",
+                                formLinkEx);
                             SetPropertyValueOrDefault(mutableInstance, mutableProp, null);
                         }
                         continue;
@@ -783,9 +784,12 @@ namespace DreadsMashedPatch.PropertyHandlers.General
                     {
                         mutableProp.SetValue(mutableInstance, value);
                     }
-                    catch
+                    catch (Exception ex)
                     {
-                        // Skip properties that can't be copied directly
+                        LogCollector.AddWarning(
+                            PropertyName,
+                            $"Skipped property '{getterProp.Name}' while copying {typeof(TItem).Name}",
+                            ex);
                     }
                 }
 
@@ -793,11 +797,7 @@ namespace DreadsMashedPatch.PropertyHandlers.General
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Warning: Error deep copying {typeof(TItem).Name}: {ex.Message}");
-                if (ex.InnerException != null)
-                {
-                    Console.WriteLine($"Inner exception: {ex.InnerException.Message}");
-                }
+                LogCollector.AddWarning(PropertyName, $"Could not deep-copy {typeof(TItem).Name}; the item was skipped", ex);
                 return null;
             }
         }
@@ -874,8 +874,12 @@ namespace DreadsMashedPatch.PropertyHandlers.General
                 // Try direct instantiation
                 return System.Activator.CreateInstance(listType);
             }
-            catch
+            catch (Exception ex)
             {
+                LogCollector.AddWarning(
+                    PropertyName,
+                    $"Could not create list type {listType.Name} for items of type {itemType.Name}",
+                    ex);
                 return null;
             }
         }

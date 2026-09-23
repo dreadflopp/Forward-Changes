@@ -309,6 +309,10 @@ public sealed class PackageTemplateGraphHandler : AbstractPropertyHandler<Packag
         }
         catch (Exception ex)
         {
+            LogCollector.AddWarning(
+                "PackageTemplateGraph",
+                "Could not compute the diagnostic graph fingerprint",
+                ex);
             return $"ERROR-{ex.GetType().Name}";
         }
     }

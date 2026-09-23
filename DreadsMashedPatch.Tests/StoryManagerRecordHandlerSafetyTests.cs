@@ -1,4 +1,3 @@
-using DreadsMashedPatch.Enums;
 using DreadsMashedPatch.PropertyHandlers.General;
 using DreadsMashedPatch.RecordHandlers;
 using Mutagen.Bethesda.Plugins;
@@ -15,10 +14,6 @@ public sealed class StoryManagerRecordHandlerSafetyTests
     [Fact]
     public void AtomicConfigurationForwardingIsTheDefaultPolicy()
     {
-        Assert.Equal(
-            StoryManagerForwardingPolicy.AtomicOnConfigurationChange,
-            PatcherSettings.StoryManagerPolicy);
-
         Assert.Equal(
             new HashSet<string>(StringComparer.Ordinal)
             {
@@ -54,17 +49,6 @@ public sealed class StoryManagerRecordHandlerSafetyTests
                 "MaxNumQuestsToRun"
             },
             new TestableQuestNodeHandler().AtomicTriggers);
-    }
-
-    [Fact]
-    public void StandardForwardingDisablesStoryManagerOwnershipBoundaries()
-    {
-        Assert.Empty(new TestableBranchHandler(
-            StoryManagerForwardingPolicy.StandardForwarding).AtomicTriggers);
-        Assert.Empty(new TestableEventHandler(
-            StoryManagerForwardingPolicy.StandardForwarding).AtomicTriggers);
-        Assert.Empty(new TestableQuestNodeHandler(
-            StoryManagerForwardingPolicy.StandardForwarding).AtomicTriggers);
     }
 
     [Fact]
@@ -196,9 +180,7 @@ public sealed class StoryManagerRecordHandlerSafetyTests
             (_, _) => throw new NotSupportedException(),
             (_, _, _, _) => throw new NotSupportedException());
 
-    private sealed class TestableBranchHandler(
-        StoryManagerForwardingPolicy? policy = null)
-        : StoryManagerBranchNodeRecordHandler(policy)
+    private sealed class TestableBranchHandler : StoryManagerBranchNodeRecordHandler
     {
         public IReadOnlySet<string> AtomicTriggers => AtomicOwnershipTriggerProperties;
 
@@ -208,9 +190,7 @@ public sealed class StoryManagerRecordHandlerSafetyTests
             GetChangedAtomicOwnershipTriggerProperties(previous, current);
     }
 
-    private sealed class TestableEventHandler(
-        StoryManagerForwardingPolicy? policy = null)
-        : StoryManagerEventNodeRecordHandler(policy)
+    private sealed class TestableEventHandler : StoryManagerEventNodeRecordHandler
     {
         public IReadOnlySet<string> AtomicTriggers => AtomicOwnershipTriggerProperties;
 
@@ -220,9 +200,7 @@ public sealed class StoryManagerRecordHandlerSafetyTests
             GetChangedAtomicOwnershipTriggerProperties(previous, current);
     }
 
-    private sealed class TestableQuestNodeHandler(
-        StoryManagerForwardingPolicy? policy = null)
-        : StoryManagerQuestNodeRecordHandler(policy)
+    private sealed class TestableQuestNodeHandler : StoryManagerQuestNodeRecordHandler
     {
         public IReadOnlySet<string> AtomicTriggers => AtomicOwnershipTriggerProperties;
 

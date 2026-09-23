@@ -18,14 +18,27 @@ namespace DreadsMashedPatch.RecordHandlers
     // Migration note:
     // - Generalized: placed-object location links continue to use the shared reflection form-link handler.
     //   XLRL/LocationReference intentionally stays on this conflict-aware path: a newly added value that
-    //   survives into the winner already produces no patch, while a later removal remains a real conflict,
-    //   matching xEdit's cpBenignIfAdded behavior.
-    // - Specialized: placement keeps whole-object forwarding and now formats its position/rotation explicitly; complex/list behavior remains specialized.
+    //   survives into the winner already produces no patch. A later omission may remove it only when that
+    //   mod has the adding mod as an actual or configured virtual master; otherwise the addition is retained.
+    // - Specialized: Placement is one cohesive value with xEdit-precision position equality, circular normalized-angle
+    //   equality, and degree diagnostics. A recognized safe UDR keeps Initially Disabled, Placement, and EnableParent
+    //   on the snapshot selected by the approved flag handler. REFR LinkedReferences preserves exact positional order
+    //   because Skyrim xEdit defines it as an unsorted wbRArray with no StructSK key. ActivateParents retains generated copying.
+    // - Intentionally non-migrated: ordinary Initially Disabled references are not treated as UDRs, and
+    //   LocationReference remains independently conflict-resolved because it is not part of the safe-disable bundle.
     // - Nullable aggregates: list presence is inferred from Mutagen metadata, and VMAD preserves absent versus present-empty state.
     // - Intentionally excluded: Unknown is outside the semantic conflict surface.
-    // - Rationale: PlacementBinaryOverlay has no useful ToString(), so the record-specific formatter prevents type-name-only logs.
+    // - Removed: duplicate Placement.Position and Placement.Rotation registrations; the cohesive Placement handler is the sole path.
+    // - Rationale: PlacementBinaryOverlay has no useful ToString(), generated exact float equality reports changes
+    //   below xEdit-visible precision, and independent UDR fields can otherwise produce contradictory hybrid states.
     public class PlacedObjectRecordHandler : AbstractRecordHandler
     {
+        protected override PropertyForwardingCoordination CoordinateForwardedProperties(
+            IReadOnlyList<IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter>> recordContexts)
+        {
+            return PlacedReferenceUdrCoordinator.Coordinate(recordContexts, PropertyContexts);
+        }
+
         public override Dictionary<string, IPropertyHandler> PropertyHandlers { get; } = new()
         {
             { "EditorID", new EditorIDHandler() },
@@ -35,9 +48,7 @@ namespace DreadsMashedPatch.RecordHandlers
             { "Owner", new SimpleReflectionFormLinkPropertyHandler<IOwnerGetter, IPlacedObject, IPlacedObjectGetter>("Owner") },
             { "Scale", new SimpleReflectionPropertyHandler<float?, IPlacedObject, IPlacedObjectGetter>("Scale") },
             { "LocationReference", new SimpleReflectionFormLinkPropertyHandler<ILocationGetter, IPlacedObject, IPlacedObjectGetter>("LocationReference") },
-            { "Placement.Position", new SimpleReflectionPropertyHandler<P3Float?, IPlacedObject, IPlacedObjectGetter>("Placement.Position", P3FloatComparison.PositionEpsilon) },
-            { "Placement.Rotation", new SimpleReflectionPropertyHandler<P3Float?, IPlacedObject, IPlacedObjectGetter>("Placement.Rotation", P3FloatComparison.RotationEpsilon) },
-            { "LinkedReferences", new SimpleReflectionListPropertyHandler<ILinkedReferencesGetter, IPlacedObject, IPlacedObjectGetter>("LinkedReferences", ListSemantics.SortedKeyed, keySelector: entry => entry.KeywordOrReference.FormKey) },
+            { "LinkedReferences", new SimpleReflectionListPropertyHandler<ILinkedReferencesGetter, IPlacedObject, IPlacedObjectGetter>("LinkedReferences", ListSemantics.ExactOrdered) },
             { "LinkedRooms", new SimpleReflectionListPropertyHandler<IFormLinkGetter<IPlacedObjectGetter>, IPlacedObject, IPlacedObjectGetter>("LinkedRooms", ListSemantics.SortedKeyed) },
             { "ImageSpace", new SimpleReflectionFormLinkPropertyHandler<IImageSpaceGetter, IPlacedObject, IPlacedObjectGetter>("ImageSpace") },
             { "LightingTemplate", new SimpleReflectionFormLinkPropertyHandler<ILightingTemplateGetter, IPlacedObject, IPlacedObjectGetter>("LightingTemplate") },
@@ -69,7 +80,7 @@ namespace DreadsMashedPatch.RecordHandlers
             { "CollisionLayer", new SimpleReflectionPropertyHandler<uint?, IPlacedObject, IPlacedObjectGetter>("CollisionLayer") },
             { "LevelModifier", new SimpleReflectionPropertyHandler<Level?, IPlacedObject, IPlacedObjectGetter>("LevelModifier") },
             { "TeleportDestination", new ComplexReflectionPropertyHandler<ITeleportDestinationGetter, IPlacedObject, IPlacedObjectGetter>("TeleportDestination") },
-            { "ActivateParents", new ComplexReflectionPropertyHandler<IActivateParentsGetter, IPlacedObject, IPlacedObjectGetter>("ActivateParents") },
+            { "ActivateParents", new GeneratedCopyReflectionPropertyHandler<IActivateParentsGetter, ActivateParents, IPlacedObject, IPlacedObjectGetter>("ActivateParents", value => value.DeepCopy(), ActivateParentsMixIn.Equals) },
             { "Lock", new ComplexReflectionPropertyHandler<ILockDataGetter, IPlacedObject, IPlacedObjectGetter>("Lock") },
             { "AttachRef", new SimpleReflectionFormLinkPropertyHandler<IPlacedThingGetter, IPlacedObject, IPlacedObjectGetter>("AttachRef") },
             { "Action", new SimpleReflectionFlagPropertyHandler<Mutagen.Bethesda.Skyrim.PlacedObject.ActionFlag, IPlacedObject, IPlacedObjectGetter>("Action") },

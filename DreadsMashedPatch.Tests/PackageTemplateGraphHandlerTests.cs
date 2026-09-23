@@ -8,6 +8,7 @@ using Xunit;
 
 namespace DreadsMashedPatch.Tests;
 
+[Collection("LogCollector")]
 public sealed class PackageTemplateGraphHandlerTests
 {
     private static readonly ModKey TestModKey = ModKey.FromNameAndExtension("PackageGraphTests.esp");

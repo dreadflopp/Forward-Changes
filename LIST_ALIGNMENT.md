@@ -152,13 +152,18 @@ adding `x=-1` could leave protected `z<200` before the new `x`, producing
 - Specialized: conditions override row identity with Skyrim's xEdit condition
   key. Quest aliases retain ID-based property merging, and dialog responses retain
   response-specific normalization and copying after shared row reconciliation.
-- Scalar aligned records: Armor Armature, Camera Path Shots, Dialog Response
+- Scalar aligned records: Camera Path Shots, Dialog Response
   LinkTo, Dialog View Branches, Equip Type SlotParents, FormList Items, NPC
   Packages, placed-reference LocationRefTypes, Quest TextDisplayGlobals, and
   Sound Descriptor paths retain their existing identities and copying behavior.
+- Atomic exception: Armor Armature preserves the complete ordered Armor Addon
+  list from one owner. Multiple entries remain supported when a source plugin
+  declares them together, but independent lists are never unioned.
 - Exact positional records: Ingredient, Ingestible, Object Effect, Scroll, and
   Spell effects use ordinal identity and atomic generated Effect equality because
-  xEdit defines their outer Effects entries without a sort key.
+  xEdit defines their outer Effects entries without a sort key. Placed Object
+  LinkedReferences likewise uses ordinal identity because REFR declares an unsorted
+  `wbRArray` with a plain `wbStruct`; ACHR remains independently sorted/keyed.
 - Composite aligned records: Story Manager Quest Node entries retain Quest
   FormKey identity; Head Part parts and Message buttons retain their documented
   project-specific identities.

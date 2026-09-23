@@ -179,7 +179,7 @@ namespace DreadsMashedPatch.PropertyHandlers.General
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error getting property '{PropertyName}' via reflection: {ex.Message}");
+                LogCollector.AddError(PropertyName, "Could not read the property via reflection", ex);
                 return default;
             }
         }
@@ -272,7 +272,7 @@ namespace DreadsMashedPatch.PropertyHandlers.General
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error setting property '{PropertyName}' via reflection: {ex.Message}");
+                LogCollector.AddError(PropertyName, "Could not apply the property via reflection", ex);
             }
         }
 
@@ -340,9 +340,12 @@ namespace DreadsMashedPatch.PropertyHandlers.General
                                 var p2Fallback = (P3Float)v2;
                                 return P3FloatComparison.EqualsWithin(p1Fallback, p2Fallback, _p3FloatEpsilon ?? P3FloatComparison.DefaultEpsilon);
                             }
-                            catch
+                            catch (Exception ex)
                             {
-                                // If conversion fails, we'll fall through to other comparison methods below
+                                LogCollector.AddDiagnostic(
+                                    PropertyName,
+                                    "Nullable P3Float conversion failed; trying another equality strategy",
+                                    ex);
                             }
                         }
 
@@ -393,9 +396,12 @@ namespace DreadsMashedPatch.PropertyHandlers.General
                             return boolResult;
                         }
                     }
-                    catch
+                    catch (Exception ex)
                     {
-                        // Continue to next interface or fallback
+                        LogCollector.AddDiagnostic(
+                            PropertyName,
+                            $"IEquatable comparison failed for {valueType.Name}; trying another equality strategy",
+                            ex);
                     }
                 }
             }
@@ -412,9 +418,12 @@ namespace DreadsMashedPatch.PropertyHandlers.General
             {
                 return value1.Equals(value2);
             }
-            catch
+            catch (Exception ex)
             {
-                // Fallback: use object.Equals
+                LogCollector.AddDiagnostic(
+                    PropertyName,
+                    $"Equals failed for {valueType.Name}; using object equality fallback",
+                    ex);
                 return Equals(value1, value2);
             }
         }

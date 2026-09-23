@@ -317,9 +317,14 @@ public static class DiagnosticValueFormatter
                     return Convert.ToInt32(property.GetValue(value), CultureInfo.InvariantCulture);
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                // A length is useful but optional diagnostic information.
+                // A length is useful but optional diagnostic information. Preserve the
+                // failed probe in the full log without classifying it as actionable.
+                LogCollector.AddDiagnostic(
+                    "DiagnosticValueFormatter",
+                    $"Could not read optional length property '{propertyName}' from {type.Name}",
+                    ex);
             }
 
             return null;

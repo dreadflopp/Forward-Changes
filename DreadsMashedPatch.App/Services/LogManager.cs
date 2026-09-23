@@ -80,6 +80,7 @@ public sealed class LogSession : IDisposable
 
     internal LogSession(string path)
     {
+        Path = path;
         _writer = new StreamWriter(
             new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.Read),
             new UTF8Encoding(encoderShouldEmitUTF8Identifier: false))
@@ -87,6 +88,8 @@ public sealed class LogSession : IDisposable
             AutoFlush = true
         };
     }
+
+    public string Path { get; }
 
     public void Write(string text)
     {

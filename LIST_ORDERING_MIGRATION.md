@@ -20,7 +20,7 @@
 
 | Record type | Generalized | Stayed specialized / reason |
 | --- | --- | --- |
-| Armor | Armature uses aligned FormID rows. | None. |
+| Armor | BodyTemplate semantic leaves use shared scalar/flag handlers. | Armature is one atomic ordered Armor Addon list because merging independently authored entries can equip overlapping models; WorldModel remains one cohesive aggregate. |
 | Camera Path | Shots use aligned FormID rows; RelatedPaths is atomic. | Conditions retain the CTDA alignment key. |
 | Dialog Response | LinkTo uses aligned topic rows. | Responses retain response-specific copying and identity. |
 | Dialog View | Branches uses aligned FormID rows. | TNAM/binary fields remain specialized; Mutagen exposes no writable Topics collection. |
@@ -35,7 +35,7 @@
 | NPC | Packages align; actor effects, attacks, factions, perks, and inventory are sorted/keyed. | Inventory metadata and duplicate matching remain specialized. |
 | Race | Scalar collections and keyed attack/movement entries are sorted. | Race dictionaries and fixed structures remain specialized scalar properties. |
 | Magic Effect | CounterEffects and sounds are sorted; sound Type is the key. | Effects/conditions retain their specialized structures. |
-| Placed Object / Placed NPC | Linked references and other xEdit sorted arrays are keyed; LocationRefTypes aligns. | Portals are atomic because their positions are structural. |
+| Placed Object / Placed NPC | REFR LinkedReferences uses exact positional order; ACHR LinkedReferences and the other xEdit sorted arrays remain keyed; LocationRefTypes aligns. | Skyrim xEdit defines the two linked-reference surfaces differently: REFR uses unsorted `wbRArray`/plain `wbStruct`, while ACHR uses `wbRArrayS`/`wbStructSK([0])`. Portals remain atomic because their positions are structural. |
 | Location | All xEdit `ArrayS` projections use their declared Ref, Actor Ref, Worldspace, or parent-reference key. | Nested coordinate arrays remain data inside the keyed worldspace entry. |
 | Climate | WeatherTypes is keyed by Weather FormID. | Chance and Global are entry data. |
 | Container / Constructible Object | Inventory entries are keyed by Item FormID. | NPC/container metadata mutation remains specialized where required. |

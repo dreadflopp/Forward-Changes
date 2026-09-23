@@ -111,6 +111,34 @@ public sealed class RaceSkillBoostsHandlerTests
     }
 
     [Fact]
+    public void RawByteMaxPaddingIsExcludedFromSemanticValueAndSetterInput()
+    {
+        var handler = new RaceSkillBoostsHandler();
+        var rawPadding = Boost((ActorValue)byte.MaxValue, 0);
+        var source = CreateRace(0xA08,
+            Boost(ActorValue.Speech, 5),
+            rawPadding,
+            rawPadding,
+            rawPadding,
+            rawPadding,
+            rawPadding,
+            rawPadding);
+
+        var semanticValue = handler.GetValue(source)!;
+        var boost = Assert.Single(semanticValue);
+        Assert.Equal(ActorValue.Speech, boost.Skill);
+
+        var target = CreateRace(0xA09);
+        handler.SetValue(target, [.. semanticValue, rawPadding, rawPadding]);
+
+        Assert.Equal(ActorValue.Speech, target.SkillBoost0.Skill);
+        Assert.All(
+            new[] { target.SkillBoost1, target.SkillBoost2, target.SkillBoost3,
+                target.SkillBoost4, target.SkillBoost5, target.SkillBoost6 },
+            padding => Assert.Equal(ActorValue.None, padding.Skill));
+    }
+
+    [Fact]
     public void RaceRegistersOnlyTheGroupedSkillBoostHandler()
     {
         var handlers = new DreadsMashedPatch.RecordHandlers.RaceRecordHandler().PropertyHandlers;

@@ -1,6 +1,6 @@
-# Dread's Mashed Patch standalone application
+# Mashed Patch standalone application
 
-Dread's Mashed Patch is a Windows desktop patcher. It is not intended to be added to or launched by the Synthesis application. The desktop host uses Mutagen and the Synthesis pipeline libraries internally to construct the load order and write the output plugin, while retaining one patch implementation in `DreadsMashedPatch.Program.RunPatch`.
+Mashed Patch is a Windows desktop patcher. It is not intended to be added to or launched by the Synthesis application. The desktop host uses Mutagen and the Synthesis pipeline libraries internally to construct the load order and write the output plugin, while retaining one patch implementation in `DreadsMashedPatch.Program.RunPatch`.
 
 ## Running
 
@@ -27,15 +27,23 @@ Every supported record family is enabled by default. The UI groups them by the f
 
 ## Diagnostics
 
-Progress and warnings are always shown. Debug mode enables context-change logging and optional deep dives by xEdit record signature, FormKey, and field/property selector. Broad Detailed logging remains available as a developer-only configuration because enabling it for every record can produce extremely large logs. Common xEdit field signatures such as `EDID`, `FULL`, `DESC`, `KWDA`, `VMAD`, and `CTDA` are accepted. Deep-dive selectors accept commas, semicolons, or one value per line.
+The Run Log tab shows bounded progress, warnings, and errors while the complete output is written live to `DreadsMashedPatch-current.log`. Debug mode enables context-change logging and optional deep dives by xEdit record signature, FormKey, and field/property selector without placing the full diagnostic stream in the UI. Broad Detailed logging remains available as a developer-only configuration because enabling it for every record can produce extremely large log files. Common xEdit field signatures such as `EDID`, `FULL`, `DESC`, `KWDA`, `VMAD`, and `CTDA` are accepted. Deep-dive selectors accept commas, semicolons, or one value per line.
 
 The game release is selected explicitly and passed to Mutagen/Synthesis. Anniversary Edition uses the corresponding Special Edition Steam or GOG selection. Mutagen requires this value for implicit masters, load-order parsing, and binary defaults. Creation Club listings are read explicitly from `Skyrim.ccc` in the selected game folder, merged with `plugins.txt`, and deduplicated by the Synthesis pipeline.
 
 The primary output name is fixed as `Dread's Mashed Patch.esp`. If the patch needs more than 254 masters, Synthesis automatically splits it into additional numbered plugins such as `Dread's Mashed Patch_2.esp`. If the primary output already appears in the selected load order, Synthesis reads only enabled plugins placed before it. If it is absent, Synthesis reads the complete enabled load order. Before a rerun, numbered outputs from the previous run are removed so obsolete split files cannot remain when the new patch uses fewer files.
 
+Use **Create empty patch output** on the General tab before the first full run when the plugin must be positioned in a mod manager. The action removes the primary and recognized split outputs, then writes one empty, masterless plugin at the stable primary filename.
+
+Plugins on the **Priority Mods** tab win at record scope. If another plugin overwrites one of their records, Mashed Patch copies the complete record snapshot from the matching priority mod occurring last in the configured list instead of merging individual properties. No patch record is needed when that selected source is already the winning override.
+
 At the start of every run, the patcher builds its official baseline from the base game, DLC, `SkyrimVR.esm`, and optionally the installed entries from `Skyrim.ccc`. It then intersects that set with the final Synthesis load order, so missing plugins are ignored. The **Treat Creation Club content as official baseline** policy is enabled by default to preserve the original behaviour; disabling it makes Creation Club conflicts eligible for forwarding like ordinary mods.
 
-The **Master Rules** tab supports intentional overwrite relationships that plugin headers do not declare. Each rule names one plugin to treat as a master and one or more target mods that receive that authority. Rules are compiled once per run into a target-to-virtual-masters lookup; imported plugin headers are never modified. If the relationship is already present in a target plugin's real masters list, the rule is harmless and does not add or duplicate header entries.
+The **Editor IDs (EDID)** policy offers three behaviors. **Preserve the official Editor ID** (the default) restores the EDID from the latest plugin in the configured official baseline. This is a defensive compatibility measure because some game behavior can unexpectedly resolve an EDID rather than only a FormID; renamed EDIDs have caused dialogue and NPC speech failures in released mods, as documented in the [Scion changelog](https://www.nexusmods.com/skyrimspecialedition/mods/41639?tab=logs). **Forward Editor ID changes** retains normal field forwarding. **Forward only on an existing patch record** forwards an EDID when some other property also needs an override, but never creates an EDID-only patch record.
+
+Migration note: EDID policy selection is generalized in the shared record-processing path for every supported record type. Record-specific property handlers and all non-EDID fields remain specialized as before; only the final EDID decision is governed centrally so there is one implementation path.
+
+The **Master Rules** tab supports intentional overwrite relationships that plugin headers do not declare. Each rule names one plugin to treat as a master and the target mods that receive that authority. New configurations include curated rules for USSEP-aware mods and Creation Club overhauls that rely on `Unofficial Skyrim Creation Club Content Patch.esl`. Empty rules have no effect and can be populated later. The **Restore default rules** button replaces the edited list with a fresh copy of that default set. Rules are compiled once per run into a target-to-virtual-masters lookup; imported plugin headers are never modified. If the relationship is already present in a target plugin's real masters list, the rule is harmless and does not add or duplicate header entries.
 
 ## Build and publish
 

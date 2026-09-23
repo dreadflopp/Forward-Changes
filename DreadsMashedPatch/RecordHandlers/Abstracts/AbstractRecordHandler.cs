@@ -10,6 +10,7 @@ using Mutagen.Bethesda.Plugins.Cache;
 using DreadsMashedPatch.RecordHandlers.Interfaces;
 using DreadsMashedPatch.PropertyHandlers.Interfaces;
 using DreadsMashedPatch.Contexts.Interfaces;
+using DreadsMashedPatch.Enums;
 
 namespace DreadsMashedPatch.RecordHandlers.Abstracts
 {
@@ -32,6 +33,16 @@ namespace DreadsMashedPatch.RecordHandlers.Abstracts
             EmptyAtomicOwnershipTriggerProperties;
 
         protected Dictionary<string, IPropertyContext> PropertyContexts { get; private set; } = [];
+
+        /// <summary>
+        /// Gives record-specific semantic groups one final opportunity to keep related
+        /// properties coherent after the ordinary per-property conflict decisions.
+        /// </summary>
+        protected virtual PropertyForwardingCoordination CoordinateForwardedProperties(
+            IReadOnlyList<IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter>> recordContexts)
+        {
+            return PropertyForwardingCoordination.None;
+        }
 
         private static bool IsLikelyTypeNameString(string text)
         {
@@ -230,10 +241,22 @@ namespace DreadsMashedPatch.RecordHandlers.Abstracts
         /// <param name="filteredWinningContexts"></param>
         public void Process(IPatcherState<ISkyrimMod, ISkyrimModGetter> state, IModContext<ISkyrimMod, ISkyrimModGetter, IMajorRecord, IMajorRecordGetter>[] filteredWinningContexts)
         {
-            foreach (var winningContext in filteredWinningContexts)
+            foreach (var discoveredWinningContext in filteredWinningContexts)
             {
                 try
                 {
+                    // Migration note: ignored plugins are removed once in the shared record
+                    // processing path. Record-specific context resolution stays specialized so
+                    // every family retains its Mutagen type surface.
+                    var recordContexts = GetRecordContexts(discoveredWinningContext, state)
+                        .Where(context => !PatcherSettings.IsIgnoredMod(context.ModKey))
+                        .ToArray();
+                    if (recordContexts.Length == 0)
+                    {
+                        continue;
+                    }
+
+                    var winningContext = recordContexts[0];
                     var deepDiveRecord = LoggingSettings.IsDeepDiveRecord(winningContext);
                     var detailedRecord = deepDiveRecord || LoggingSettings.Verbosity == PatcherLogVerbosity.Detailed;
                     var auditContextChanges = deepDiveRecord || LoggingSettings.Verbosity != PatcherLogVerbosity.Summary;
@@ -241,6 +264,7 @@ namespace DreadsMashedPatch.RecordHandlers.Abstracts
 
                     Console.WriteLine(new string('-', 80));
                     Console.WriteLine($"Processing: {winningContext.Record.FormKey} ({winningContext.Record.EditorID})");
+                    Console.WriteLine($"Record type: {RecordTypeCatalog.GetRecordDescription(winningContext.Record)}");
 
                     // some break early checks if the pre-filtering failed
                     if (Utility.IsVanilla(winningContext))
@@ -249,13 +273,45 @@ namespace DreadsMashedPatch.RecordHandlers.Abstracts
                         continue;
                     }
 
-                    // Get all contexts for this record in load order using concrete handler
-                    var recordContexts = GetRecordContexts(winningContext, state);
+                    // Global priority-mod policy: an overwritten configured source is copied
+                    // as one exact record snapshot. This intentionally bypasses property-level
+                    // merging so unregistered fields and coupled structures are preserved too.
+                    // Configuration order is authoritative between priority mods: the last
+                    // listed mod which edits this record wins, independent of their relative
+                    // load-order positions.
+                    var priorityContext = PatcherSettings.SelectAlwaysWinningContext(
+                        recordContexts,
+                        context => context.ModKey);
+                    if (priorityContext != null)
+                    {
+                        if (priorityContext.ModKey == winningContext.ModKey)
+                        {
+                            Console.WriteLine(
+                                $"Always-win source {priorityContext.ModKey} is already the winning override; " +
+                                "no patch record is needed");
+                            continue;
+                        }
+
+                        Console.WriteLine(
+                            $"Always-win override: copying the complete record from {priorityContext.ModKey} " +
+                            $"over {winningContext.ModKey}");
+                        GetOverrideRecord(priorityContext, state);
+                        continue;
+                    }
+
+                    var latestBaselineContext = recordContexts.FirstOrDefault(Utility.IsVanilla);
+                    var mustPreserveBaselineEditorId =
+                        PatcherSettings.EditorIdPolicy == EditorIdForwardingPolicy.PreserveBaseline
+                        && latestBaselineContext != null
+                        && PropertyHandlers.TryGetValue("EditorID", out var editorIdHandler)
+                        && !editorIdHandler.AreValuesEqual(
+                            editorIdHandler.GetValue(latestBaselineContext.Record),
+                            editorIdHandler.GetValue(winningContext.Record));
 
                     // Formatter diagnostics are warnings, so they must not depend on Detailed logging.
                     AuditFormatterWarnings(recordContexts, PropertyHandlers);
 
-                    if (recordContexts.Length <= 2)
+                    if (recordContexts.Length <= 2 && !mustPreserveBaselineEditorId)
                     {
                         Console.WriteLine("Breaking early: 2 or less contexts");
                         continue;
@@ -263,7 +319,7 @@ namespace DreadsMashedPatch.RecordHandlers.Abstracts
 
                     // Check if the mod before the winning context is vanilla
                     var previousContext = recordContexts[1];
-                    if (Utility.IsVanilla(previousContext))
+                    if (Utility.IsVanilla(previousContext) && !mustPreserveBaselineEditorId)
                     {
                         Console.WriteLine("Breaking early: Previous context is vanilla");
                         continue;
@@ -325,8 +381,7 @@ namespace DreadsMashedPatch.RecordHandlers.Abstracts
                     }
                     if (LogCollector.HasLogs())
                     {
-                        LogCollector.PrintAll();
-                        LogCollector.Clear();
+                        LogCollector.PrintAllAndClear();
                     }
 
                     // Pass 1: Process from original to winning (for lists and unresolved properties)
@@ -394,8 +449,7 @@ namespace DreadsMashedPatch.RecordHandlers.Abstracts
                         }
                         if (LogCollector.HasLogs())
                         {
-                            LogCollector.PrintAll();
-                            LogCollector.Clear();
+                            LogCollector.PrintAllAndClear();
                         }
                         if (detailedRecord) Console.WriteLine("First pass complete");
                     }
@@ -480,8 +534,7 @@ namespace DreadsMashedPatch.RecordHandlers.Abstracts
                         }
                         if (LogCollector.HasLogs())
                         {
-                            LogCollector.PrintAll();
-                            LogCollector.Clear();
+                            LogCollector.PrintAllAndClear();
                         }
                         if (detailedRecord) Console.WriteLine("Second pass complete");
                     }
@@ -496,6 +549,11 @@ namespace DreadsMashedPatch.RecordHandlers.Abstracts
                     var decisionAuditContexts = recordContexts
                         .Where(context => context.ModKey.ToString() != state.PatchMod.ModKey.ToString())
                         .ToArray();
+                    var coordination = CoordinateForwardedProperties(decisionAuditContexts);
+                    if (auditContextChanges && coordination.AuditMessage != null)
+                    {
+                        LogCollector.AddDecisionAudit("UDR", coordination.AuditMessage);
+                    }
 
                     foreach (var kvp in PropertyContexts)
                     {
@@ -509,7 +567,17 @@ namespace DreadsMashedPatch.RecordHandlers.Abstracts
 
                         var originalValue = handler.GetValue(originalContext.Record);
                         var winningValue = handler.GetValue(winningContext.Record);
-                        var forwardValue = propertyContext.GetForwardValue();
+                        var forwardValue = coordination.ForwardValues.TryGetValue(propertyName, out var coordinatedValue)
+                            ? coordinatedValue
+                            : propertyContext.GetForwardValue();
+                        if (propertyName == "EditorID"
+                            && PatcherSettings.EditorIdPolicy == EditorIdForwardingPolicy.PreserveBaseline
+                            && latestBaselineContext != null)
+                        {
+                            // Shared EDID policy: every record family uses the latest configured
+                            // official baseline. Record-specific handlers remain otherwise unchanged.
+                            forwardValue = handler.GetValue(latestBaselineContext.Record);
+                        }
                         var shouldForward = !handler.AreValuesEqual(forwardValue, winningValue);
 
                         if (shouldForward)
@@ -599,8 +667,15 @@ namespace DreadsMashedPatch.RecordHandlers.Abstracts
 
                     if (LogCollector.HasLogs())
                     {
-                        LogCollector.PrintAll();
-                        LogCollector.Clear();
+                        LogCollector.PrintAllAndClear();
+                    }
+
+                    if (PatcherSettings.EditorIdPolicy == EditorIdForwardingPolicy.ForwardOnlyWithOtherChanges
+                        && propertiesToForward.Count == 1
+                        && propertiesToForward.Remove("EditorID"))
+                    {
+                        unchangedDecisionCount++;
+                        Console.WriteLine("EDID policy: skipped an EDID-only patch record");
                     }
 
                     Console.WriteLine($"Decision summary: forward {propertiesToForward.Count}, unchanged {unchangedDecisionCount}");
@@ -611,11 +686,31 @@ namespace DreadsMashedPatch.RecordHandlers.Abstracts
                         var overrideRecord = GetOverrideRecord(winningContext, state);
                         ApplyForwardedProperties(overrideRecord, propertiesToForward);
                     }
+
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"[Error] Skipping record {winningContext.Record.FormKey}: {ex.Message}");
+                    // Preserve any diagnostics collected before the record-level failure.
+                    if (LogCollector.HasLogs())
+                    {
+                        LogCollector.PrintAll();
+                    }
+
+                    Console.WriteLine(
+                        $"[Error] Skipping record {discoveredWinningContext.Record.FormKey}: " +
+                        $"{ex.GetType().Name}: {ex.Message}");
                     LogCollector.Clear();
+                }
+                finally
+                {
+                    // Covers every early-continue path as well as diagnostics emitted
+                    // after the normal phase-specific flush points.
+                    if (LogCollector.HasLogs())
+                    {
+                        LogCollector.PrintAllAndClear();
+                    }
+
+                    LogCollector.SetRecordLoggingContext(deepDiveRecord: false, detailedRecord: false);
                 }
             }
         }
@@ -767,8 +862,10 @@ namespace DreadsMashedPatch.RecordHandlers.Abstracts
                     }
                     catch (Exception ex)
                     {
-                        // Property doesn't exist on this record type - just continue
-                        Console.WriteLine($"Warning: Property {propertyName} not available on record {record.FormKey}: {ex.Message}");
+                        LogCollector.AddWarning(
+                            propertyName,
+                            $"Property was not applied to record {record.FormKey}",
+                            ex);
                     }
                 }
             }

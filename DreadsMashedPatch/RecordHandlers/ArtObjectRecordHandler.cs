@@ -21,8 +21,7 @@ namespace DreadsMashedPatch.RecordHandlers
             { "EditorID", new EditorIDHandler() },
             { "MajorRecordFlagsRaw", new MajorRecordFlagsRawHandler() },
             { "SkyrimMajorRecordFlags", new SkyrimMajorRecordFlagsHandler() },
-            { "ObjectBounds", new ObjectBoundsHandler() },
-            { "Model", new ModelHandler() },
+            { "ModelAndBounds", new ModelBoundsHandler() },
             { "Type", new SimpleReflectionPropertyHandler<Mutagen.Bethesda.Skyrim.ArtObject.TypeEnum?, IArtObject, IArtObjectGetter>("Type") }
         };
 

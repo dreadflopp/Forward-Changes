@@ -14,7 +14,7 @@ public sealed class StandaloneSettings : INotifyPropertyChanged
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
-    public int SettingsVersion { get; set; } = 3;
+    public int SettingsVersion { get; set; } = 4;
 
     public GameRelease GameRelease
     {
@@ -50,7 +50,7 @@ public sealed class StandaloneSettings : INotifyPropertyChanged
 
     public void Normalize()
     {
-        SettingsVersion = 3;
+        SettingsVersion = 4;
         if (GameRelease is not (GameRelease.SkyrimSE or GameRelease.SkyrimSEGog or GameRelease.SkyrimVR))
         {
             GameRelease = GameRelease.SkyrimSE;
